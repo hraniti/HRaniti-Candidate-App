@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #F4F5F7;
+  color: #12172B;
+}
+
+/* Signature element: the "verification seal" — a rotated stamp motif used
+   anywhere the AI is vouching for extracted or matched data. It echoes the
+   product's core promise (a *verified* professional profile), not a generic
+   progress ring. */
+.seal {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-plex-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  border: 1px solid #1F7A5C;
+  color: #1F7A5C;
+  background: #DCEFE6;
+  transform: rotate(-1.5deg);
+}
+
+.seal::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #1F7A5C;
+  flex-shrink: 0;
+}
+
+.seal.low {
+  border-color: #C79A46;
+  color: #8a6a26;
+  background: #F5EFDD;
+}
+.seal.low::before {
+  background: #C79A46;
+}
+
+.paper-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E4E9;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(18,23,43,0.04), 0 8px 24px -12px rgba(18,23,43,0.12);
+}
+
+.dashed-divider {
+  border-top: 1px dashed #C9CDD6;
+}
+
+::selection {
+  background: #EADFC5;
+}
+
+/* Visible keyboard focus, everywhere */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #12172B;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
