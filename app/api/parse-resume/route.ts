@@ -20,11 +20,28 @@ You extract structured candidate data from resume text. Respond with ONLY valid 
   "experience": [{ "company": string, "title": string, "start_date": string, "end_date": string, "description": string }],
   "skills": [string],
   "certifications": [{ "name": string, "provider": string, "credential_id": string | null }],
+  "current_company": string | null,
+  "current_designation": string | null,
+  "current_location": string | null,
+  "years_experience": string | null,
   "confidence": {
     "personal_info": number, "professional_summary": number, "experience": number,
     "education": number, "skills": number, "certifications": number
   }
 }
+
+Rules for the current_* fields (these power recruiter search filters, so accuracy matters):
+- "current_company" and "current_designation" come from whichever experience entry has no
+  end date, or an end date of "Present" / "Current" / similar — i.e. their most recent /
+  ongoing role. If every role has a clear end date (no current role), use the most recent one
+  and still fill these in, since the candidate is very likely job-searching from their last role.
+- "current_location" is the candidate's city/region as stated in the resume header or most
+  recent job entry, not the company's headquarters if those differ.
+- "years_experience" is your best estimate of total professional experience as a short string
+  like "5 years" or "8+ years", computed from the earliest start date to now (or to the latest
+  end date if the candidate is not currently employed). Round to the nearest whole year.
+- If the resume genuinely doesn't contain enough information for one of these fields, use null
+  rather than guessing.
 
 Confidence values are integers 0-100 reflecting how certain you are the extraction is accurate
 given the source text (lower it when the resume is ambiguous, truncated, or missing a section).
@@ -119,6 +136,10 @@ export async function POST(req: Request) {
       skills: structured.skills,
       certifications: structured.certifications,
       ai_confidence: structured.confidence,
+      current_company: structured.current_company ?? null,
+      current_designation: structured.current_designation ?? null,
+      current_location: structured.current_location ?? null,
+      years_experience: structured.years_experience ?? null,
       resume_uploaded: true,
     })
     .eq("id", user.id);
