@@ -56,6 +56,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
+  // Throttle: block repeated uploads within a 15-minute window. This protects
+  // against accidental button-spam (or deliberate abuse) driving up OpenAI costs
+  // and thrashing the cached profile data on every re-click.
+  const THROTTLE_MS = 15 * 60 * 1000;
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("last_resume_upload_at")
+    .eq("id", user.id)
+    .single();
+
+  if (existing?.last_resume_upload_at) {
+    const elapsed = Date.now() - new Date(existing.last_resume_upload_at).getTime();
+    if (elapsed < THROTTLE_MS) {
+      const waitMinutes = Math.ceil((THROTTLE_MS - elapsed) / 60000);
+      return NextResponse.json(
+        { error: `You can upload a new resume again in about ${waitMinutes} minute${waitMinutes === 1 ? "" : "s"}.` },
+        { status: 429 }
+      );
+    }
+  }
+
   const form = await req.formData();
   const file = form.get("file") as File | null;
   if (!file) {
@@ -151,6 +172,7 @@ export async function POST(req: Request) {
         education: structured.education,
       },
       ai_updated_at: new Date().toISOString(),
+      last_resume_upload_at: new Date().toISOString(),
     })
     .eq("id", user.id);
 

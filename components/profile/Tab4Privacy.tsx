@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Profile } from "@/lib/types";
 import { SectionCard, Field, inputClass } from "./shared";
+import { anonymizedHandle } from "@/lib/anonymize";
 import Button from "@/components/Button";
 import { Download, Eye, Copy, ShieldCheck, Lock, KeyRound, Ban, X, TrendingUp } from "lucide-react";
 
@@ -276,11 +277,14 @@ export default function Tab4Privacy({
       {showPreview && (
         <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4" onClick={() => setShowPreview(null)}>
           <div className="bg-white rounded-card max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-display text-xl text-ink mb-4">
+            <h3 className="font-display text-xl text-ink mb-1">
               {showPreview === "employer" ? "Employer view" : "Search card preview"}
             </h3>
+            <p className="text-xs text-ink-soft mb-4">
+              Your name and contact details stay hidden until an employer requests an interview.
+            </p>
             <div className="paper-card p-4">
-              <p className="font-medium text-ink">{profile.full_name}</p>
+              <p className="font-medium text-ink font-mono text-sm">{anonymizedHandle(profile)}</p>
               <p className="text-sm text-ink-soft">{profile.current_designation} at {profile.current_company}</p>
               <p className="text-xs text-ink-soft mt-1">{profile.current_location}</p>
               {showPreview === "employer" && (

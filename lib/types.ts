@@ -90,6 +90,7 @@ export interface Profile {
   years_experience: string | null;
   current_location: string | null;
   resume_uploaded: boolean;
+  last_resume_upload_at: string | null;
   preferences_completed: boolean;
   preferred_role: string | null;
   preferred_locations: string[] | null;
