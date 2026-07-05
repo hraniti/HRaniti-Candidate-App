@@ -88,8 +88,20 @@ function ApplicationsInner() {
 
   if (loading) return <p className="font-mono text-sm text-ink-soft">Loading…</p>;
 
+  const categoryLabels: Record<Category, string> = {
+    applied: "Applied",
+    interviews: "Interviews",
+    offers: "Offers",
+    archived: "Archived",
+  };
+
   return (
-    <div className="space-y-4">
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-xl text-ink">My Applications — {categoryLabels[category]}</h2>
+        <span className="text-xs text-ink-soft font-mono">{filtered.length} total</span>
+      </div>
+      <div className="space-y-4">
       {filtered.length === 0 && (
         <p className="text-sm text-ink-soft italic text-center py-10">Nothing here yet.</p>
       )}
@@ -150,6 +162,7 @@ function ApplicationsInner() {
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }

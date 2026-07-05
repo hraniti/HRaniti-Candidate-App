@@ -35,6 +35,12 @@ export function calcMatchScore(profile: Profile, job: Job): number {
   return Math.round(Math.min(100, skillsScore + trackScore + locationScore + workModeScore));
 }
 
+export function parseYearsExperience(value: string | null): number {
+  if (!value) return 0;
+  const match = value.match(/\d+/);
+  return match ? parseInt(match[0], 10) : 0;
+}
+
 export function matchTier(score: number): MatchTier {
   if (score >= 90) return "Excellent Match";
   if (score >= 75) return "Good Match";

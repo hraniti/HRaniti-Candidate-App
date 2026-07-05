@@ -44,7 +44,9 @@ export default function AutoMatchCard({
       <p className="text-xs text-ink-soft mb-3">
         {profile.auto_match_enabled
           ? "Employers with matching roles can discover your profile automatically."
-          : "Turn this on to let strong-match employers discover you automatically."}
+          : e.eligible
+          ? "Turn this on to let strong-match employers discover you automatically."
+          : "Locked until the requirements below are met — this keeps auto-matching strict and high-quality."}
       </p>
       <div className="space-y-1.5">
         {requirements.map((r) => (
@@ -58,6 +60,11 @@ export default function AutoMatchCard({
           <span className="text-ink-soft">Not already applied — checked per job</span>
         </div>
       </div>
+      {!e.eligible && (
+        <a href="/profile" className="inline-block mt-3 text-xs text-ink underline underline-offset-4">
+          Fix this in My Profile →
+        </a>
+      )}
     </section>
   );
 }

@@ -92,6 +92,7 @@ export interface Job {
   expected_review_timeline: string;
   referral_slug: string | null;
   notice_period_required: string | null;
+  min_experience_years: number;
 }
 
 export type ApplicationStatus =

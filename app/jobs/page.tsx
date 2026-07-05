@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Profile, Job } from "@/lib/types";
-import { calcMatchScore } from "@/lib/jobMatching";
+import { calcMatchScore, parseYearsExperience } from "@/lib/jobMatching";
+import { convertToUSD } from "@/lib/currency";
 import JobCard from "@/components/jobs/JobCard";
 import QuickApplyModal from "@/components/jobs/QuickApplyModal";
 import AutoMatchCard from "@/components/jobs/AutoMatchCard";
@@ -24,6 +25,9 @@ export default function DiscoverPage() {
 
   const [search, setSearch] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [experienceFilter, setExperienceFilter] = useState<"any" | "junior" | "mid" | "senior">("any");
+  const [salaryCurrency, setSalaryCurrency] = useState("USD");
+  const [minSalary, setMinSalary] = useState("");
   const [workModeFilter, setWorkModeFilter] = useState("");
   const [visaOnly, setVisaOnly] = useState(false);
   const [urgentOnly, setUrgentOnly] = useState(false);
@@ -49,6 +53,9 @@ export default function DiscoverPage() {
       // Pre-fill location filter from Phase 1, work mode from Phase 2, per spec.
       if (p?.preferred_locations?.[0]) setLocationFilter(p.preferred_locations[0]);
       if (p?.work_preference?.[0]) setWorkModeFilter(p.work_preference[0]);
+      if (p?.salary_currency) setSalaryCurrency(p.salary_currency);
+      const years = parseYearsExperience(p?.years_experience ?? null);
+      setExperienceFilter(years >= 7 ? "senior" : years >= 3 ? "mid" : years > 0 ? "junior" : "any");
       setLoading(false);
     })();
   }, []);
@@ -88,12 +95,26 @@ export default function DiscoverPage() {
     if (workModeFilter) list = list.filter((j) => j.work_mode === workModeFilter);
     if (visaOnly) list = list.filter((j) => j.visa_sponsorship);
     if (urgentOnly) list = list.filter((j) => j.urgent_hiring);
+    if (experienceFilter !== "any") {
+      list = list.filter((j) => {
+        if (experienceFilter === "junior") return j.min_experience_years <= 2;
+        if (experienceFilter === "mid") return j.min_experience_years >= 3 && j.min_experience_years <= 6;
+        return j.min_experience_years >= 7;
+      });
+    }
+    if (minSalary.trim()) {
+      const minUsd = convertToUSD(Number(minSalary), salaryCurrency);
+      list = list.filter((j) => {
+        const jobMaxUsd = convertToUSD(j.salary_max ?? j.salary_min ?? 0, j.salary_currency);
+        return jobMaxUsd >= minUsd;
+      });
+    }
 
     if (tab === "for_you" && profile) {
       list = [...list].sort((a, b) => calcMatchScore(profile, b) - calcMatchScore(profile, a));
     }
     return list;
-  }, [jobs, tab, search, locationFilter, workModeFilter, visaOnly, urgentOnly, savedIds, appliedIds, profile]);
+  }, [jobs, tab, search, locationFilter, workModeFilter, visaOnly, urgentOnly, experienceFilter, minSalary, salaryCurrency, savedIds, appliedIds, profile]);
 
   if (loading || !profile) {
     return <p className="font-mono text-sm text-ink-soft">Loading opportunities…</p>;
@@ -156,6 +177,36 @@ export default function DiscoverPage() {
           <option>Hybrid</option>
           <option>On-site</option>
         </select>
+        <select
+          value={experienceFilter}
+          onChange={(e) => setExperienceFilter(e.target.value as typeof experienceFilter)}
+          className="rounded-lg border border-line px-2 py-2 text-sm bg-white"
+        >
+          <option value="any">Any experience</option>
+          <option value="junior">0–2 years</option>
+          <option value="mid">3–6 years</option>
+          <option value="senior">7+ years</option>
+        </select>
+        <div className="flex items-center gap-1">
+          <select
+            value={salaryCurrency}
+            onChange={(e) => setSalaryCurrency(e.target.value)}
+            className="rounded-lg border border-line px-1.5 py-2 text-sm bg-white"
+          >
+            <option>USD</option>
+            <option>INR</option>
+            <option>EUR</option>
+            <option>GBP</option>
+            <option>AED</option>
+          </select>
+          <input
+            type="number"
+            value={minSalary}
+            onChange={(e) => setMinSalary(e.target.value)}
+            placeholder="Min salary"
+            className="w-28 rounded-lg border border-line px-2 py-2 text-sm focus:border-ink outline-none"
+          />
+        </div>
         <label className="flex items-center gap-1.5 text-xs text-ink-soft">
           <input type="checkbox" checked={visaOnly} onChange={(e) => setVisaOnly(e.target.checked)} /> Visa Sponsorship
         </label>
