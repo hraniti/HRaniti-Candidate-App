@@ -126,6 +126,7 @@ export interface Profile {
   city: string | null;
   languages: LanguageEntry[] | null;
   profile_visibility: "Public" | "Private" | "Only to Employers I Apply To";
+  show_video_pitch: boolean;
   blocked_employers: string[] | null;
   sms_notifications: boolean;
   profile_slug: string | null;

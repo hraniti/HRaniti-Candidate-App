@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Profile } from "@/lib/types";
 import { SectionCard, Field, inputClass } from "./shared";
 import Button from "@/components/Button";
-import { Download, Eye, Copy, ShieldCheck, Lock } from "lucide-react";
+import { Download, Eye, Copy, ShieldCheck, Lock, KeyRound, Ban, X, TrendingUp } from "lucide-react";
 
 const VISIBILITY_OPTIONS: Profile["profile_visibility"][] = ["Public", "Private", "Only to Employers I Apply To"];
 
@@ -38,6 +38,12 @@ export default function Tab4Privacy({
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [slug, setSlug] = useState(profile.profile_slug ?? "");
   const [copied, setCopied] = useState(false);
+  const [blockedEmployers, setBlockedEmployers] = useState<string[]>(profile.blocked_employers ?? []);
+  const [newBlockedEmployer, setNewBlockedEmployer] = useState("");
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordStatus, setPasswordStatus] = useState<"idle" | "saving" | "done" | "error">("idle");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const connectedVia = profile.signup_provider ?? "email";
 
@@ -49,6 +55,42 @@ export default function Tab4Privacy({
     a.download = "hraniti-profile-export.json";
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function addBlockedEmployer() {
+    const name = newBlockedEmployer.trim();
+    if (!name || blockedEmployers.includes(name)) return;
+    const next = [...blockedEmployers, name];
+    setBlockedEmployers(next);
+    queueSave({ blocked_employers: next });
+    setNewBlockedEmployer("");
+  }
+
+  function removeBlockedEmployer(name: string) {
+    const next = blockedEmployers.filter((e) => e !== name);
+    setBlockedEmployers(next);
+    queueSave({ blocked_employers: next });
+  }
+
+  async function changePassword() {
+    if (newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters.");
+      return;
+    }
+    setPasswordStatus("saving");
+    setPasswordError(null);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setPasswordStatus("error");
+      setPasswordError(error.message);
+      return;
+    }
+    setPasswordStatus("done");
+    setNewPassword("");
+    setTimeout(() => {
+      setShowChangePassword(false);
+      setPasswordStatus("idle");
+    }, 1500);
   }
 
   async function requestDeletion() {
@@ -75,6 +117,7 @@ export default function Tab4Privacy({
         {[
           { key: "show_profile_to_recruiters", label: "Show my profile to recruiters", detail: "Master switch." },
           { key: "show_assessments", label: "Show my assessments", detail: "Controls visibility of assessment results." },
+          { key: "show_video_pitch", label: "Show video pitch", detail: "Controls visibility of your AI voice/video interview output." },
           { key: "allow_resume_download", label: "Allow employers to download my resume", detail: "" },
           { key: "allow_direct_contact", label: "Allow employers to contact me directly", detail: "" },
         ].map((t) => (
@@ -126,6 +169,52 @@ export default function Tab4Privacy({
             </div>
           );
         })}
+      </SectionCard>
+
+      <SectionCard title="Block specific employers">
+        <p className="text-xs text-ink-soft mb-3">
+          Hide your profile from specific companies — useful if you'd rather your current employer didn't see you're looking.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {blockedEmployers.map((name) => (
+            <span key={name} className="inline-flex items-center gap-1.5 bg-paper border border-line rounded-full px-3 py-1 text-xs text-ink">
+              <Ban size={11} className="text-alert" /> {name}
+              <button onClick={() => removeBlockedEmployer(name)} aria-label={`Unblock ${name}`}>
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+          {blockedEmployers.length === 0 && <p className="text-xs text-ink-soft italic">No employers blocked.</p>}
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={newBlockedEmployer}
+            onChange={(e) => setNewBlockedEmployer(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addBlockedEmployer()}
+            placeholder="Company name"
+            className={`${inputClass} flex-1`}
+          />
+          <Button variant="secondary" onClick={addBlockedEmployer}>Block</Button>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Account security">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-ink">Password</p>
+            <p className="text-xs text-ink-soft">Last changed — not tracked yet</p>
+          </div>
+          <Button variant="secondary" onClick={() => setShowChangePassword(true)}>
+            <KeyRound size={14} /> Change Password
+          </Button>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Profile activity" right={<span className="text-[11px] font-mono text-ink-soft">Roadmap</span>}>
+        <div className="flex items-center gap-2 text-ink-soft">
+          <TrendingUp size={16} />
+          <p className="text-sm">Employer view counts are coming in a future update.</p>
+        </div>
       </SectionCard>
 
       <SectionCard title="Your profile link">
@@ -204,6 +293,39 @@ export default function Tab4Privacy({
               </div>
             </div>
             <Button className="w-full justify-center mt-4" onClick={() => setShowPreview(null)}>Close</Button>
+          </div>
+        </div>
+      )}
+
+      {showChangePassword && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-card max-w-sm w-full p-6">
+            <h3 className="font-display text-xl text-ink mb-2">Change your password</h3>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password (min. 8 characters)"
+              className={`${inputClass} mb-2`}
+            />
+            {passwordError && <p className="text-sm text-alert mb-2">{passwordError}</p>}
+            {passwordStatus === "done" && <p className="text-sm text-verified mb-2">Password updated.</p>}
+            <div className="flex gap-3 mt-2">
+              <Button
+                variant="secondary"
+                className="flex-1 justify-center"
+                onClick={() => {
+                  setShowChangePassword(false);
+                  setPasswordError(null);
+                  setNewPassword("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button className="flex-1 justify-center" loading={passwordStatus === "saving"} onClick={changePassword}>
+                Update
+              </Button>
+            </div>
           </div>
         </div>
       )}

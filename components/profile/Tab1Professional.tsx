@@ -14,7 +14,8 @@ import { SectionCard, Field, inputClass, RestoreAIButton, StarRating, DataOrigin
 import Seal from "@/components/Seal";
 import Button from "@/components/Button";
 import RegenerateModal from "./RegenerateModal";
-import { Plus, Trash2, Sparkles, FileText, CheckCircle2, Clock, Pin, PinOff } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { Plus, Trash2, Sparkles, FileText, CheckCircle2, Clock, Pin, PinOff, Upload, Loader2 } from "lucide-react";
 
 const SKILL_CATEGORIES: SkillCategory[] = ["Technical", "Functional", "Soft Skills", "Languages"];
 const CURRENT_YEAR = new Date().getFullYear();
@@ -39,6 +40,8 @@ export default function Tab1Professional({
   saveNow: () => void;
 }) {
   const router = useRouter();
+  const supabase = createClient();
+  const [uploadingCertIdx, setUploadingCertIdx] = useState<number | null>(null);
   const [summary, setSummary] = useState(profile.professional_summary ?? "");
   const [phone, setPhone] = useState(profile.phone ?? "");
   const [linkedin, setLinkedin] = useState(profile.linkedin_url ?? "");
@@ -92,6 +95,27 @@ export default function Tab1Professional({
   function updateCertifications(next: Certification[]) {
     setCertifications(next);
     queueSave({ certifications: next });
+  }
+
+  async function uploadCertificate(i: number, file: File) {
+    setUploadingCertIdx(i);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const path = `${user.id}/${Date.now()}-${file.name}`;
+      const { error } = await supabase.storage.from("certificates").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: signed } = await supabase.storage.from("certificates").createSignedUrl(path, 60 * 60 * 24 * 365);
+      const next = [...certifications];
+      next[i] = { ...next[i], certificate_url: signed?.signedUrl ?? path };
+      updateCertifications(next);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setUploadingCertIdx(null);
+    }
   }
 
   function updateSkills(next: SkillDetail[]) {
@@ -507,12 +531,36 @@ export default function Tab1Professional({
                 placeholder="Credential ID (optional)"
                 className={inputClass}
               />
-              <span className="sm:col-span-3 text-[11px] font-mono">
-                {c.credential_id ? (
-                  <span className="text-verified">✓ Verified</span>
-                ) : (
-                  <span className="text-gold">⏳ Uploaded — pending verification</span>
-                )}
+              <span className="sm:col-span-3 flex items-center justify-between gap-3 flex-wrap">
+                <span className="text-[11px] font-mono flex items-center gap-3">
+                  {c.credential_id ? (
+                    <span className="text-verified">✓ Verified</span>
+                  ) : (
+                    <span className="text-gold">⏳ Uploaded — pending verification</span>
+                  )}
+                  {c.certificate_url && (
+                    <a href={c.certificate_url} target="_blank" rel="noreferrer" className="text-ink underline underline-offset-4">
+                      View file
+                    </a>
+                  )}
+                </span>
+                <label className="inline-flex items-center gap-1.5 text-xs text-ink cursor-pointer hover:text-ink-light">
+                  {uploadingCertIdx === i ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Upload size={13} />
+                  )}
+                  {c.certificate_url ? "Replace certificate" : "Upload certificate"}
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadCertificate(i, file);
+                    }}
+                  />
+                </label>
               </span>
             </div>
           ))}
