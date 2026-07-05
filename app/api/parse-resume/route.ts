@@ -122,7 +122,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "AI returned an unreadable response" }, { status: 502 });
   }
 
-  // Persist to the candidate's profile.
+  // Persist to the candidate's profile. We also snapshot the AI's raw output
+  // (ai_snapshot) so Phase 2's "Restore AI Version" buttons have something to
+  // revert to even after the candidate edits these fields by hand.
   await supabase
     .from("profiles")
     .update({
@@ -141,6 +143,14 @@ export async function POST(req: Request) {
       current_location: structured.current_location ?? null,
       years_experience: structured.years_experience ?? null,
       resume_uploaded: true,
+      ai_snapshot: {
+        professional_summary: structured.professional_summary,
+        experience: structured.experience,
+        skills: structured.skills,
+        certifications: structured.certifications,
+        education: structured.education,
+      },
+      ai_updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);
 

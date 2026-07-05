@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Profile } from "@/lib/types";
 import { calcCompleteness } from "@/lib/completeness";
 import Button from "@/components/Button";
+import AppHeader from "@/components/AppHeader";
 import { Sparkles, Video, ClipboardCheck, UserPlus, ArrowRight } from "lucide-react";
 
 interface Job {
@@ -84,7 +85,7 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-paper px-4 py-10 sm:py-14">
       <div className="max-w-3xl mx-auto">
-        <span className="font-display italic text-lg text-ink block mb-8">HRaniti</span>
+        <AppHeader />
 
         <h1 className="font-display text-3xl sm:text-4xl text-ink mb-1">
           Welcome to HRaniti, {profile.full_name?.split(" ")[0] ?? "there"}!
