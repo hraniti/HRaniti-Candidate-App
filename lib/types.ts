@@ -55,6 +55,122 @@ export interface LanguageEntry {
   proficiency: "Beginner" | "Intermediate" | "Professional" | "Native" | "Review Required";
 }
 
+// --- Phase 3: Jobs / Career Opportunities -----------------------------------
+
+export interface HiringTeamMember {
+  name: string;
+  role: string;
+}
+
+export interface Job {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  career_track: string;
+  skills: string[];
+  applicant_count: number;
+  created_at: string;
+  description: string;
+  employment_type: "Full-time" | "Contract" | "Freelance";
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string;
+  work_mode: "Remote" | "Hybrid" | "On-site";
+  visa_sponsorship: boolean;
+  urgent_hiring: boolean;
+  required_skills: string[];
+  preferred_skills: string[];
+  nice_to_have_skills: string[];
+  company_description: string;
+  industry: string;
+  company_size: string;
+  locations: string[];
+  website: string;
+  perks: string[];
+  hiring_team: HiringTeamMember[] | null;
+  expected_review_timeline: string;
+  referral_slug: string | null;
+  notice_period_required: string | null;
+}
+
+export type ApplicationStatus =
+  | "Applied"
+  | "Interview Scheduled"
+  | "Offer"
+  | "Rejected"
+  | "Withdrawn"
+  | "Archived";
+
+export const EMPLOYER_FEEDBACK_OPTIONS = [
+  "Missing Certification",
+  "Salary mismatch",
+  "Location mismatch",
+  "Notice period",
+  "Communication",
+  "Technical Skill",
+  "Language",
+  "Travel",
+] as const;
+
+export interface AIMatchSummary {
+  highlights: string[];
+  matched_skills: number;
+  total_skills: number;
+  confidence: number;
+  data_quality: string;
+  resume_parsed: number;
+}
+
+export interface InterviewCheatSheet {
+  note: string;
+  generated_at: string;
+}
+
+export interface Application {
+  id: string;
+  user_id: string;
+  job_id: string;
+  status: ApplicationStatus;
+  applied_at: string;
+  application_quality_score: number | null;
+  employer_feedback: (typeof EMPLOYER_FEEDBACK_OPTIONS)[number] | null;
+  next_step: string;
+  expected_timeline: string | null;
+  ai_match_summary: AIMatchSummary | null;
+  interview_cheat_sheet: InterviewCheatSheet | null;
+  withdrawn_at: string | null;
+  updated_at: string;
+  job?: Job;
+}
+
+export interface SavedJob {
+  id: string;
+  user_id: string;
+  job_id: string;
+  saved_at: string;
+  job?: Job;
+}
+
+export type AssessmentType = "AI Interview" | "Domain" | "Language" | "Coding Arena";
+
+export interface AssessmentResult {
+  id: string;
+  user_id: string;
+  assessment_type: AssessmentType;
+  score: number;
+  passed: boolean;
+  completed_at: string;
+  valid_until: string | null;
+  cooldown_until: string | null;
+}
+
+export interface RecentJobView {
+  id: string;
+  title: string;
+  viewed_at: string;
+}
+
 export interface AIConfidence {
   personal_info: number;
   professional_summary: number;
@@ -135,4 +251,10 @@ export interface Profile {
   deletion_requested_at: string | null;
   updated_at: string | null;
   created_at: string | null;
+
+  // Phase 3 additions
+  auto_match_enabled: boolean;
+  digest_frequency: "Instant" | "Daily" | "Weekly" | "Off";
+  profile_photo_consent: boolean;
+  recent_job_views: RecentJobView[] | null;
 }

@@ -8,6 +8,7 @@ export default function AppHeader() {
 
   const links = [
     { href: "/dashboard", label: "Dashboard" },
+    { href: "/jobs", label: "Jobs" },
     { href: "/profile", label: "My Profile" },
   ];
 

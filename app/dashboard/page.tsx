@@ -78,7 +78,7 @@ export default function DashboardPage() {
     { label: "Verify Email", done: true, href: "#", cta: "" },
     { label: "Add Certifications", done: (profile.certifications ?? []).length > 0, href: "/onboarding/profile", cta: "Add Now" },
     { label: "Take Skill Assessment", done: false, href: "#", cta: "Start Assessment" },
-    { label: "Apply to First Job", done: false, href: "#", cta: "Browse Jobs" },
+    { label: "Apply to First Job", done: false, href: "/jobs", cta: "Browse Jobs" },
   ];
   const checklistDone = checklist.filter((c) => c.done).length;
 
@@ -120,7 +120,7 @@ export default function DashboardPage() {
             <section className="paper-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-medium text-ink">{zeroData ? "Trending roles" : "Jobs for you"}</h2>
-                <button className="text-xs text-ink-soft underline underline-offset-4">View all matches</button>
+                <a href="/jobs" className="text-xs text-ink-soft underline underline-offset-4">View all matches</a>
               </div>
 
               {zeroData && (
@@ -134,7 +134,11 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {(zeroData ? trending.map((j) => ({ job: j, score: null as number | null })) : matched).map(
                   ({ job, score }) => (
-                    <div key={job.id} className="flex items-center justify-between border border-line rounded-lg px-4 py-3">
+                    <button
+                      key={job.id}
+                      onClick={() => router.push(`/jobs/${job.id}`)}
+                      className="w-full flex items-center justify-between border border-line rounded-lg px-4 py-3 hover:border-ink/40 text-left"
+                    >
                       <div>
                         <p className="text-sm font-medium text-ink">{job.title}</p>
                         <p className="text-xs text-ink-soft">{job.company} · {job.location}</p>
@@ -142,7 +146,7 @@ export default function DashboardPage() {
                       {score !== null && (
                         <span className="font-mono text-xs text-verified">{score}% match</span>
                       )}
-                    </div>
+                    </button>
                   )
                 )}
                 {jobs.length === 0 && (

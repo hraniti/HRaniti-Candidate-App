@@ -144,6 +144,32 @@ export default function Tab4Privacy({
           <p className="text-sm text-ink">SMS notifications — time-sensitive interview reminders</p>
           <ToggleSwitch checked={profile.sms_notifications} onChange={(v) => queueSave({ sms_notifications: v })} />
         </div>
+        <div className="flex items-center justify-between py-2 dashed-divider">
+          <div>
+            <p className="text-sm text-ink pt-2">AI Job Digest</p>
+            <p className="text-xs text-ink-soft">How often you'd like a summary of new matches.</p>
+          </div>
+          <select
+            defaultValue={profile.digest_frequency}
+            onChange={(e) => queueSave({ digest_frequency: e.target.value as Profile["digest_frequency"] })}
+            className="rounded-lg border border-line px-2 py-2 text-sm bg-white"
+          >
+            <option>Instant</option>
+            <option>Daily</option>
+            <option>Weekly</option>
+            <option>Off</option>
+          </select>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Vetting & photo consent">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-ink">Allow premium AI vetting matches</p>
+            <p className="text-xs text-ink-soft">Contributes to Auto-Match eligibility. No photo is required to use HRaniti otherwise.</p>
+          </div>
+          <ToggleSwitch checked={profile.profile_photo_consent} onChange={(v) => queueSave({ profile_photo_consent: v })} />
+        </div>
       </SectionCard>
 
       <SectionCard title="Connected accounts">
