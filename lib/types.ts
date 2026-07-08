@@ -153,7 +153,7 @@ export interface SavedJob {
   job?: Job;
 }
 
-export type AssessmentType = "AI Interview" | "Domain" | "Language" | "Coding Arena";
+export type AssessmentType = "Domain" | "Behavioural" | "Language";
 
 export interface AssessmentResult {
   id: string;
@@ -170,6 +170,83 @@ export interface RecentJobView {
   id: string;
   title: string;
   viewed_at: string;
+}
+
+// --- Phase 4: Interview Hub --------------------------------------------------
+
+export type CEFRTier = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+export const SUPPORTED_LANGUAGES = ["English", "German", "Arabic", "Hindi", "French", "Spanish"] as const;
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
+export interface MCQQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  trait?: string; // for behavioural: which trait this question measures
+}
+
+export interface AssessmentResultFull extends AssessmentResult {
+  tier: CEFRTier | null;
+  report: Record<string, any> | null;
+  language: string | null;
+  career_track: string | null;
+}
+
+export interface MockInterviewResult {
+  id: string;
+  user_id: string;
+  interview_types: string[];
+  job_description: string | null;
+  company_name: string | null;
+  language: string;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  status: "In Progress" | "Completed" | "Abandoned";
+  score: number | null;
+  duration_seconds: number | null;
+  questions: { question: string; type: string }[];
+  transcript: { question: string; answer: string; skipped: boolean }[];
+  feedback: MockInterviewFeedback | null;
+  proctoring_flags: { tab_switches: number; copy_paste_events: number };
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface MockInterviewFeedback {
+  overall_score: number;
+  breakdown: Record<string, number>;
+  per_question: { question: string; strong: string; weak: string; suggestion: string }[];
+  resources: string[];
+}
+
+export type QuestionType = "Technical" | "Behavioural" | "Language" | "Cultural" | "Case";
+export type Difficulty = "Beginner" | "Intermediate" | "Advanced";
+
+export interface QuestionBankItem {
+  id: string;
+  type: QuestionType;
+  question_text: string;
+  difficulty: Difficulty;
+  category: string;
+  model_answer: string | null;
+  created_at: string;
+}
+
+export interface SavedPitch {
+  id: string;
+  user_id: string;
+  video_url: string;
+  score: number | null;
+  ai_feedback: PitchFeedback | null;
+  status: "Saved" | "Shared with Employers" | "Draft";
+  created_at: string;
+}
+
+export interface PitchFeedback {
+  positives: string[];
+  improvements: string[];
+  tips: string[];
+  score: number;
 }
 
 export interface AIConfidence {
@@ -258,4 +335,6 @@ export interface Profile {
   digest_frequency: "Instant" | "Daily" | "Weekly" | "Off";
   profile_photo_consent: boolean;
   recent_job_views: RecentJobView[] | null;
+  subscription_tier: "free" | "paid";
+  current_video_pitch_url: string | null;
 }

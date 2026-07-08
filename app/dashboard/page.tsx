@@ -77,7 +77,7 @@ export default function DashboardPage() {
     { label: "Upload Resume", done: profile.resume_uploaded, href: "/onboarding/resume", cta: "Add Now" },
     { label: "Verify Email", done: true, href: "#", cta: "" },
     { label: "Add Certifications", done: (profile.certifications ?? []).length > 0, href: "/onboarding/profile", cta: "Add Now" },
-    { label: "Take Skill Assessment", done: false, href: "#", cta: "Start Assessment" },
+    { label: "Take Skill Assessment", done: false, href: "/interview-hub", cta: "Start Assessment" },
     { label: "Apply to First Job", done: false, href: "/jobs", cta: "Browse Jobs" },
   ];
   const checklistDone = checklist.filter((c) => c.done).length;

@@ -225,6 +225,22 @@ export default function Tab4Privacy({
         </div>
       </SectionCard>
 
+      <SectionCard title="Subscription" right={<span className="text-[11px] font-mono text-gold">Test mode</span>}>
+        <p className="text-xs text-ink-soft mb-3">
+          Real billing (Stripe/Razorpay) isn't connected yet. Use this toggle to test Mock Interview, full Question
+          Bank, and Video Pitch AI Coaching before payments go live.
+        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-ink">
+            Plan: <span className="font-mono">{profile.subscription_tier === "paid" ? "Paid (test)" : "Free"}</span>
+          </p>
+          <ToggleSwitch
+            checked={profile.subscription_tier === "paid"}
+            onChange={(v) => queueSave({ subscription_tier: v ? "paid" : "free" })}
+          />
+        </div>
+      </SectionCard>
+
       <SectionCard title="Account security">
         <div className="flex items-center justify-between">
           <div>

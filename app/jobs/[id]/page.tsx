@@ -44,7 +44,7 @@ export default function JobDetailPage() {
   const [whyFit, setWhyFit] = useState<string | null>(null);
   const [cameFrom, setCameFrom] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [assessmentType, setAssessmentType] = useState("AI Interview");
+  const [assessmentType, setAssessmentType] = useState("Domain");
 
   useEffect(() => {
     (async () => {
@@ -212,12 +212,16 @@ export default function JobDetailPage() {
                       onChange={(e) => setAssessmentType(e.target.value)}
                       className="text-xs rounded-md border border-line px-2 py-1 bg-white"
                     >
-                      <option>AI Interview</option>
                       <option>Domain</option>
+                      <option>Behavioural</option>
                       <option>Language</option>
-                      <option>Coding Arena</option>
                     </select>
-                    <span className="text-[11px] text-ink-soft italic">Coming soon</span>
+                    <button
+                      onClick={() => router.push("/interview-hub")}
+                      className="text-xs text-ink underline underline-offset-4"
+                    >
+                      Take assessment →
+                    </button>
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
