@@ -7,6 +7,7 @@ import { Profile } from "@/lib/types";
 import { calcCompleteness } from "@/lib/completeness";
 import Button from "@/components/Button";
 import AppHeader from "@/components/AppHeader";
+import ReferralAttributionCatcher from "@/components/referrals/ReferralAttributionCatcher";
 import { Sparkles, Video, ClipboardCheck, UserPlus, ArrowRight } from "lucide-react";
 
 interface Job {
@@ -84,6 +85,7 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-paper px-4 py-10 sm:py-14">
+      <ReferralAttributionCatcher />
       <div className="max-w-3xl mx-auto">
         <AppHeader />
 

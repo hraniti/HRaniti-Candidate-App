@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/Button";
@@ -8,6 +8,19 @@ import Button from "@/components/Button";
 export default function SignUpPage() {
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    // Redundant safety net alongside the landing page's own localStorage write —
+    // covers anyone who lands here directly with the query params still attached.
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    const job = params.get("job");
+    if (ref) {
+      try {
+        localStorage.setItem("hraniti_referral", JSON.stringify({ referrerSlug: ref, jobSlug: job }));
+      } catch {}
+    }
+  }, []);
 
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [name, setName] = useState("");

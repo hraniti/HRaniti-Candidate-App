@@ -93,6 +93,8 @@ export interface Job {
   referral_slug: string | null;
   notice_period_required: string | null;
   min_experience_years: number;
+  reward_tier: "Entry" | "Mid" | "Senior" | "Leadership" | null;
+  reward_amount_inr: number | null;
 }
 
 export type ApplicationStatus =
@@ -358,4 +360,116 @@ export interface Profile {
   recent_job_views: RecentJobView[] | null;
   subscription_tier: "free" | "paid";
   current_video_pitch_url: string | null;
+
+  // Phase 5 additions
+  network_connections_count: number;
+  lifetime_referral_earnings: number;
+  pending_referral_earnings: number;
+  referral_agreement_accepted_at: string | null;
+  leaderboard_opt_in: boolean;
+}
+
+// --- Phase 5: Referral Rewards ------------------------------------------------
+
+export type RewardTier = "Entry" | "Mid" | "Senior" | "Leadership";
+
+export type ReferralStatus =
+  | "Shared"
+  | "Registered"
+  | "Applied"
+  | "Interviewing"
+  | "Offer"
+  | "Joined"
+  | "Payment Processing"
+  | "Paid"
+  | "Rejected"
+  | "Disputed";
+
+export type ReferralType = "general" | "role_specific" | "network_import" | "resume_upload" | "existing_candidate";
+
+export type TrustedReferrerLevel = "Bronze" | "Silver" | "Gold" | "Platinum" | "None";
+
+export interface Referral {
+  id: string;
+  referrer_id: string;
+  job_id: string | null;
+  candidate_email: string;
+  candidate_name: string | null;
+  candidate_phone: string | null;
+  candidate_linkedin: string | null;
+  candidate_current_role: string | null;
+  referral_type: ReferralType;
+  slug: string;
+  status: ReferralStatus;
+  candidate_user_id: string | null;
+  application_id: string | null;
+  reward_tier: RewardTier | null;
+  reward_amount_inr: number | null;
+  recommendation_note: string | null;
+  agreement_accepted_at: string | null;
+  joined_date: string | null;
+  expected_payment_date: string | null;
+  paid_at: string | null;
+  dispute_reason: string | null;
+  created_at: string;
+  expires_at: string;
+  updated_at: string;
+  job?: Job;
+}
+
+export interface ImportedContact {
+  id: string;
+  user_id: string;
+  name: string | null;
+  email: string | null;
+  candidate_role: string | null;
+  matched_job_ids: string[];
+  created_at: string;
+}
+
+export interface ReferralPaymentMethod {
+  id: string;
+  user_id: string;
+  method_type: "upi" | "bank";
+  upi_id: string | null;
+  bank_account_number: string | null;
+  bank_ifsc: string | null;
+  bank_account_holder_name: string | null;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface ReferralPayment {
+  id: string;
+  referral_id: string;
+  user_id: string;
+  amount_inr: number;
+  currency: string;
+  base_amount_inr: number | null;
+  method_type: string | null;
+  transaction_id: string | null;
+  status: "pending" | "processing" | "paid" | "failed";
+  paid_at: string | null;
+  receipt_url: string | null;
+  created_at: string;
+  referral?: Referral;
+}
+
+export interface ReferralKYC {
+  id: string;
+  user_id: string;
+  status: "not_required" | "pending" | "verified" | "rejected";
+  id_document_url: string | null;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  admin_notes: string | null;
+}
+
+export type ReferralBadgeKey = "first_referral" | "first_hire" | "50k_club" | "1l_club" | "top_referrer";
+
+export interface ReferralBadgeRow {
+  id: string;
+  user_id: string;
+  badge: ReferralBadgeKey;
+  earned_at: string;
 }

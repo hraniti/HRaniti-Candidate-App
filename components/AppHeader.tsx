@@ -10,6 +10,7 @@ export default function AppHeader() {
     { href: "/dashboard", label: "Dashboard" },
     { href: "/jobs", label: "Jobs" },
     { href: "/interview-hub", label: "Interview Hub" },
+    { href: "/referrals", label: "Referrals" },
     { href: "/profile", label: "My Profile" },
   ];
 

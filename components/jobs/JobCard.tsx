@@ -7,7 +7,8 @@ import { calcMatchScore, matchTier, whyThisJob, gapNudge } from "@/lib/jobMatchi
 import { formatSalary } from "@/lib/currency";
 import MatchBadge from "./MatchBadge";
 import Button from "@/components/Button";
-import { Bookmark, BookmarkCheck, CheckCircle2, XCircle, Sparkles, TrendingUp, Clock } from "lucide-react";
+import { formatINR } from "@/lib/referralRewards";
+import { Bookmark, BookmarkCheck, CheckCircle2, XCircle, Sparkles, TrendingUp, Clock, Share2 } from "lucide-react";
 
 function timeAgo(iso: string): string {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
@@ -41,6 +42,14 @@ export default function JobCard({
   const [explainText, setExplainText] = useState("");
   const [improveState, setImproveState] = useState<"idle" | "loading" | "shown">("idle");
   const [improveData, setImproveData] = useState<{ suggestion: string; estimated_gain: number } | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  function copyReferralLink() {
+    const link = `https://hraniti.com/r/${profile.profile_slug ?? profile.id.slice(0, 8)}/${job.referral_slug ?? job.id}`;
+    navigator.clipboard.writeText(link);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }
 
   async function explainFurther() {
     setExplainState("loading");
@@ -112,11 +121,17 @@ export default function JobCard({
 
       {nudge && <p className="text-xs text-gold mb-3">💡 {nudge}</p>}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft mb-4">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft mb-2">
         <span>{job.employment_type}</span>
         <span>{formatSalary(job.salary_min, job.salary_max, job.salary_currency)}</span>
         <span>{job.work_mode}</span>
       </div>
+
+      {job.reward_amount_inr && (
+        <p className="text-[11px] font-mono text-gold bg-gold/10 border border-gold/30 rounded-full inline-block px-2.5 py-1 mb-4">
+          💰 Earn {formatINR(job.reward_amount_inr)} by referring • Paid after successful joining + probation
+        </p>
+      )}
 
       {/* Explain Further — AI on click only, with "Not now" per spec */}
       {explainState === "idle" && (
@@ -150,7 +165,7 @@ export default function JobCard({
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 items-center flex-wrap">
         {applied ? (
           <span className="inline-flex items-center gap-1.5 text-sm text-verified font-medium">
             <CheckCircle2 size={15} /> Applied
@@ -161,6 +176,9 @@ export default function JobCard({
         <Link href={`/jobs/${job.id}`}>
           <Button variant="secondary">View Details</Button>
         </Link>
+        <button onClick={copyReferralLink} className="inline-flex items-center gap-1 text-xs text-ink-soft hover:text-ink">
+          <Share2 size={12} /> {linkCopied ? "Link copied!" : "Share & Earn"}
+        </button>
       </div>
     </div>
   );
