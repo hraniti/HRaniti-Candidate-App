@@ -153,7 +153,7 @@ export interface SavedJob {
   job?: Job;
 }
 
-export type AssessmentType = "Domain" | "Behavioural" | "Language";
+export type AssessmentType = "AI Interview";
 
 export interface AssessmentResult {
   id: string;
@@ -174,22 +174,43 @@ export interface RecentJobView {
 
 // --- Phase 4: Interview Hub --------------------------------------------------
 
-export type CEFRTier = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
-export const SUPPORTED_LANGUAGES = ["English", "German", "Arabic", "Hindi", "French", "Spanish"] as const;
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
-
-export interface MCQQuestion {
+export interface AIInterviewQuestion {
   id: string;
   question: string;
-  options: string[];
-  correctIndex: number;
-  trait?: string; // for behavioural: which trait this question measures
+  followUp: string;
+  category: "Resume" | "Technical" | "Behavioural" | "Situational";
+}
+
+export interface AIInterviewTranscriptEntry {
+  questionId: string;
+  question: string;
+  followUp: string;
+  answer: string; // combined transcript of main + follow-up response
+  videoUrl: string | null;
+  skipped: boolean;
+}
+
+export interface AIInterviewScores {
+  overall: number;
+  technical: number;
+  behavioural: number;
+  communication: number;
+  specificity: number;
+}
+
+export interface AIInterviewReport {
+  status: "in_progress" | "completed";
+  questions: AIInterviewQuestion[];
+  transcript: AIInterviewTranscriptEntry[];
+  scores: AIInterviewScores | null;
+  notes: { questionId: string; observation: string }[] | null;
+  attempt_number: number;
 }
 
 export interface AssessmentResultFull extends AssessmentResult {
-  tier: CEFRTier | null;
-  report: Record<string, any> | null;
-  language: string | null;
+  tier: null; // kept for backward shape-compat, unused in the new model
+  report: AIInterviewReport;
+  language: null;
   career_track: string | null;
 }
 
