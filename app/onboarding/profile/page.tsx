@@ -7,7 +7,7 @@ import { Profile, CAREER_TRACKS, CareerTrack } from "@/lib/types";
 import { calcCompleteness } from "@/lib/completeness";
 import Button from "@/components/Button";
 import Seal from "@/components/Seal";
-import { Plus, X, Pencil } from "lucide-react";
+import { Plus, X, Pencil, CheckCircle2 } from "lucide-react";
 
 type CoreFieldKey =
   | "current_company"
@@ -154,24 +154,38 @@ export default function AIProfilePage() {
         <Section title="Personal info" confidence={conf.personal_info}>
           <Field label="Full name" value={profile.full_name} onSave={(v) => save({ full_name: v })} />
           <Field label="Phone" value={profile.phone} onSave={(v) => save({ phone: v })} />
-          <Field label="LinkedIn URL" value={profile.linkedin_url} onSave={(v) => save({ linkedin_url: v })} />
+          <Field
+            label="LinkedIn URL"
+            value={profile.linkedin_url}
+            onSave={(v) => save({ linkedin_url: v })}
+            verified={profile.signup_provider === "linkedin_oidc" && !!profile.linkedin_url}
+          />
         </Section>
 
         <section className="paper-card p-6 mb-4 border-gold/60">
           <h2 className="font-medium text-ink mb-1">Recruiter search filters</h2>
           <p className="text-xs text-ink-soft mb-4">Keep these current — they're what recruiters filter on first.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {CORE_FIELD_MAP.map(({ label, key }) => (
-              <div key={key}>
-                <label className="text-xs font-medium text-ink-soft">{label}</label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-ink outline-none"
-                  value={coreFields[key]}
-                  onChange={(e) => setCoreFields((f) => ({ ...f, [key]: e.target.value }))}
-                  onBlur={() => save({ [key]: coreFields[key] } as Partial<Profile>)}
-                />
-              </div>
-            ))}
+            {CORE_FIELD_MAP.map(({ label, key }) => {
+              const required = key === "notice_period" || key === "current_location";
+              const empty = required && !coreFields[key];
+              return (
+                <div key={key}>
+                  <label className="text-xs font-medium text-ink-soft">
+                    {label} {required && <span className="text-alert">*</span>}
+                  </label>
+                  <input
+                    className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:border-ink outline-none ${
+                      empty ? "border-alert/50 bg-alert/5" : "border-line"
+                    }`}
+                    value={coreFields[key]}
+                    onChange={(e) => setCoreFields((f) => ({ ...f, [key]: e.target.value }))}
+                    onBlur={() => save({ [key]: coreFields[key] } as Partial<Profile>)}
+                  />
+                  {empty && <p className="text-[11px] text-alert mt-1">Recruiters filter on this — worth filling in.</p>}
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -287,18 +301,29 @@ function Field({
   value,
   onSave,
   multiline,
+  verified,
 }: {
   label: string;
   value: string | null;
   onSave: (v: string) => void;
   multiline?: boolean;
+  verified?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value ?? "");
 
   return (
     <div className="py-2">
-      {label && <label className="text-xs font-medium text-ink-soft block mb-1">{label}</label>}
+      {label && (
+        <label className="text-xs font-medium text-ink-soft flex items-center gap-1.5 mb-1">
+          {label}
+          {verified && (
+            <span className="inline-flex items-center gap-0.5 text-verified text-[10px] font-mono normal-case">
+              <CheckCircle2 size={10} /> Verified
+            </span>
+          )}
+        </label>
+      )}
       {editing ? (
         <div className="flex gap-2 items-start">
           {multiline ? (

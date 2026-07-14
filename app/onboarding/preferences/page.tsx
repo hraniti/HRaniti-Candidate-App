@@ -117,7 +117,7 @@ export default function PreferencesPage() {
         <QuestionBlock label="Salary (optional but helps employers match you)">
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-ink-soft">Current salary</label>
+              <label className="text-xs font-medium text-ink-soft">Current salary — annual, before tax</label>
               <div className="flex gap-2 mt-1">
                 <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="rounded-lg border border-line px-2 py-2.5 text-sm bg-white">
                   {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
@@ -126,19 +126,26 @@ export default function PreferencesPage() {
                   type="number"
                   value={currentSalary}
                   onChange={(e) => setCurrentSalary(e.target.value)}
-                  placeholder="Optional"
+                  placeholder={currency === "INR" ? "e.g. 1200000" : "Optional"}
                   className="flex-1 rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
                 />
               </div>
+              {currency === "INR" && currentSalary && Number(currentSalary) > 0 && (
+                <p className="text-[11px] text-ink-soft mt-1">≈ {(Number(currentSalary) / 100000).toFixed(1)} LPA</p>
+              )}
             </div>
             <div>
-              <label className="text-xs font-medium text-ink-soft">Expected salary</label>
+              <label className="text-xs font-medium text-ink-soft">Expected salary — annual, before tax</label>
               <input
                 type="number"
                 value={expectedSalary}
                 onChange={(e) => setExpectedSalary(e.target.value)}
+                placeholder={currency === "INR" ? "e.g. 1800000" : undefined}
                 className="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
               />
+              {currency === "INR" && expectedSalary && Number(expectedSalary) > 0 && (
+                <p className="text-[11px] text-ink-soft mt-1">≈ {(Number(expectedSalary) / 100000).toFixed(1)} LPA</p>
+              )}
             </div>
           </div>
         </QuestionBlock>
@@ -167,7 +174,7 @@ export default function PreferencesPage() {
           <Button onClick={() => setStep(step + 1)}>Next</Button>
         ) : (
           <Button loading={saving} onClick={finish}>
-            Find My Matches
+            Continue
           </Button>
         )}
       </div>

@@ -209,7 +209,11 @@ export default function Tab1Professional({
               className={inputClass}
             />
           </Field>
-          <Field label="LinkedIn URL" origin="From Resume">
+          <Field
+            label="LinkedIn URL"
+            origin="From Resume"
+            verified={profile.signup_provider === "linkedin_oidc" && !!linkedin}
+          >
             <input
               value={linkedin}
               onChange={(e) => {

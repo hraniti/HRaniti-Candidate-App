@@ -86,7 +86,7 @@ export default function Tab2Preferences({
 
       <SectionCard title="Compensation" >
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Current salary (optional)" origin="From Onboarding Screen 5">
+          <Field label="Current salary — annual, before tax (optional)" origin="From Onboarding Screen 5">
             <div className="flex gap-2">
               <select
                 defaultValue={profile.salary_currency ?? "INR"}
@@ -100,18 +100,26 @@ export default function Tab2Preferences({
                 defaultValue={profile.current_salary ?? ""}
                 onChange={(e) => queueSave({ current_salary: e.target.value ? Number(e.target.value) : null })}
                 onBlur={saveNow}
+                placeholder={profile.salary_currency === "INR" ? "e.g. 1200000" : undefined}
                 className={inputClass}
               />
             </div>
+            {profile.salary_currency === "INR" && profile.current_salary ? (
+              <p className="text-[11px] text-ink-soft mt-1">≈ {(profile.current_salary / 100000).toFixed(1)} LPA</p>
+            ) : null}
           </Field>
-          <Field label="Expected salary" origin="From Onboarding Screen 5">
+          <Field label="Expected salary — annual, before tax" origin="From Onboarding Screen 5">
             <input
               type="number"
               defaultValue={profile.expected_salary ?? ""}
               onChange={(e) => queueSave({ expected_salary: e.target.value ? Number(e.target.value) : null })}
               onBlur={saveNow}
+              placeholder={profile.salary_currency === "INR" ? "e.g. 1800000" : undefined}
               className={inputClass}
             />
+            {profile.salary_currency === "INR" && profile.expected_salary ? (
+              <p className="text-[11px] text-ink-soft mt-1">≈ {(profile.expected_salary / 100000).toFixed(1)} LPA</p>
+            ) : null}
           </Field>
         </div>
       </SectionCard>

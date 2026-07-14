@@ -1,6 +1,6 @@
 "use client";
 
-import { Star, RotateCcw, Check, Loader2 } from "lucide-react";
+import { Star, RotateCcw, Check, Loader2, CheckCircle2 } from "lucide-react";
 import { SaveStatus } from "@/lib/useDebouncedSave";
 
 // Light-grey micro-label showing where a pre-filled value came from.
@@ -84,16 +84,25 @@ export function SectionCard({
 export function Field({
   label,
   origin,
+  verified,
   children,
 }: {
   label: string;
   origin?: string;
+  verified?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className="mb-4">
       <div className="flex items-baseline justify-between mb-1">
-        <label className="text-xs font-medium text-ink-soft">{label}</label>
+        <label className="text-xs font-medium text-ink-soft flex items-center gap-1.5">
+          {label}
+          {verified && (
+            <span className="inline-flex items-center gap-0.5 text-verified text-[10px] font-mono">
+              <CheckCircle2 size={10} /> Verified
+            </span>
+          )}
+        </label>
         {origin && <DataOrigin>{origin}</DataOrigin>}
       </div>
       {children}

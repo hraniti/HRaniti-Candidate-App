@@ -3,31 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Profile } from "@/lib/types";
+import { Profile, Job } from "@/lib/types";
 import { calcCompleteness } from "@/lib/completeness";
+import { calcMatchScore, matchTier, gapNudge } from "@/lib/jobMatching";
 import Button from "@/components/Button";
 import AppHeader from "@/components/AppHeader";
 import ReferralAttributionCatcher from "@/components/referrals/ReferralAttributionCatcher";
-import { Sparkles, Video, ClipboardCheck, UserPlus, ArrowRight } from "lucide-react";
-
-interface Job {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  career_track: string;
-  skills: string[];
-  applicant_count: number;
-}
-
-function scoreJob(profile: Profile, job: Job): number {
-  const skillSet = new Set((profile.skills ?? []).map((s) => s.toLowerCase()));
-  const overlap = (job.skills ?? []).filter((s) => skillSet.has(s.toLowerCase())).length;
-  const trackMatch = profile.career_track === job.career_track ? 40 : 0;
-  const skillScore = Math.min(50, overlap * 12);
-  const base = 10;
-  return Math.min(99, trackMatch + skillScore + base);
-}
+import MatchBadge from "@/components/jobs/MatchBadge";
+import { Sparkles, ArrowRight, CheckCircle2, Video, ClipboardCheck, UserPlus } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -72,7 +55,7 @@ export default function DashboardPage() {
   const strength = calcCompleteness(profile);
   const matched = zeroData
     ? []
-    : jobs.map((j) => ({ job: j, score: scoreJob(profile, j) })).sort((a, b) => b.score - a.score).slice(0, 5);
+    : jobs.map((j) => ({ job: j, score: calcMatchScore(profile, j) })).sort((a, b) => b.score - a.score).slice(0, 5);
 
   const checklist = [
     { label: "Upload Resume", done: profile.resume_uploaded, href: "/onboarding/resume", cta: "Add Now" },
@@ -82,6 +65,16 @@ export default function DashboardPage() {
     { label: "Apply to First Job", done: false, href: "/jobs", cta: "Browse Jobs" },
   ];
   const checklistDone = checklist.filter((c) => c.done).length;
+
+  const realNudges = zeroData
+    ? []
+    : Array.from(
+        new Set(
+          matched
+            .map(({ job }) => gapNudge(profile, job))
+            .filter((n): n is string => !!n)
+        )
+      ).slice(0, 2);
 
   return (
     <main className="min-h-screen bg-paper px-4 py-10 sm:py-14">
@@ -113,7 +106,9 @@ export default function DashboardPage() {
               style={{ width: `${strength}%` }}
             />
           </div>
-          <p className="text-xs text-ink-soft">Complete your profile to receive better job matches.</p>
+          <p className="text-xs text-ink-soft">
+            Based on your resume, experience, skills, and preferences — separate from the action checklist below.
+          </p>
         </section>
 
         <div className="grid sm:grid-cols-5 gap-6">
@@ -145,9 +140,7 @@ export default function DashboardPage() {
                         <p className="text-sm font-medium text-ink">{job.title}</p>
                         <p className="text-xs text-ink-soft">{job.company} · {job.location}</p>
                       </div>
-                      {score !== null && (
-                        <span className="font-mono text-xs text-verified">{score}% match</span>
-                      )}
+                      {score !== null && <MatchBadge tier={matchTier(score)} />}
                     </button>
                   )
                 )}
@@ -170,12 +163,22 @@ export default function DashboardPage() {
                 <h2 className="font-medium text-ink">AI recommendations</h2>
               </div>
               <div className="space-y-2">
-                <button className="w-full text-left text-sm text-ink border border-line rounded-lg px-3 py-2 hover:border-ink/40 flex items-center justify-between">
-                  Add Python skill to widen your matches <ArrowRight size={14} />
-                </button>
-                <button className="w-full text-left text-sm text-ink border border-line rounded-lg px-3 py-2 hover:border-ink/40 flex items-center justify-between">
-                  Add Snowflake — improves matches by 23% <ArrowRight size={14} />
-                </button>
+                {realNudges.length > 0 ? (
+                  realNudges.map((nudge, i) => (
+                    <button
+                      key={i}
+                      onClick={() => router.push("/profile")}
+                      className="w-full text-left text-sm text-ink border border-line rounded-lg px-3 py-2 hover:border-ink/40 flex items-center justify-between"
+                    >
+                      {nudge} <ArrowRight size={14} />
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-sm text-ink-soft inline-flex items-center gap-1.5">
+                    <CheckCircle2 size={14} className="text-verified" />
+                    {zeroData ? "Upload your resume to get personalized recommendations." : "Your profile is in great shape for your current matches."}
+                  </p>
+                )}
               </div>
             </section>
           </div>
