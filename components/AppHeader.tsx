@@ -15,9 +15,11 @@ export default function AppHeader() {
   ];
 
   return (
-    <header className="flex items-center justify-between mb-8">
-      <span className="font-display italic text-lg text-ink">HRaniti</span>
-      <nav className="flex items-center gap-1 bg-paper rounded-full p-1">
+    <header className="flex items-center justify-between mb-8 pb-5 border-b border-line">
+      <span className="font-display italic text-xl text-ink tracking-tight">
+        HRaniti
+      </span>
+      <nav className="flex items-center gap-0.5 bg-paper-deep rounded-full p-1 border border-line">
         {links.map((l) => {
           const active = pathname?.startsWith(l.href);
           return (
@@ -25,7 +27,9 @@ export default function AppHeader() {
               key={l.href}
               href={l.href}
               className={`text-sm px-4 py-1.5 rounded-full transition-colors ${
-                active ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+                active
+                  ? "bg-ink text-white"
+                  : "text-ink-soft hover:text-ink"
               }`}
             >
               {l.label}

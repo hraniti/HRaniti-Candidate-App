@@ -7,61 +7,93 @@ html {
 }
 
 body {
-  background-color: #F4F5F7;
-  color: #12172B;
+  background-color: #F5F0E6;
+  color: #0F1420;
 }
 
-/* Signature element: the "verification seal" — a rotated stamp motif used
-   anywhere the AI is vouching for extracted or matched data. It echoes the
-   product's core promise (a *verified* professional profile), not a generic
-   progress ring. */
+/* ============================================================
+   THE SEAL — the app's one signature visual idea, revived and
+   sharpened. Used ONLY for real verification moments: AI
+   confidence, "Verified" badges, Trusted Referrer levels, KYC
+   status. Never used decoratively — that's what keeps it special.
+   Styled like an actual wax seal / rubber stamp, not a generic pill.
+   ============================================================ */
 .seal {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-family: var(--font-plex-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  padding: 3px 10px 3px 8px;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 11px 4px 9px;
   border-radius: 999px;
-  border: 1px solid #1F7A5C;
-  color: #1F7A5C;
-  background: #DCEFE6;
-  transform: rotate(-1.5deg);
+  border: 1.5px solid #16594A;
+  color: #16594A;
+  background: #DCE9E3;
+  box-shadow: 0 0 0 2px #F5F0E6, 0 0 0 3px rgba(22,89,74,0.25);
+  transform: rotate(-2deg);
 }
 
 .seal::before {
   content: "";
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 999px;
-  background: #1F7A5C;
+  background: #16594A;
   flex-shrink: 0;
 }
 
 .seal.low {
-  border-color: #C79A46;
-  color: #8a6a26;
-  background: #F5EFDD;
+  border-color: #B8863E;
+  color: #8C6425;
+  background: #EDE0C8;
+  box-shadow: 0 0 0 2px #F5F0E6, 0 0 0 3px rgba(184,134,62,0.25);
 }
 .seal.low::before {
-  background: #C79A46;
+  background: #B8863E;
 }
 
+/* A deeper variant for high-stakes verification (KYC, trusted referrer) */
+.seal.stamp {
+  border-color: #7A1F2B;
+  color: #7A1F2B;
+  background: #EEDCDE;
+  box-shadow: 0 0 0 2px #F5F0E6, 0 0 0 3px rgba(122,31,43,0.25);
+  transform: rotate(2deg);
+}
+.seal.stamp::before {
+  background: #7A1F2B;
+}
+
+/* ============================================================
+   PAPER CARD — the document metaphor. A thin "letterhead" bar
+   across the top of every card gives the app rhythm and hierarchy
+   that flat white cards alone can't, without needing per-page work.
+   ============================================================ */
 .paper-card {
   background: #FFFFFF;
-  border: 1px solid #E2E4E9;
-  border-radius: 14px;
-  box-shadow: 0 1px 2px rgba(18,23,43,0.04), 0 8px 24px -12px rgba(18,23,43,0.12);
+  border: 1px solid #DDD5C3;
+  border-radius: 6px;
+  border-top: 3px solid #0F1420;
+  box-shadow: 0 1px 2px rgba(15,20,32,0.05), 0 12px 28px -14px rgba(15,20,32,0.16);
+}
+
+/* Quieter variant for dense/secondary content, no letterhead bar */
+.paper-card-quiet {
+  background: #FFFFFF;
+  border: 1px solid #DDD5C3;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(15,20,32,0.04);
 }
 
 .dashed-divider {
-  border-top: 1px dashed #C9CDD6;
+  border-top: 1px dashed #C9BE9F;
 }
 
 ::selection {
-  background: #EADFC5;
+  background: #EDE0C8;
 }
 
 /* Visible keyboard focus, everywhere */
@@ -71,7 +103,7 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid #12172B;
+  outline: 2px solid #0F1420;
   outline-offset: 2px;
 }
 

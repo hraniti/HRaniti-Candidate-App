@@ -9,13 +9,15 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
 }
 
+// Shape shifted from a generic rounded-full "SaaS pill" to a sharper,
+// document-radius button — matches the card treatment and reads as more
+// considered, less templated.
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-full font-medium text-sm px-5 py-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto";
+  "inline-flex items-center justify-center gap-2 rounded font-medium text-sm px-5 py-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-ink text-white hover:bg-ink-light",
-  secondary:
-    "bg-white text-ink border border-line hover:border-ink/40",
+  primary: "bg-ink text-white hover:bg-ink-light shadow-[0_1px_0_rgba(255,255,255,0.08)_inset,0_2px_6px_-2px_rgba(15,20,32,0.4)]",
+  secondary: "bg-white text-ink border-[1.5px] border-line hover:border-ink/50",
   ghost: "text-ink-soft hover:text-ink underline underline-offset-4",
 };
 
