@@ -20,6 +20,9 @@ function VerifyForm() {
   const email = params.get("email") ?? "";
   const supabase = createClient();
 
+  const nextTarget = params.get("next") ?? "/onboarding/resume";
+  const backTarget = nextTarget.startsWith("/employer") ? "/employer/signup" : "/signup";
+
   const [digits, setDigits] = useState(Array(6).fill(""));
   const [error, setError] = useState<string | null>(null);
   const [attempts, setAttempts] = useState(0);
@@ -58,7 +61,7 @@ function VerifyForm() {
       return;
     }
 
-    router.push("/onboarding/resume");
+    router.push(params.get("next") ?? "/onboarding/resume");
   }
 
   function handleChange(i: number, val: string) {
@@ -116,13 +119,13 @@ function VerifyForm() {
         >
           {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
         </button>
-        <a href="/signup" className="text-ink-soft underline underline-offset-4">
+        <a href={backTarget} className="text-ink-soft underline underline-offset-4">
           Use a different email
         </a>
       </div>
 
       {locked && (
-        <Button className="w-full justify-center mt-6" onClick={() => router.push("/signup")}>
+        <Button className="w-full justify-center mt-6" onClick={() => router.push(backTarget)}>
           Back to sign up
         </Button>
       )}
