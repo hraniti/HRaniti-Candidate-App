@@ -3,7 +3,7 @@ export default function EmployerInputStyles() {
     <style jsx global>{`
       .input {
         width: 100%;
-        border: 1px solid #ddd5c3;
+        border: 1px solid #e1e4ea;
         border-radius: 8px;
         padding: 10px 12px;
         font-size: 14px;
@@ -11,7 +11,7 @@ export default function EmployerInputStyles() {
         background: #fff;
       }
       .input:focus {
-        border-color: #0f1420;
+        border-color: #16213e;
       }
     `}</style>
   );

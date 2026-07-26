@@ -5,48 +5,52 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Deeper, richer ink — moves away from "SaaS navy" toward true
-        // near-black with a cool undertone, like engraved letterhead.
+        // Navy ink — the demo's primary/authority color, replacing the
+        // near-black "engraved letterhead" ink across the whole app.
         ink: {
-          DEFAULT: "#0F1420",
-          light: "#1A2036",
-          soft: "#5B6272",
-          faint: "#8B92A3",
+          DEFAULT: "#16213E",
+          light: "#1F2D50",
+          soft: "#3A4460",
+          faint: "#8A93A6",
         },
-        // Warm parchment replaces cool grey — this is the single biggest
-        // shift: it's what makes the app feel like fine stationery instead
-        // of generic SaaS. Cards sit on it in true white for contrast.
+        // Cool paper — replaces warm parchment. Cards sit on it in true
+        // white for contrast, same structure as before, different mood.
         paper: {
-          DEFAULT: "#F5F0E6",
+          DEFAULT: "#F3F4F6",
           raised: "#FFFFFF",
-          deep: "#EDE5D4",
+          deep: "#E7E9ED",
         },
-        // Gold used sparingly now — foil-stamp accent, not a UI workhorse.
+        // "gold" token kept for backward compatibility with existing
+        // components (password-strength, low-confidence states) but now
+        // carries the demo's amber, not literal gold.
         gold: {
-          DEFAULT: "#B8863E",
-          deep: "#8C6425",
-          soft: "#EDE0C8",
+          DEFAULT: "#B9791F",
+          deep: "#8F5C13",
+          soft: "#FBF0DE",
         },
-        // Deeper forest, less "success-green SaaS," more "bank vault."
+        // Teal — the demo's verification/success color, replacing forest
+        // green.
         verified: {
-          DEFAULT: "#16594A",
-          soft: "#DCE9E3",
+          DEFAULT: "#0E7C71",
+          soft: "#E4F3F1",
         },
         alert: {
-          DEFAULT: "#A83E3E",
-          soft: "#F0DEDC",
+          DEFAULT: "#B54430",
+          soft: "#FBEBE6",
         },
-        // NEW — reserved exclusively for the verification/seal motif.
-        // Never used as a general UI color, so it stays special.
+        // Reserved for the highest-stakes verification moments (KYC,
+        // Trusted Referrer). Uses the ink navy itself rather than a
+        // separate hue, keeping the whole app inside the navy/teal/amber
+        // family rather than introducing a fifth color.
         seal: {
-          DEFAULT: "#7A1F2B",
-          soft: "#EEDCDE",
+          DEFAULT: "#16213E",
+          soft: "#E3E6EC",
         },
-        line: "#DDD5C3",
+        line: "#E1E4EA",
       },
       fontFamily: {
         display: ["var(--font-fraunces)", "serif"],
-        body: ["var(--font-inter)", "sans-serif"],
+        body: ["var(--font-plex-sans)", "sans-serif"],
         mono: ["var(--font-plex-mono)", "monospace"],
       },
       borderRadius: {
@@ -54,8 +58,8 @@ const config: Config = {
         seal: "999px",
       },
       boxShadow: {
-        card: "0 1px 2px rgba(15,20,32,0.05), 0 12px 28px -14px rgba(15,20,32,0.16)",
-        raised: "0 1px 2px rgba(15,20,32,0.06), 0 20px 40px -16px rgba(15,20,32,0.22)",
+        card: "0 1px 2px rgba(22,33,62,0.05), 0 12px 28px -14px rgba(22,33,62,0.16)",
+        raised: "0 1px 2px rgba(22,33,62,0.06), 0 20px 40px -16px rgba(22,33,62,0.22)",
       },
       letterSpacing: {
         wide2: "0.08em",

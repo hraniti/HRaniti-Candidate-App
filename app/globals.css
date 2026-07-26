@@ -7,16 +7,16 @@ html {
 }
 
 body {
-  background-color: #F5F0E6;
-  color: #0F1420;
+  background-color: #F3F4F6;
+  color: #16213E;
 }
 
 /* ============================================================
-   THE SEAL — the app's one signature visual idea, revived and
-   sharpened. Used ONLY for real verification moments: AI
-   confidence, "Verified" badges, Trusted Referrer levels, KYC
-   status. Never used decoratively — that's what keeps it special.
-   Styled like an actual wax seal / rubber stamp, not a generic pill.
+   THE SEAL — the app's one signature visual idea. Used ONLY for
+   real verification moments: AI confidence, "Verified" badges,
+   Trusted Referrer levels, KYC status. Never used decoratively —
+   that's what keeps it special. Styled like an actual wax seal /
+   rubber stamp, not a generic pill.
    ============================================================ */
 .seal {
   position: relative;
@@ -29,10 +29,10 @@ body {
   text-transform: uppercase;
   padding: 4px 11px 4px 9px;
   border-radius: 999px;
-  border: 1.5px solid #16594A;
-  color: #16594A;
-  background: #DCE9E3;
-  box-shadow: 0 0 0 2px #F5F0E6, 0 0 0 3px rgba(22,89,74,0.25);
+  border: 1.5px solid #0E7C71;
+  color: #0E7C71;
+  background: #E4F3F1;
+  box-shadow: 0 0 0 2px #F3F4F6, 0 0 0 3px rgba(14,124,113,0.25);
   transform: rotate(-2deg);
 }
 
@@ -41,30 +41,32 @@ body {
   width: 5px;
   height: 5px;
   border-radius: 999px;
-  background: #16594A;
+  background: #0E7C71;
   flex-shrink: 0;
 }
 
 .seal.low {
-  border-color: #B8863E;
-  color: #8C6425;
-  background: #EDE0C8;
-  box-shadow: 0 0 0 2px #F5F0E6, 0 0 0 3px rgba(184,134,62,0.25);
+  border-color: #B9791F;
+  color: #8F5C13;
+  background: #FBF0DE;
+  box-shadow: 0 0 0 2px #F3F4F6, 0 0 0 3px rgba(185,121,31,0.25);
 }
 .seal.low::before {
-  background: #B8863E;
+  background: #B9791F;
 }
 
-/* A deeper variant for high-stakes verification (KYC, trusted referrer) */
+/* A deeper variant for high-stakes verification (KYC, trusted referrer) —
+   uses the ink navy itself so the whole app stays inside the navy/teal/
+   amber family rather than introducing a separate accent color. */
 .seal.stamp {
-  border-color: #7A1F2B;
-  color: #7A1F2B;
-  background: #EEDCDE;
-  box-shadow: 0 0 0 2px #F5F0E6, 0 0 0 3px rgba(122,31,43,0.25);
+  border-color: #16213E;
+  color: #16213E;
+  background: #E3E6EC;
+  box-shadow: 0 0 0 2px #F3F4F6, 0 0 0 3px rgba(22,33,62,0.25);
   transform: rotate(2deg);
 }
 .seal.stamp::before {
-  background: #7A1F2B;
+  background: #16213E;
 }
 
 /* ============================================================
@@ -74,26 +76,26 @@ body {
    ============================================================ */
 .paper-card {
   background: #FFFFFF;
-  border: 1px solid #DDD5C3;
+  border: 1px solid #E1E4EA;
   border-radius: 6px;
-  border-top: 3px solid #0F1420;
-  box-shadow: 0 1px 2px rgba(15,20,32,0.05), 0 12px 28px -14px rgba(15,20,32,0.16);
+  border-top: 3px solid #16213E;
+  box-shadow: 0 1px 2px rgba(22,33,62,0.05), 0 12px 28px -14px rgba(22,33,62,0.16);
 }
 
 /* Quieter variant for dense/secondary content, no letterhead bar */
 .paper-card-quiet {
   background: #FFFFFF;
-  border: 1px solid #DDD5C3;
+  border: 1px solid #E1E4EA;
   border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(15,20,32,0.04);
+  box-shadow: 0 1px 2px rgba(22,33,62,0.04);
 }
 
 .dashed-divider {
-  border-top: 1px dashed #C9BE9F;
+  border-top: 1px dashed #C7CCD6;
 }
 
 ::selection {
-  background: #EDE0C8;
+  background: #FBF0DE;
 }
 
 /* Visible keyboard focus, everywhere */
@@ -103,7 +105,7 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid #0F1420;
+  outline: 2px solid #16213E;
   outline-offset: 2px;
 }
 
