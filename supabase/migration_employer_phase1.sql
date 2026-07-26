@@ -102,20 +102,17 @@ create trigger on_employer_created
   for each row execute procedure public.handle_new_employer();
 
 -- 3. EXTEND JOBS TABLE FOR EMPLOYER AUTHORSHIP --------------------------------
--- The candidate app already reads/matches against public.jobs. We extend it
--- rather than creating a parallel table, so candidate-side matching keeps
--- working untouched.
+-- The candidate app already reads/matches against public.jobs, and earlier
+-- migrations (phase3/3b) already added description, employment_type, salary
+-- fields, nice_to_have_skills, and min_experience_years (an int, used by the
+-- candidate-side junior/mid/senior filter). We only add what's genuinely
+-- new here, and reuse min_experience_years rather than introducing a
+-- separate "experience_bracket" text column that candidate-side code
+-- wouldn't know about.
 alter table public.jobs
   add column if not exists employer_id uuid references public.employers (id) on delete set null,
-  add column if not exists experience_bracket text, -- '0–4 yrs' | '4.1–8 yrs' | '8.1–12 yrs' | '12.1+ yrs'
-  add column if not exists employment_type text,    -- 'Full-time' | 'Contract' | 'Freelance'
-  add column if not exists salary_min numeric,
-  add column if not exists salary_max numeric,
-  add column if not exists salary_currency text default 'INR',
-  add column if not exists nice_to_have_skills text[] default '{}',
   add column if not exists target_start_date date,
   add column if not exists why_join_us text,
-  add column if not exists description text,
   add column if not exists status text default 'draft', -- 'draft' | 'active' | 'closed'
   add column if not exists public_slug text unique,
   add column if not exists views int default 0,
