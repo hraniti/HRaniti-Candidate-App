@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/Button";
+import EmployerHeader from "@/components/employer/EmployerHeader";
 import Seal from "@/components/Seal";
 import { calcMatchScore } from "@/lib/jobMatching";
 import type { Job, Profile } from "@/lib/types";
@@ -128,9 +129,9 @@ function ShortlistPageInner() {
   }
 
   return (
-    <main className="min-h-screen bg-paper px-4 py-10">
-      <div className="w-full max-w-2xl mx-auto">
-        <span className="font-display italic text-lg text-ink block text-center mb-8">HRaniti</span>
+    <main className="min-h-screen bg-paper">
+      <EmployerHeader />
+      <div className="w-full max-w-2xl mx-auto px-4 py-10">
 
         <div className="flex justify-between items-start mb-5">
           <div>

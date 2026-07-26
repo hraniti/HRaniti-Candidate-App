@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/Button";
+import EmployerHeader from "@/components/employer/EmployerHeader";
 import Field from "@/components/employer/Field";
 import Chip from "@/components/employer/Chip";
 import EmployerInputStyles from "@/components/employer/EmployerInputStyles";
@@ -143,9 +144,9 @@ export default function NewJobPage() {
   }
 
   return (
-    <main className="min-h-screen bg-paper px-4 py-10">
-      <div className="w-full max-w-2xl mx-auto">
-        <span className="font-display italic text-lg text-ink block text-center mb-8">HRaniti</span>
+    <main className="min-h-screen bg-paper">
+      <EmployerHeader />
+      <div className="w-full max-w-2xl mx-auto px-4 py-10">
         <h1 className="font-display text-2xl text-ink mb-1">Post a job</h1>
         <p className="text-sm text-ink-soft mb-6">
           Manual entry — free. AI parsing and PDF upload come next.

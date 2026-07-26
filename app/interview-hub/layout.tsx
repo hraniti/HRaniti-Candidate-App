@@ -15,9 +15,10 @@ export default function InterviewHubLayout({ children }: { children: React.React
   const pathname = usePathname();
 
   return (
-    <main className="min-h-screen bg-paper px-4 py-10 sm:py-14">
+    <main className="min-h-screen bg-paper">
+      <AppHeader />
+      <div className="px-4 py-10 sm:py-14">
       <div className="max-w-2xl mx-auto">
-        <AppHeader />
         <h1 className="font-display text-3xl sm:text-4xl text-ink mb-1">Interview Hub</h1>
         <p className="text-ink-soft mb-6 text-[15px]">Verify your skills, practice with confidence, and put a face to your profile.</p>
 
@@ -39,6 +40,7 @@ export default function InterviewHubLayout({ children }: { children: React.React
         </div>
 
         {children}
+      </div>
       </div>
     </main>
   );

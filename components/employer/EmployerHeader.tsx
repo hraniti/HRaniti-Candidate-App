@@ -3,25 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Full-bleed header bar — deliberately rendered OUTSIDE each page's narrow
-// content column (not nested inside a max-w-* wrapper). That's what anchors
-// the page to the full browser width instead of leaving a centered card
-// floating in an empty white viewport on wider screens.
-export default function AppHeader() {
+export default function EmployerHeader() {
   const pathname = usePathname();
 
   const links = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/jobs", label: "Jobs" },
-    { href: "/interview-hub", label: "Interview Hub" },
-    { href: "/referrals", label: "Referrals" },
-    { href: "/profile", label: "My Profile" },
+    { href: "/employer/dashboard", label: "Dashboard" },
+    { href: "/employer/jobs", label: "Jobs" },
   ];
 
   return (
     <header className="w-full bg-paper-raised border-b border-line sticky top-0 z-30">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
-        <Link href="/dashboard" className="font-display italic text-xl text-ink tracking-tight shrink-0">
+        <Link href="/employer/dashboard" className="font-display italic text-xl text-ink tracking-tight shrink-0">
           HRaniti
         </Link>
         <nav className="flex items-center gap-0.5 bg-paper-deep rounded-full p-1 border border-line overflow-x-auto">

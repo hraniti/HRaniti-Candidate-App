@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Seal from "@/components/Seal";
 import Button from "@/components/Button";
+import EmployerHeader from "@/components/employer/EmployerHeader";
 import type { Employer } from "@/lib/employerTypes";
 
 export default function EmployerDashboard() {
@@ -34,10 +35,10 @@ export default function EmployerDashboard() {
   if (loading || !employer) return null;
 
   return (
-    <main className="min-h-screen bg-paper px-4 py-10 sm:py-16">
-      <div className="w-full max-w-2xl mx-auto">
+    <main className="min-h-screen bg-paper">
+      <EmployerHeader />
+      <div className="w-full max-w-2xl mx-auto px-4 py-10 sm:py-16">
         <div className="text-center mb-10">
-          <span className="font-display italic text-lg text-ink block mb-6">HRaniti</span>
           <h1 className="font-display text-3xl text-ink mb-2">
             Your company profile is complete!
           </h1>

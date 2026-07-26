@@ -66,9 +66,10 @@ export default function MyProfilePage() {
   if (!profile) return null;
 
   return (
-    <main className="min-h-screen bg-paper px-4 py-10 sm:py-14">
+    <main className="min-h-screen bg-paper">
+      <AppHeader />
+      <div className="px-4 py-10 sm:py-14">
       <div className="max-w-2xl mx-auto">
-        <AppHeader />
 
         <div className="flex items-center justify-between mb-1">
           <h1 className="font-display text-3xl sm:text-4xl text-ink">My Profile</h1>
@@ -107,6 +108,7 @@ export default function MyProfilePage() {
           <Tab3Eligibility profile={profile} queueSave={queueSave} saveNow={saveNow} />
         )}
         {activeTab === "privacy" && <Tab4Privacy profile={profile} queueSave={queueSave} />}
+      </div>
       </div>
     </main>
   );
