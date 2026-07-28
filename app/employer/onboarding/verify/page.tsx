@@ -7,6 +7,7 @@ import StepShell from "@/components/StepShell";
 import Button from "@/components/Button";
 import Seal from "@/components/Seal";
 import { ShieldCheck } from "lucide-react";
+import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 function extractDomain(url: string) {
   try {
@@ -36,9 +37,10 @@ export default function VerifyStep() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("employers").select("*").eq("id", user.id).single();
+      const companyId = await getOrCreateCompanyId(supabase, user);
+      const { data } = await supabase.from("companies").select("*").eq("id", companyId).single();
       if (data) {
-        setCompanyName(data.company_name ?? "");
+        setCompanyName(data.name ?? "");
         setHqLocation(data.hq_location ?? "");
         setWebsite(data.website ?? "");
         setEmail(data.business_email ?? "");
@@ -59,15 +61,16 @@ export default function VerifyStep() {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
+      const companyId = await getOrCreateCompanyId(supabase, user);
       await supabase
-        .from("employers")
+        .from("companies")
         .update({
           domain_verified: verified,
           verification_tier: tier,
           onboarding_step: "done",
           onboarding_completed: true,
         })
-        .eq("id", user.id);
+        .eq("id", companyId);
     }
     setSaving(false);
     router.push("/employer/dashboard");

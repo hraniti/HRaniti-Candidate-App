@@ -51,16 +51,17 @@ export const ONBOARDING_STEPS = [
   { key: "verify", label: "Verify", path: "/employer/onboarding/verify" },
 ];
 
-export interface Employer {
+export interface Company {
   id: string;
-  company_name: string | null;
-  company_logo_url: string | null;
+  name: string | null;
+  logo_url: string | null;
   website: string | null;
   industry: string | null;
-  company_size: string | null;
+  size: string | null;
   hq_location: string | null;
-  hiring_locations: string[];
+  locations: string[];
   description: string | null;
+  timezone: string | null;
 
   culture: string | null;
   benefits: string | null;
@@ -68,10 +69,10 @@ export interface Employer {
   office_photo_urls: string[];
   intro_video_url: string | null;
 
-  hr_contact_name: string | null;
+  primary_hr_contact_name: string | null;
   recruiter_name: string | null;
   business_email: string | null;
-  phone: string | null;
+  business_phone: string | null;
 
   business_registration_number: string | null;
   gst_vat_number: string | null;
@@ -85,4 +86,11 @@ export interface Employer {
   plan: "Free" | "Growth" | "Enterprise";
   onboarding_step: string;
   onboarding_completed: boolean;
+}
+
+export interface EmployerProfile {
+  id: string;
+  company_id: string;
+  full_name: string | null;
+  role: string | null;
 }

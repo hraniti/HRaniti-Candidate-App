@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/Button";
 import EmployerHeader from "@/components/employer/EmployerHeader";
+import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 import type { Job } from "@/lib/types";
 
 export default function EmployerJobsPage() {
@@ -17,10 +18,11 @@ export default function EmployerJobsPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+      const companyId = await getOrCreateCompanyId(supabase, user);
       const { data } = await supabase
         .from("jobs")
         .select("*")
-        .eq("employer_id", user.id)
+        .eq("company_id", companyId)
         .order("created_at", { ascending: false });
       setJobs((data as Job[]) ?? []);
       setLoading(false);

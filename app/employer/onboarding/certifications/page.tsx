@@ -8,6 +8,7 @@ import Button from "@/components/Button";
 import Field from "@/components/employer/Field";
 import Chip from "@/components/employer/Chip";
 import { CERTIFICATION_CATEGORIES } from "@/lib/employerTypes";
+import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 export default function CertificationsStep() {
   const router = useRouter();
@@ -23,10 +24,11 @@ export default function CertificationsStep() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+      const companyId = await getOrCreateCompanyId(supabase, user);
       const { data } = await supabase
-        .from("employers")
+        .from("companies")
         .select("certifications")
-        .eq("id", user.id)
+        .eq("id", companyId)
         .single();
       if (data?.certifications) setCerts(data.certifications);
       setLoading(false);
@@ -43,10 +45,11 @@ export default function CertificationsStep() {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
+      const companyId = await getOrCreateCompanyId(supabase, user);
       await supabase
-        .from("employers")
+        .from("companies")
         .update({ certifications: certs, onboarding_step: "verify" })
-        .eq("id", user.id);
+        .eq("id", companyId);
     }
     setSaving(false);
     router.push(nextPath);

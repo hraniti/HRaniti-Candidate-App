@@ -6,12 +6,13 @@ import { createClient } from "@/lib/supabase/client";
 import Seal from "@/components/Seal";
 import Button from "@/components/Button";
 import EmployerHeader from "@/components/employer/EmployerHeader";
-import type { Employer } from "@/lib/employerTypes";
+import type { Company } from "@/lib/employerTypes";
+import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 export default function EmployerDashboard() {
   const router = useRouter();
   const supabase = createClient();
-  const [employer, setEmployer] = useState<Employer | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,8 +21,9 @@ export default function EmployerDashboard() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("employers").select("*").eq("id", user.id).single();
-      setEmployer(data as Employer);
+      const companyId = await getOrCreateCompanyId(supabase, user);
+      const { data } = await supabase.from("companies").select("*").eq("id", companyId).single();
+      setCompany(data as Company);
       setLoading(false);
 
       // Send anyone who hasn't finished onboarding back to wherever they left off.
@@ -32,7 +34,7 @@ export default function EmployerDashboard() {
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading || !employer) return null;
+  if (loading || !company) return null;
 
   return (
     <main className="min-h-screen bg-paper">
@@ -43,7 +45,7 @@ export default function EmployerDashboard() {
             Your company profile is complete!
           </h1>
           <div className="flex items-center justify-center gap-2 mb-1">
-            {employer.domain_verified ? (
+            {company.domain_verified ? (
               <Seal label="Verified Employer" confidence={100} stamp />
             ) : (
               <span className="font-mono text-[11px] tracking-widest text-gold uppercase">
@@ -52,7 +54,7 @@ export default function EmployerDashboard() {
             )}
           </div>
           <p className="text-ink-soft text-sm">
-            {employer.company_name || "Your company"} · {employer.hq_location || "Location"}
+            {company.name || "Your company"} · {company.hq_location || "Location"}
           </p>
         </div>
 

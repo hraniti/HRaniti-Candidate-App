@@ -7,6 +7,7 @@ import StepShell from "@/components/StepShell";
 import Button from "@/components/Button";
 import Field from "@/components/employer/Field";
 import EmployerInputStyles from "@/components/employer/EmployerInputStyles";
+import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 export default function ContactStep() {
   const router = useRouter();
@@ -27,12 +28,13 @@ export default function ContactStep() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("employers").select("*").eq("id", user.id).single();
+      const companyId = await getOrCreateCompanyId(supabase, user);
+      const { data } = await supabase.from("companies").select("*").eq("id", companyId).single();
       if (data) {
-        setHrContact(data.hr_contact_name ?? "");
+        setHrContact(data.primary_hr_contact_name ?? "");
         setRecruiter(data.recruiter_name ?? "");
         setEmail(data.business_email ?? user.email ?? "");
-        setPhone(data.phone ?? "");
+        setPhone(data.business_phone ?? "");
       } else {
         setEmail(user.email ?? "");
       }
@@ -49,17 +51,18 @@ export default function ContactStep() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
+    const companyId = await getOrCreateCompanyId(supabase, user);
 
     const { error } = await supabase
-      .from("employers")
+      .from("companies")
       .update({
-        hr_contact_name: hrContact,
+        primary_hr_contact_name: hrContact,
         recruiter_name: recruiter || hrContact,
         business_email: email,
-        phone,
+        business_phone: phone,
         onboarding_step: "branding",
       })
-      .eq("id", user.id);
+      .eq("id", companyId);
 
     setSaving(false);
     if (error) {

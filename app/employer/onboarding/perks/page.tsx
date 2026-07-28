@@ -8,6 +8,7 @@ import Button from "@/components/Button";
 import Field from "@/components/employer/Field";
 import Chip from "@/components/employer/Chip";
 import { PERK_CATEGORIES } from "@/lib/employerTypes";
+import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 export default function PerksStep() {
   const router = useRouter();
@@ -23,7 +24,8 @@ export default function PerksStep() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("employers").select("perks").eq("id", user.id).single();
+      const companyId = await getOrCreateCompanyId(supabase, user);
+      const { data } = await supabase.from("companies").select("perks").eq("id", companyId).single();
       if (data?.perks) setPerks(data.perks);
       setLoading(false);
     })();
@@ -39,7 +41,8 @@ export default function PerksStep() {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from("employers").update({ perks, onboarding_step: "certifications" }).eq("id", user.id);
+      const companyId = await getOrCreateCompanyId(supabase, user);
+      await supabase.from("companies").update({ perks, onboarding_step: "certifications" }).eq("id", companyId);
     }
     setSaving(false);
     router.push(nextPath);

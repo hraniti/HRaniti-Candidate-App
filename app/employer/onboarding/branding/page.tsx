@@ -7,6 +7,7 @@ import StepShell from "@/components/StepShell";
 import Button from "@/components/Button";
 import Field from "@/components/employer/Field";
 import EmployerInputStyles from "@/components/employer/EmployerInputStyles";
+import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 export default function BrandingStep() {
   const router = useRouter();
@@ -26,7 +27,8 @@ export default function BrandingStep() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("employers").select("*").eq("id", user.id).single();
+      const companyId = await getOrCreateCompanyId(supabase, user);
+      const { data } = await supabase.from("companies").select("*").eq("id", companyId).single();
       if (data) {
         setCulture(data.culture ?? "");
         setBenefits(data.benefits ?? "");
@@ -43,8 +45,9 @@ export default function BrandingStep() {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
+      const companyId = await getOrCreateCompanyId(supabase, user);
       await supabase
-        .from("employers")
+        .from("companies")
         .update({
           culture: culture || null,
           benefits: benefits || null,
@@ -52,7 +55,7 @@ export default function BrandingStep() {
           intro_video_url: introVideo || null,
           onboarding_step: nextStep,
         })
-        .eq("id", user.id);
+        .eq("id", companyId);
     }
     setSaving(false);
     router.push(nextPath);

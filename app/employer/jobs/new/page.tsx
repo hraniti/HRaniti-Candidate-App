@@ -9,6 +9,7 @@ import Field from "@/components/employer/Field";
 import Chip from "@/components/employer/Chip";
 import EmployerInputStyles from "@/components/employer/EmployerInputStyles";
 import { CAREER_TRACKS } from "@/lib/types";
+import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 const EXPERIENCE_BRACKETS = [
   { label: "0–4 yrs", minYears: 1 },
@@ -75,10 +76,12 @@ export default function NewJobPage() {
       return;
     }
 
-    const { data: employer } = await supabase
-      .from("employers")
-      .select("company_name, tagline")
-      .eq("id", user.id)
+    const companyId = await getOrCreateCompanyId(supabase, user);
+
+    const { data: company } = await supabase
+      .from("companies")
+      .select("name, tagline")
+      .eq("id", companyId)
       .single();
 
     const bracket = EXPERIENCE_BRACKETS.find((b) => b.label === experienceBracket)!;
@@ -87,9 +90,10 @@ export default function NewJobPage() {
     const slug = slugify(title);
 
     const { error } = await supabase.from("jobs").insert({
-      employer_id: user.id,
+      company_id: companyId,
+      posted_by: user.id,
       title,
-      company: employer?.company_name ?? "Your Company",
+      company: company?.name ?? "Your Company",
       location,
       career_track: careerTrack,
       work_mode: workMode,

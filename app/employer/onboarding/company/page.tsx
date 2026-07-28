@@ -9,6 +9,7 @@ import { INDUSTRIES, COMPANY_SIZES, HIRING_LOCATIONS } from "@/lib/employerTypes
 import Field from "@/components/employer/Field";
 import Chip from "@/components/employer/Chip";
 import EmployerInputStyles from "@/components/employer/EmployerInputStyles";
+import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 export default function CompanyInfoStep() {
   const router = useRouter();
@@ -26,8 +27,8 @@ export default function CompanyInfoStep() {
   const [hiringLocations, setHiringLocations] = useState<string[]>([]);
   const [description, setDescription] = useState("");
 
-  // First time an employer lands here (right after signup), their `employers`
-  // row may not exist yet (email flow) — create it, then load whatever's there.
+  // First time an employer lands here (right after signup), they may not
+  // have a companies row yet (email flow) — create one, then load it.
   useEffect(() => {
     (async () => {
       const {
@@ -35,21 +36,16 @@ export default function CompanyInfoStep() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase
-        .from("employers")
-        .upsert(
-          { id: user.id, business_email: user.email },
-          { onConflict: "id", ignoreDuplicates: true }
-        );
+      const companyId = await getOrCreateCompanyId(supabase, user);
 
-      const { data } = await supabase.from("employers").select("*").eq("id", user.id).single();
+      const { data } = await supabase.from("companies").select("*").eq("id", companyId).single();
       if (data) {
-        setCompanyName(data.company_name ?? "");
+        setCompanyName(data.name === "Untitled Company" ? "" : data.name ?? "");
         setWebsite(data.website ?? "");
         setIndustry(data.industry ?? "");
-        setCompanySize(data.company_size ?? "");
+        setCompanySize(data.size ?? "");
         setHqLocation(data.hq_location ?? "");
-        setHiringLocations(data.hiring_locations ?? []);
+        setHiringLocations(data.locations ?? []);
         setDescription(data.description ?? "");
       }
       setLoading(false);
@@ -79,19 +75,21 @@ export default function CompanyInfoStep() {
     } = await supabase.auth.getUser();
     if (!user) return;
 
+    const companyId = await getOrCreateCompanyId(supabase, user);
+
     const { error } = await supabase
-      .from("employers")
+      .from("companies")
       .update({
-        company_name: companyName,
+        name: companyName,
         website,
         industry,
-        company_size: companySize,
+        size: companySize,
         hq_location: hqLocation,
-        hiring_locations: hiringLocations,
+        locations: hiringLocations,
         description,
         onboarding_step: "contact",
       })
-      .eq("id", user.id);
+      .eq("id", companyId);
 
     setSaving(false);
     if (error) {
