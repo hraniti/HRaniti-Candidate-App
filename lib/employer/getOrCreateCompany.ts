@@ -3,41 +3,30 @@ import { SupabaseClient, User } from "@supabase/supabase-js";
 // Ensures the logged-in user has an employer_profiles row linked to a
 // companies row, creating both on first login (works for both the email
 // signup path and the OAuth callback path). Returns the company_id.
+//
+// Delegates to the create_employer_account() Postgres function rather than
+// doing two separate client-side inserts — see
+// supabase/migration_employer_bootstrap_fix.sql for why: reading back a
+// freshly-inserted company's id from the client hits an RLS chicken-and-egg
+// problem (you can only read a company you're already linked to), so both
+// rows need to be created atomically, server-side, in one call.
 export async function getOrCreateCompanyId(
   supabase: SupabaseClient,
   user: User
 ): Promise<string> {
-  const { data: existing } = await supabase
-    .from("employer_profiles")
-    .select("company_id")
-    .eq("id", user.id)
-    .single();
-
-  if (existing?.company_id) return existing.company_id as string;
-
   const fullName =
     (user.user_metadata?.full_name as string | undefined) ??
     (user.user_metadata?.name as string | undefined) ??
     null;
 
-  const { data: company, error: companyError } = await supabase
-    .from("companies")
-    .insert({ name: "Untitled Company" })
-    .select("id")
-    .single();
-
-  if (companyError || !company) {
-    throw companyError ?? new Error("Failed to create company");
-  }
-
-  const { error: profileError } = await supabase.from("employer_profiles").insert({
-    id: user.id,
-    company_id: company.id,
-    full_name: fullName,
-    role: "Owner",
+  const { data, error } = await supabase.rpc("create_employer_account", {
+    p_full_name: fullName,
   });
 
-  if (profileError) throw profileError;
+  if (error || !data) {
+    throw error ?? new Error("Failed to create or fetch employer account");
+  }
 
-  return company.id as string;
+  return data as string;
 }
+
