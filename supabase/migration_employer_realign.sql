@@ -52,12 +52,25 @@ create policy "Employers manage jobs at their own company"
 alter table public.candidate_unlocks
   add column if not exists company_id uuid references public.companies (id) on delete cascade;
 
-alter table public.candidate_unlocks drop constraint if exists candidate_unlocks_employer_id_candidate_id_key;
-alter table public.candidate_unlocks drop column if exists employer_id;
-alter table public.candidate_unlocks add constraint candidate_unlocks_company_candidate_key unique (company_id, candidate_id);
-
+-- Drop the OLD policies before dropping the column they depend on
 drop policy if exists "Employers view their own unlocks" on public.candidate_unlocks;
 drop policy if exists "Employers create their own unlocks" on public.candidate_unlocks;
+
+alter table public.candidate_unlocks drop constraint if exists candidate_unlocks_employer_id_candidate_id_key;
+alter table public.candidate_unlocks drop column if exists employer_id;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'candidate_unlocks_company_candidate_key'
+  ) then
+    alter table public.candidate_unlocks
+      add constraint candidate_unlocks_company_candidate_key unique (company_id, candidate_id);
+  end if;
+end $$;
+
+drop policy if exists "Employers view unlocks at their company" on public.candidate_unlocks;
+drop policy if exists "Employers create unlocks at their company" on public.candidate_unlocks;
 create policy "Employers view unlocks at their company"
   on public.candidate_unlocks for select
   using (company_id in (select company_id from public.employer_profiles where id = auth.uid()));
