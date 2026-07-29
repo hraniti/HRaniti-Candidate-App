@@ -34,7 +34,7 @@ export default function EmployerJobsPage() {
   return (
     <main className="min-h-screen bg-paper">
       <EmployerHeader />
-      <div className="w-full max-w-2xl mx-auto px-4 py-10">
+      <div className="w-full max-w-4xl mx-auto px-4 py-10">
 
         <div className="flex justify-between items-center mb-6">
           <h1 className="font-display text-2xl text-ink">Your jobs</h1>

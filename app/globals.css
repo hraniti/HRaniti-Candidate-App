@@ -33,7 +33,6 @@ body {
   color: #0E7C71;
   background: #E4F3F1;
   box-shadow: 0 0 0 2px #F3F4F6, 0 0 0 3px rgba(14,124,113,0.25);
-  transform: rotate(-2deg);
 }
 
 .seal::before {
@@ -63,7 +62,6 @@ body {
   color: #16213E;
   background: #E3E6EC;
   box-shadow: 0 0 0 2px #F3F4F6, 0 0 0 3px rgba(22,33,62,0.25);
-  transform: rotate(2deg);
 }
 .seal.stamp::before {
   background: #16213E;

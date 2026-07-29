@@ -131,7 +131,7 @@ function ShortlistPageInner() {
   return (
     <main className="min-h-screen bg-paper">
       <EmployerHeader />
-      <div className="w-full max-w-2xl mx-auto px-4 py-10">
+      <div className="w-full max-w-4xl mx-auto px-4 py-10">
 
         <div className="flex justify-between items-start mb-5">
           <div>
