@@ -117,7 +117,7 @@ export default function AIProfilePage() {
   return (
     <main className="min-h-screen bg-paper px-4 py-10 sm:py-14">
       <div className="max-w-2xl mx-auto">
-        <span className="font-display italic text-lg text-ink block mb-6">HRaniti</span>
+        <span className="inline-flex items-center gap-2 mb-6"><img src="/brand/logo-icon.png" alt="" className="h-5 w-auto" /><span className="font-display italic text-lg text-ink">HRaniti</span></span>
 
         <h1 className="font-display text-3xl sm:text-4xl text-ink mb-2">Your AI Career Profile</h1>
         <p className="text-ink-soft mb-6 text-[15px] leading-relaxed">

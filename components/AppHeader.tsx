@@ -21,8 +21,9 @@ export default function AppHeader() {
   return (
     <header className="w-full bg-paper-raised border-b border-line sticky top-0 z-30">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
-        <Link href="/dashboard" className="font-display italic text-xl text-ink tracking-tight shrink-0">
-          HRaniti
+        <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+          <img src="/brand/logo-icon.png" alt="" className="h-7 w-auto" />
+          <span className="font-display italic text-xl text-ink tracking-tight">HRaniti</span>
         </Link>
         <nav className="flex items-center gap-0.5 bg-paper-deep rounded-full p-1 border border-line overflow-x-auto">
           {links.map((l) => {

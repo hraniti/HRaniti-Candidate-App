@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Seal from "@/components/Seal";
 import Button from "@/components/Button";
-import EmployerHeader from "@/components/employer/EmployerHeader";
+import EmployerShell from "@/components/employer/EmployerShell";
 import type { Company } from "@/lib/employerTypes";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
+import { Briefcase, Users, Sparkles } from "lucide-react";
 
 export default function EmployerDashboard() {
   const router = useRouter();
@@ -33,10 +34,8 @@ export default function EmployerDashboard() {
       ]);
       setJobCount(jobs ?? 0);
       setUnlockCount(unlocks ?? 0);
-
       setLoading(false);
 
-      // Send anyone who hasn't finished onboarding back to wherever they left off.
       if (data && !data.onboarding_completed) {
         const step = data.onboarding_step || "company";
         router.replace(`/employer/onboarding/${step === "done" ? "company" : step}`);
@@ -46,76 +45,139 @@ export default function EmployerDashboard() {
 
   if (loading || !company) return null;
 
+  const firstName = company.primary_hr_contact_name?.split(" ")[0];
+
+  // Honest, state-driven task list — no fabricated numbers. What shows here
+  // reflects what's actually true about this company's account right now.
+  const tasks: {
+    tone: "coral" | "gold" | "violet" | "cyan";
+    title: string;
+    subtitle: string;
+    cta: string;
+    href: string;
+  }[] = [];
+
+  if (!company.domain_verified) {
+    tasks.push({
+      tone: "gold",
+      title: "Verify your company",
+      subtitle: "Verified employers get a badge shown on every job post.",
+      cta: "Verify now",
+      href: "/employer/onboarding/verify",
+    });
+  }
+  if (jobCount === 0) {
+    tasks.push({
+      tone: "coral",
+      title: "Post your first job",
+      subtitle: "Free on every plan — takes about 2 minutes.",
+      cta: "Post a job",
+      href: "/employer/jobs/new",
+    });
+  } else if (unlockCount === 0) {
+    tasks.push({
+      tone: "violet",
+      title: "Review your shortlist",
+      subtitle: "You have jobs live — see who's matched so far.",
+      cta: "View jobs",
+      href: "/employer/jobs",
+    });
+  }
+  if (tasks.length === 0) {
+    tasks.push({
+      tone: "cyan",
+      title: "You're all set",
+      subtitle: "Post another role to keep your pipeline growing.",
+      cta: "Post a job",
+      href: "/employer/jobs/new",
+    });
+  }
+
+  const toneMap = {
+    coral: { border: "border-brandCoral", bg: "bg-brandCoral-soft", text: "text-brandCoral" },
+    gold: { border: "border-gold", bg: "bg-gold-soft", text: "text-gold-deep" },
+    violet: { border: "border-brandViolet", bg: "bg-brandViolet-soft", text: "text-brandViolet" },
+    cyan: { border: "border-brandCyan", bg: "bg-brandCyan-soft", text: "text-brandCyan-deep" },
+  };
+
   return (
-    <main className="min-h-screen bg-paper">
-      <EmployerHeader />
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+    <EmployerShell jobCount={jobCount}>
+      <div className="px-6 sm:px-10 py-8 sm:py-10 max-w-5xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <h1 className="font-display text-2xl sm:text-3xl text-ink">
-                {company.name || "Your company"}
-              </h1>
-              {company.domain_verified && <Seal label="Verified Employer" confidence={100} stamp />}
+            <h1 className="font-display text-2xl sm:text-3xl text-ink mb-1">
+              Good to see you{firstName ? `, ${firstName}` : ""} 👋
+            </h1>
+            <div className="flex items-center gap-2">
+              <p className="text-ink-soft text-sm">
+                {company.name || "Your company"} · {company.hq_location || "Location not set"}
+              </p>
+              {company.domain_verified && <Seal label="Verified" confidence={100} stamp />}
             </div>
-            <p className="text-ink-soft text-sm">
-              {company.hq_location || "Location not set"}
-              {!company.domain_verified && (
-                <span className="ml-2 font-mono text-[11px] tracking-widest text-gold uppercase">
-                  Verification pending
-                </span>
-              )}
-            </p>
           </div>
           <Button onClick={() => router.push("/employer/jobs/new")}>Post a job</Button>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4 mb-8">
-          <StatCard label="Active jobs" value={jobCount} />
-          <StatCard label="Candidates unlocked" value={unlockCount} />
-          <StatCard label="Plan" value={company.plan || "Free"} />
+        <p className="text-xs font-mono tracking-widest uppercase text-ink-faint mb-3">
+          Today's tasks
+        </p>
+        <div className="space-y-3 mb-8">
+          {tasks.map((t) => {
+            const tone = toneMap[t.tone];
+            return (
+              <div
+                key={t.title}
+                className={`flex items-center justify-between gap-4 rounded-xl border-l-4 ${tone.border} ${tone.bg} px-5 py-4`}
+              >
+                <div>
+                  <p className="text-sm font-medium text-ink">{t.title}</p>
+                  <p className="text-xs text-ink-soft">{t.subtitle}</p>
+                </div>
+                <button
+                  onClick={() => router.push(t.href)}
+                  className={`shrink-0 text-sm font-medium px-4 py-2 rounded-lg bg-white border border-line ${tone.text} hover:bg-paper-deep transition-colors`}
+                >
+                  {t.cta}
+                </button>
+              </div>
+            );
+          })}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="paper-card p-6">
-            <p className="text-sm font-medium text-ink mb-4">Next steps</p>
-            <div className="space-y-3">
-              <NextStep emoji="📝" label="Post your first job" href="/employer/jobs/new" />
-              <NextStep emoji="🔍" label="Review your shortlist" href="/employer/jobs" />
-            </div>
-          </div>
-
-          <div className="paper-card p-6">
-            <p className="text-sm font-medium text-ink mb-4">Company profile</p>
-            <div className="space-y-2 text-sm text-ink-soft">
-              <p>Industry: {company.industry || "—"}</p>
-              <p>Company size: {company.size || "—"}</p>
-              <p>Hiring locations: {company.locations?.join(", ") || "—"}</p>
-            </div>
-          </div>
+        <div className="grid sm:grid-cols-3 gap-4">
+          <StatCard icon={Briefcase} tone="violet" label="Active jobs" value={jobCount} />
+          <StatCard icon={Users} tone="coral" label="Candidates unlocked" value={unlockCount} />
+          <StatCard icon={Sparkles} tone="cyan" label="Plan" value={company.plan || "Free"} />
         </div>
       </div>
-    </main>
+    </EmployerShell>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
+function StatCard({
+  icon: Icon,
+  tone,
+  label,
+  value,
+}: {
+  icon: typeof Briefcase;
+  tone: "violet" | "coral" | "cyan";
+  label: string;
+  value: string | number;
+}) {
+  const toneMap = {
+    violet: { bg: "bg-brandViolet-soft", text: "text-brandViolet" },
+    coral: { bg: "bg-brandCoral-soft", text: "text-brandCoral" },
+    cyan: { bg: "bg-brandCyan-soft", text: "text-brandCyan-deep" },
+  };
+  const t = toneMap[tone];
   return (
     <div className="paper-card p-5">
+      <div className={`w-9 h-9 rounded-lg ${t.bg} flex items-center justify-center mb-3`}>
+        <Icon size={17} className={t.text} />
+      </div>
       <p className="text-xs font-medium text-ink-soft mb-1">{label}</p>
       <p className="font-display text-2xl text-ink">{value}</p>
     </div>
-  );
-}
-
-function NextStep({ emoji, label, href }: { emoji: string; label: string; href: string }) {
-  return (
-    <a
-      href={href}
-      className="flex items-center gap-3 text-sm text-ink-soft hover:text-ink transition-colors"
-    >
-      <span>{emoji}</span>
-      <span>{label}</span>
-    </a>
   );
 }

@@ -47,6 +47,13 @@ const config: Config = {
           soft: "#E3E6EC",
         },
         line: "#E1E4EA",
+
+        // Brand accents pulled directly from the HRaniti logo mark — used
+        // for the employer app's sidebar/dashboard so it reads as a real,
+        // colorful product rather than the mostly-monochrome candidate side.
+        brandViolet: { DEFAULT: "#7C3AED", soft: "#F1E8FE", deep: "#5B21B6" },
+        brandCoral: { DEFAULT: "#FF4438", soft: "#FFEAE8", deep: "#C3271D" },
+        brandCyan: { DEFAULT: "#06B6D4", soft: "#E0F7FB", deep: "#0E7490" },
       },
       fontFamily: {
         display: ["var(--font-fraunces)", "serif"],

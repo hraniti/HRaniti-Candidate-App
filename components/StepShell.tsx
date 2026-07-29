@@ -17,7 +17,7 @@ export default function StepShell({
     <main className="min-h-screen bg-paper flex flex-col items-center px-4 py-10 sm:py-16">
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center justify-between">
-          <span className="font-display italic text-lg text-ink">HRaniti</span>
+          <span className="inline-flex items-center gap-2"><img src="/brand/logo-icon.png" alt="" className="h-5 w-auto" /><span className="font-display italic text-lg text-ink">HRaniti</span></span>
           {step && total ? (
             <span className="font-mono text-xs text-ink-soft tracking-wide">
               STEP {step} / {total}

@@ -46,18 +46,7 @@ export default function ReferralLandingPage() {
     return (
       <main className="min-h-screen bg-paper flex items-center justify-center px-4">
         <div className="paper-card p-8 max-w-md text-center">
-          <span className="font-display italic text-lg text-ink block mb-4">HRaniti</span>
-          <p className="text-ink-soft mb-5">This referral link isn't active anymore, but you can still join HRaniti directly.</p>
-          <Button onClick={() => router.push("/signup")}>Create Free Profile</Button>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="min-h-screen bg-paper flex items-center justify-center px-4 py-10">
-      <div className="max-w-md w-full">
-        <span className="font-display italic text-lg text-ink block text-center mb-6">HRaniti</span>
+          <span className="inline-flex items-center gap-2 mb-4"><img src="/brand/logo-icon.png" alt="" className="h-5 w-auto" /><span className="font-display italic text-lg text-ink">HRaniti</span></span> <p className="text-ink-soft mb-5">This referral link isn't active anymore, but you can still join HRaniti directly.</p> <Button onClick={() => router.push("/signup")}>Create Free Profile</Button> </div> </main> ); } return ( <main className="min-h-screen bg-paper flex items-center justify-center px-4 py-10"> <div className="max-w-md w-full"> <span className="font-display italic text-lg text-ink text-center mb-6"><img src="/brand/logo-icon.png" alt="" className="h-5 w-auto" /><span className="font-display italic text-lg text-ink">HRaniti</span></span>
         <div className="paper-card p-8 text-center">
           {referrer && (
             <p className="text-xs text-ink-soft mb-4">

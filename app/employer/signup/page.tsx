@@ -75,7 +75,7 @@ export default function EmployerSignUpPage() {
     <main className="min-h-screen bg-paper flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <span className="font-display italic text-lg text-ink">HRaniti</span>
+          <span className="inline-flex items-center gap-2"><img src="/brand/logo-icon.png" alt="" className="h-5 w-auto" /><span className="font-display italic text-lg text-ink">HRaniti</span></span>
         </div>
 
         <div className="paper-card p-7 sm:p-9 text-center">
