@@ -194,7 +194,13 @@ function ShortlistPageInner() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-3 text-xs items-center">
-                  <Seal label="Integrity" confidence={c.integrity_score ?? 100} />
+                  {c.integrity_score !== null && c.integrity_score < 100 ? (
+                    <Seal label="Integrity" confidence={c.integrity_score} />
+                  ) : (
+                    <span className="text-[11px] font-mono uppercase tracking-wide text-ink-faint px-2 py-1 rounded-md bg-paper-deep">
+                      No flags on record
+                    </span>
+                  )}
                   <span className="px-2 py-1 rounded-md bg-paper-deep text-ink-soft">
                     {c.availability_status ?? "Not specified"}
                   </span>
