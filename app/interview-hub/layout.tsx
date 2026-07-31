@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import AppHeader from "@/components/AppHeader";
+import CandidateShell from "@/components/CandidateShell";
 
 const SUB_NAV = [
   { href: "/interview-hub", label: "Assessments" },
@@ -15,8 +15,7 @@ export default function InterviewHubLayout({ children }: { children: React.React
   const pathname = usePathname();
 
   return (
-    <main className="min-h-screen bg-paper">
-      <AppHeader />
+    <CandidateShell>
       <div className="px-4 py-10 sm:py-14">
       <div className="max-w-2xl mx-auto">
         <h1 className="font-display text-3xl sm:text-4xl text-ink mb-1">Interview Hub</h1>
@@ -42,6 +41,6 @@ export default function InterviewHubLayout({ children }: { children: React.React
         {children}
       </div>
       </div>
-    </main>
+    </CandidateShell>
   );
 }

@@ -10,7 +10,7 @@ import MatchBadge from "@/components/jobs/MatchBadge";
 import SkillChip from "@/components/jobs/SkillChip";
 import QuickApplyModal from "@/components/jobs/QuickApplyModal";
 import Button from "@/components/Button";
-import AppHeader from "@/components/AppHeader";
+import CandidateShell from "@/components/CandidateShell";
 import {
   CheckCircle2,
   XCircle,
@@ -100,12 +100,13 @@ export default function JobDetailPage() {
 
   if (loading || !job || !profile) {
     return (
-      <main className="min-h-screen bg-paper px-4 py-10">
+      <CandidateShell>
+        <div className="px-4 py-10">
         <div className="max-w-2xl mx-auto">
-          <AppHeader />
           <p className="font-mono text-sm text-ink-soft">Loading job…</p>
         </div>
-      </main>
+        </div>
+      </CandidateShell>
     );
   }
 
@@ -114,9 +115,9 @@ export default function JobDetailPage() {
   const referralUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/jobs/${job.id}?ref=${job.referral_slug ?? job.id.slice(0, 8)}`;
 
   return (
-    <main className="min-h-screen bg-paper px-4 py-10 sm:py-14">
+    <CandidateShell>
+      <div className="px-4 py-10 sm:py-14">
       <div className="max-w-2xl mx-auto">
-        <AppHeader />
 
         <button onClick={() => router.back()} className="text-sm text-ink-soft mb-4 hover:text-ink">
           ← Back
@@ -385,6 +386,7 @@ export default function JobDetailPage() {
           />
         )}
       </div>
-    </main>
+    </div>
+    </CandidateShell>
   );
 }

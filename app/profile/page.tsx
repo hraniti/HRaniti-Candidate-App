@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Profile } from "@/lib/types";
 import { useDebouncedSave } from "@/lib/useDebouncedSave";
-import AppHeader from "@/components/AppHeader";
+import CandidateShell from "@/components/CandidateShell";
 import ReadinessBar from "@/components/profile/ReadinessBar";
 import { SaveIndicator } from "@/components/profile/shared";
 import Tab1Professional from "@/components/profile/Tab1Professional";
@@ -66,8 +66,7 @@ export default function MyProfilePage() {
   if (!profile) return null;
 
   return (
-    <main className="min-h-screen bg-paper">
-      <AppHeader />
+    <CandidateShell>
       <div className="px-4 py-10 sm:py-14">
       <div className="max-w-2xl mx-auto">
 
@@ -110,6 +109,6 @@ export default function MyProfilePage() {
         {activeTab === "privacy" && <Tab4Privacy profile={profile} queueSave={queueSave} />}
       </div>
       </div>
-    </main>
+    </CandidateShell>
   );
 }

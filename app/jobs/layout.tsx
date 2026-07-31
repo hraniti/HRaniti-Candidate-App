@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import AppHeader from "@/components/AppHeader";
+import CandidateShell from "@/components/CandidateShell";
 
 const SUB_NAV = [
   { href: "/jobs", label: "Discover", tab: null },
@@ -43,8 +43,7 @@ function SubNav() {
 
 export default function JobsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-paper">
-      <AppHeader />
+    <CandidateShell>
       <div className="px-4 py-10 sm:py-14">
       <div className="max-w-3xl mx-auto">
         <h1 className="font-display text-3xl sm:text-4xl text-ink mb-1">Career Opportunities</h1>
@@ -55,6 +54,6 @@ export default function JobsLayout({ children }: { children: React.ReactNode }) 
         {children}
       </div>
       </div>
-    </main>
+    </CandidateShell>
   );
 }
