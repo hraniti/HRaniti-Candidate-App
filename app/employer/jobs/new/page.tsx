@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/Button";
@@ -36,6 +36,24 @@ export default function NewJobPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [posted, setPosted] = useState<{ slug: string } | null>(null);
+  const [quota, setQuota] = useState<{ plan: string; activeCount: number } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const companyId = await getOrCreateCompanyId(supabase, user);
+      const { data: company } = await supabase.from("companies").select("plan").eq("id", companyId).single();
+      const { count } = await supabase
+        .from("jobs")
+        .select("*", { count: "exact", head: true })
+        .eq("company_id", companyId)
+        .eq("status", "active");
+      setQuota({ plan: company?.plan ?? "Free", activeCount: count ?? 0 });
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [title, setTitle] = useState("");
   const [careerTrack, setCareerTrack] = useState("");
@@ -80,9 +98,26 @@ export default function NewJobPage() {
 
     const { data: company } = await supabase
       .from("companies")
-      .select("name, tagline")
+      .select("name, tagline, plan")
       .eq("id", companyId)
       .single();
+
+    // Free plan: up to 2 active jobs, per the spec's Section A limits.
+    const plan = company?.plan ?? "Free";
+    if (plan === "Free") {
+      const { count: activeCount } = await supabase
+        .from("jobs")
+        .select("*", { count: "exact", head: true })
+        .eq("company_id", companyId)
+        .eq("status", "active");
+      if ((activeCount ?? 0) >= 2) {
+        setError(
+          "You've reached the Free plan limit of 2 active jobs. Close an existing job or upgrade to post more."
+        );
+        setSaving(false);
+        return;
+      }
+    }
 
     const bracket = EXPERIENCE_BRACKETS.find((b) => b.label === experienceBracket)!;
     const skills = skillsInput.split(",").map((s) => s.trim()).filter(Boolean);
@@ -154,6 +189,20 @@ export default function NewJobPage() {
         <p className="text-sm text-ink-soft mb-6">
           Manual entry — free. AI parsing and PDF upload come next.
         </p>
+
+        {quota && quota.plan === "Free" && (
+          <div
+            className={`rounded-lg px-4 py-3 mb-6 text-sm ${
+              quota.activeCount >= 2
+                ? "bg-brandCoral-soft text-brandCoral"
+                : "bg-paper-deep text-ink-soft"
+            }`}
+          >
+            {quota.activeCount >= 2
+              ? "You've used both active jobs on the Free plan. Close an existing job or upgrade to post another."
+              : `${quota.activeCount} of 2 active jobs used on the Free plan.`}
+          </div>
+        )}
 
         <div className="paper-card p-6 sm:p-7 space-y-4">
           <Field label="Job Title" required>
@@ -238,7 +287,7 @@ export default function NewJobPage() {
 
           {error && <p className="text-sm text-alert">{error}</p>}
 
-          <Button className="w-full justify-center mt-2" disabled={!canSubmit} loading={saving} onClick={handleSubmit}>
+          <Button className="w-full justify-center mt-2" disabled={!canSubmit || (quota?.plan === "Free" && quota.activeCount >= 2)} loading={saving} onClick={handleSubmit}>
             Post job &amp; run instant match
           </Button>
         </div>
