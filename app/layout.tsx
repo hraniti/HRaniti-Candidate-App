@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -21,6 +21,14 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+// Used only on the redesigned signup page — the rest of the app stays on
+// the Fraunces/IBM Plex Sans design system above.
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "HRaniti — Build Your Verified Professional Profile",
   description: "Helping professionals build careers, not just find jobs.",
@@ -40,7 +48,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${fraunces.variable} ${plexSans.variable} ${plexMono.variable} font-body antialiased`}
+        className={`${fraunces.variable} ${plexSans.variable} ${plexMono.variable} ${inter.variable} font-body antialiased`}
       >
         {children}
       </body>
