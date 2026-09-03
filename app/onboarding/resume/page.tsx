@@ -150,7 +150,7 @@ export default function ResumeUploadPage() {
           className="absolute"
           style={{ top: "32px", right: "48px", fontWeight: 400, fontSize: "14px", lineHeight: 1, color: "#3A4460" }}
         >
-          Step 1 of 7
+          Step 1 of 5
         </p>
 
         <div className="flex-1 flex items-center justify-center">
