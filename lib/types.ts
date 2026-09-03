@@ -1,7 +1,7 @@
 export type CareerTrack =
   | "ERP"
-  | "Data & Analytics"
   | "AI / ML"
+  | "Data & Analytics"
   | "Cloud / DevOps"
   | "Semiconductor & Embedded"
   | "Life Sciences & Pharma"
@@ -9,8 +9,8 @@ export type CareerTrack =
 
 export const CAREER_TRACKS: CareerTrack[] = [
   "ERP",
-  "Data & Analytics",
   "AI / ML",
+  "Data & Analytics",
   "Cloud / DevOps",
   "Semiconductor & Embedded",
   "Life Sciences & Pharma",

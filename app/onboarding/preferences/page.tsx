@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import StepShell from "@/components/StepShell";
 import Button from "@/components/Button";
+import { CAREER_TRACKS, CareerTrack } from "@/lib/types";
 
 const WORK_PREFS = ["Remote", "Hybrid", "On-site"];
 const NOTICE_OPTIONS = ["Immediate", "15 Days", "30 Days", "60 Days", "90 Days+"];
@@ -23,6 +24,7 @@ export default function PreferencesPage() {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
+  const [category, setCategory] = useState<CareerTrack | "">("");
   const [role, setRole] = useState("");
   const [location, setLocation] = useState("");
   const [intl, setIntl] = useState<string[]>([]);
@@ -31,6 +33,24 @@ export default function PreferencesPage() {
   const [expectedSalary, setExpectedSalary] = useState("");
   const [currency, setCurrency] = useState("INR");
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("career_track, preferred_role")
+        .eq("id", user.id)
+        .single();
+      // Pre-fill from the profile page's career track if it was already set
+      // there (e.g. AI-inferred from an uploaded resume) — don't ask twice.
+      if (data?.career_track) setCategory(data.career_track as CareerTrack);
+      if (data?.preferred_role) setRole(data.preferred_role);
+    })();
+  }, []);
 
   const isInternational = location.trim() !== "" && !/india/i.test(location);
   const total = 5;
@@ -48,6 +68,7 @@ export default function PreferencesPage() {
       await supabase
         .from("profiles")
         .update({
+          career_track: category || null,
           preferred_role: role || null,
           preferred_locations: location ? [location] : [],
           open_to_international: intl,
@@ -76,14 +97,23 @@ export default function PreferencesPage() {
       </p>
 
       {step === 1 && (
-        <QuestionBlock label="What is your preferred job role?">
-          <input
-            autoFocus
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            placeholder="e.g. SAP Consultant, Data Analyst"
-            className="w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
-          />
+        <QuestionBlock label="What category are you looking for?">
+          <div className="flex flex-wrap gap-2">
+            {CAREER_TRACKS.map((o) => (
+              <Chip key={o} active={category === o} onClick={() => setCategory(o)}>
+                {o}
+              </Chip>
+            ))}
+          </div>
+          <div className="mt-5 pt-5 dashed-divider">
+            <label className="text-xs font-medium text-ink-soft">Specific role (optional)</label>
+            <input
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="e.g. SAP BASIS Consultant, ML Engineer"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
+            />
+          </div>
         </QuestionBlock>
       )}
 
