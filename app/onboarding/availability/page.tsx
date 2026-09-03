@@ -7,8 +7,6 @@ import StepShell from "@/components/StepShell";
 import Button from "@/components/Button";
 
 const AVAILABILITY_OPTIONS = [
-  "Available Immediately",
-  "Serving Notice",
   "Open to Opportunities",
   "Not Looking",
   "Freelancer",
@@ -68,8 +66,8 @@ export default function AvailabilityPage() {
 
   return (
     <StepShell
-      step={6}
-      total={7}
+      step={4}
+      total={5}
       title="Tell us about your availability"
       subtitle="This helps employers understand your timeline."
     >
@@ -120,6 +118,12 @@ export default function AvailabilityPage() {
       <Button className="w-full justify-center mt-8" loading={saving} onClick={handleContinue}>
         Continue
       </Button>
+      <button
+        onClick={() => router.push("/onboarding/consent")}
+        className="block mx-auto mt-4 text-xs text-ink-soft underline underline-offset-4"
+      >
+        Skip this question
+      </button>
     </StepShell>
   );
 }

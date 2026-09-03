@@ -11,6 +11,12 @@ const NOTICE_OPTIONS = ["Immediate", "15 Days", "30 Days", "60 Days", "90 Days+"
 const INTL_OPTIONS = ["UAE", "Germany", "UK", "Remote Global"];
 const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AED"];
 
+// This page is Step 3 of the overall 5-step onboarding flow (resume, profile,
+// preferences, availability, consent) — it just has its own internal
+// sub-questions within that one step, tracked separately below.
+const GLOBAL_STEP = 3;
+const GLOBAL_TOTAL = 5;
+
 export default function PreferencesPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -60,11 +66,15 @@ export default function PreferencesPage() {
 
   return (
     <StepShell
-      step={step}
-      total={total}
+      step={GLOBAL_STEP}
+      total={GLOBAL_TOTAL}
       title="Tell us what you're looking for"
       subtitle="This helps us match you with the right opportunities."
     >
+      <p className="font-mono text-[11px] text-ink-faint tracking-wide mb-4">
+        Question {step} of {total}
+      </p>
+
       {step === 1 && (
         <QuestionBlock label="What is your preferred job role?">
           <input
