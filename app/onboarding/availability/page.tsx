@@ -118,12 +118,6 @@ export default function AvailabilityPage() {
       <Button className="w-full justify-center mt-8" loading={saving} onClick={handleContinue}>
         Continue
       </Button>
-      <button
-        onClick={() => router.push("/onboarding/consent")}
-        className="block mx-auto mt-4 text-xs text-ink-soft underline underline-offset-4"
-      >
-        Skip this question
-      </button>
     </StepShell>
   );
 }
