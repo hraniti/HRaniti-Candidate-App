@@ -36,8 +36,8 @@ export default function ConsentPage() {
 
   return (
     <StepShell
-      step={5}
-      total={5}
+      step={4}
+      total={4}
       title="Control your visibility"
       subtitle="You're in control of who sees your profile. You can change these anytime under Account Settings."
     >

@@ -119,7 +119,7 @@ export default function AIProfilePage() {
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <span className="inline-flex items-center gap-2"><img src="/brand/logo-icon.png" alt="" className="h-5 w-auto" /><span className="font-display italic text-lg text-ink">HRaniti</span></span>
-          <span className="font-mono text-xs text-ink-soft tracking-wide">STEP 2 / 5</span>
+          <span className="font-mono text-xs text-ink-soft tracking-wide">STEP 2 / 4</span>
         </div>
 
         <h1 className="font-display text-3xl sm:text-4xl text-ink mb-2">Your AI Career Profile</h1>
