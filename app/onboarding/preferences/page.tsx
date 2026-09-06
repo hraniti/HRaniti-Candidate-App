@@ -17,7 +17,7 @@ const JOB_TYPES = ["Full-time", "Contract", "Freelance", "Open to all"];
 // preferences, availability, consent) — it has its own 7 internal
 // sub-questions, tracked separately from the global step.
 const GLOBAL_STEP = 3;
-const GLOBAL_TOTAL = 5;
+const GLOBAL_TOTAL = 4;
 
 export default function PreferencesPage() {
   const router = useRouter();
@@ -124,7 +124,7 @@ export default function PreferencesPage() {
         .eq("id", user.id);
     }
     setSaving(false);
-    router.push("/onboarding/availability");
+    router.push("/onboarding/consent");
   }
 
   return (
