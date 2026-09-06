@@ -10,9 +10,11 @@ const WORK_PREFS = ["Remote", "Hybrid", "On-site"];
 const NOTICE_OPTIONS = ["Immediate", "15 Days", "30 Days", "60 Days", "90 Days+"];
 const INTL_OPTIONS = ["UAE", "Germany", "UK", "Remote Global"];
 const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AED"];
+const AVAILABILITY_OPTIONS = ["Open to Opportunities", "Passively Looking"];
+const JOB_TYPES = ["Full-time", "Contract", "Freelance", "Open to all"];
 
 // This page is Step 3 of the overall 5-step onboarding flow (resume, profile,
-// preferences, availability, consent) — it has its own 5 internal
+// preferences, availability, consent) — it has its own 7 internal
 // sub-questions, tracked separately from the global step.
 const GLOBAL_STEP = 3;
 const GLOBAL_TOTAL = 5;
@@ -24,14 +26,19 @@ export default function PreferencesPage() {
   const [saving, setSaving] = useState(false);
 
   const [category, setCategory] = useState<CareerTrack | "">("");
-  const [role, setRole] = useState("");
   const [location, setLocation] = useState("");
+  const [openToIntl, setOpenToIntl] = useState<"yes" | "no" | "">("");
   const [intl, setIntl] = useState<string[]>([]);
+  const [visaHeld, setVisaHeld] = useState<Record<string, boolean>>({});
   const [work, setWork] = useState<string[]>([]);
+  const [jobTypes, setJobTypes] = useState<string[]>([]);
   const [currentSalary, setCurrentSalary] = useState("");
   const [expectedSalary, setExpectedSalary] = useState("");
   const [currency, setCurrency] = useState("INR");
+  const [expectedCurrency, setExpectedCurrency] = useState("INR");
+  const [availabilityStatus, setAvailabilityStatus] = useState("");
   const [notice, setNotice] = useState("");
+  const [lastWorkingDay, setLastWorkingDay] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -41,19 +48,52 @@ export default function PreferencesPage() {
       if (!user) return;
       const { data } = await supabase
         .from("profiles")
-        .select("career_track, preferred_role")
+        .select(
+          "career_track, preferred_locations, open_to_international, visa_held_countries, work_preference, job_type_preference, current_salary, expected_salary, salary_currency, expected_salary_currency, availability_status, notice_period, last_working_day"
+        )
         .eq("id", user.id)
         .single();
-      if (data?.career_track) setCategory(data.career_track as CareerTrack);
-      if (data?.preferred_role) setRole(data.preferred_role);
+      if (!data) return;
+      if (data.career_track) setCategory(data.career_track as CareerTrack);
+      if (data.preferred_locations?.[0]) setLocation(data.preferred_locations[0]);
+      if (data.open_to_international?.length) {
+        setOpenToIntl("yes");
+        setIntl(data.open_to_international);
+      }
+      if (data.visa_held_countries?.length) {
+        const held: Record<string, boolean> = {};
+        data.visa_held_countries.forEach((c: string) => (held[c] = true));
+        setVisaHeld(held);
+      }
+      if (data.work_preference) setWork(data.work_preference);
+      if (data.job_type_preference) setJobTypes(data.job_type_preference);
+      if (data.current_salary) setCurrentSalary(String(data.current_salary));
+      if (data.expected_salary) setExpectedSalary(String(data.expected_salary));
+      if (data.salary_currency) setCurrency(data.salary_currency);
+      if (data.expected_salary_currency) setExpectedCurrency(data.expected_salary_currency);
+      if (data.availability_status) setAvailabilityStatus(data.availability_status);
+      if (data.notice_period) setNotice(data.notice_period);
+      if (data.last_working_day) setLastWorkingDay(data.last_working_day);
     })();
   }, []);
 
-  const isInternational = location.trim() !== "" && !/india/i.test(location);
-  const total = 5;
+  const total = 7;
+  // "Remote Global" isn't a country — no visa question for it.
+  const visaCountries = intl.filter((c) => c !== "Remote Global");
 
   function toggle(list: string[], setList: (v: string[]) => void, val: string) {
     setList(list.includes(val) ? list.filter((v) => v !== val) : [...list, val]);
+  }
+
+  function toggleJobType(val: string) {
+    if (val === "Open to all") {
+      setJobTypes(["Open to all"]);
+      return;
+    }
+    setJobTypes((prev) => {
+      const withoutAll = prev.filter((v) => v !== "Open to all");
+      return withoutAll.includes(val) ? withoutAll.filter((v) => v !== val) : [...withoutAll, val];
+    });
   }
 
   async function finish() {
@@ -62,18 +102,23 @@ export default function PreferencesPage() {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
+      const heldCountries = visaCountries.filter((c) => visaHeld[c]);
       await supabase
         .from("profiles")
         .update({
           career_track: category || null,
-          preferred_role: role || null,
           preferred_locations: location ? [location] : [],
-          open_to_international: intl,
+          open_to_international: openToIntl === "yes" ? intl : [],
+          visa_held_countries: openToIntl === "yes" ? heldCountries : [],
           work_preference: work,
+          job_type_preference: jobTypes,
           current_salary: currentSalary ? Number(currentSalary) : null,
           expected_salary: expectedSalary ? Number(expectedSalary) : null,
           salary_currency: currency,
+          expected_salary_currency: expectedCurrency,
+          availability_status: availabilityStatus || null,
           notice_period: notice || null,
+          last_working_day: notice === "Immediate" && lastWorkingDay ? lastWorkingDay : null,
           preferences_completed: true,
         })
         .eq("id", user.id);
@@ -181,41 +226,65 @@ export default function PreferencesPage() {
                     </Chip>
                   ))}
                 </div>
-                <div className="mt-5 pt-5" style={{ borderTop: "1px dashed #E1E4EA" }}>
-                  <label className="text-xs font-medium" style={{ color: "#3A4460" }}>
-                    Specific role (optional)
-                  </label>
-                  <input
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    placeholder="e.g. SAP BASIS Consultant, ML Engineer"
-                    className="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
-                  />
-                </div>
               </QuestionBlock>
             )}
 
             {step === 2 && (
-              <QuestionBlock label="Where do you want to work?">
+              <QuestionBlock label="What is your preferred work location?">
                 <input
                   autoFocus
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="India (default), or a city/country"
+                  placeholder="e.g. Bangalore, Mumbai, India"
                   className="w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
                 />
-                {isInternational && (
-                  <div className="mt-4 pt-4" style={{ borderTop: "1px dashed #E1E4EA" }}>
-                    <p className="text-sm font-medium text-ink mb-2">Are you open to international opportunities?</p>
-                    <div className="flex flex-wrap gap-2">
-                      {INTL_OPTIONS.map((o) => (
-                        <Chip key={o} active={intl.includes(o)} onClick={() => toggle(intl, setIntl, o)}>
-                          {o}
-                        </Chip>
-                      ))}
-                    </div>
+                <div className="mt-4 pt-4" style={{ borderTop: "1px dashed #E1E4EA" }}>
+                  <p className="text-sm font-medium text-ink mb-2">Are you open to relocating internationally?</p>
+                  <div className="flex gap-2">
+                    <Chip active={openToIntl === "yes"} onClick={() => setOpenToIntl("yes")}>
+                      Yes
+                    </Chip>
+                    <Chip active={openToIntl === "no"} onClick={() => setOpenToIntl("no")}>
+                      No
+                    </Chip>
                   </div>
-                )}
+                  {openToIntl === "yes" && (
+                    <>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {INTL_OPTIONS.map((o) => (
+                          <Chip key={o} active={intl.includes(o)} onClick={() => toggle(intl, setIntl, o)}>
+                            {o}
+                          </Chip>
+                        ))}
+                      </div>
+                      {visaCountries.length > 0 && (
+                        <div className="mt-4 pt-4 space-y-4" style={{ borderTop: "1px dashed #E1E4EA" }}>
+                          {visaCountries.map((c) => (
+                            <div key={c}>
+                              <p className="text-sm text-ink mb-1.5">
+                                Do you already hold a valid visa or work permit for <strong>{c}</strong>?
+                              </p>
+                              <div className="flex gap-2">
+                                <Chip
+                                  active={visaHeld[c] === true}
+                                  onClick={() => setVisaHeld((v) => ({ ...v, [c]: true }))}
+                                >
+                                  Yes
+                                </Chip>
+                                <Chip
+                                  active={visaHeld[c] === false}
+                                  onClick={() => setVisaHeld((v) => ({ ...v, [c]: false }))}
+                                >
+                                  No, would need sponsorship
+                                </Chip>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </QuestionBlock>
             )}
 
@@ -232,6 +301,18 @@ export default function PreferencesPage() {
             )}
 
             {step === 4 && (
+              <QuestionBlock label="What type of opportunities are you open to?">
+                <div className="flex flex-wrap gap-2">
+                  {JOB_TYPES.map((o) => (
+                    <Chip key={o} active={jobTypes.includes(o)} onClick={() => toggleJobType(o)}>
+                      {o}
+                    </Chip>
+                  ))}
+                </div>
+              </QuestionBlock>
+            )}
+
+            {step === 5 && (
               <QuestionBlock label="Salary (optional but helps employers match you)">
                 <div className="space-y-4">
                   <div>
@@ -266,24 +347,50 @@ export default function PreferencesPage() {
                     <label className="text-xs font-medium" style={{ color: "#3A4460" }}>
                       Expected salary — annual, before tax
                     </label>
-                    <input
-                      type="number"
-                      value={expectedSalary}
-                      onChange={(e) => setExpectedSalary(e.target.value)}
-                      placeholder={currency === "INR" ? "e.g. 1800000" : undefined}
-                      className="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
-                    />
-                    {currency === "INR" && expectedSalary && Number(expectedSalary) > 0 && (
+                    <div className="flex gap-2 mt-1">
+                      <select
+                        value={expectedCurrency}
+                        onChange={(e) => setExpectedCurrency(e.target.value)}
+                        className="rounded-lg border border-line px-2 py-2.5 text-sm bg-white"
+                      >
+                        {CURRENCIES.map((c) => (
+                          <option key={c}>{c}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        value={expectedSalary}
+                        onChange={(e) => setExpectedSalary(e.target.value)}
+                        placeholder={expectedCurrency === "INR" ? "e.g. 1800000" : "Optional"}
+                        className="flex-1 rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
+                      />
+                    </div>
+                    {expectedCurrency === "INR" && expectedSalary && Number(expectedSalary) > 0 && (
                       <p className="text-[11px] mt-1" style={{ color: "#3A4460" }}>
                         ≈ {(Number(expectedSalary) / 100000).toFixed(1)} LPA
                       </p>
                     )}
+                    <p className="text-[11px] mt-2" style={{ color: "#8A93A6" }}>
+                      This helps us match you to the right compensation band — only shared with employers you apply to.
+                    </p>
                   </div>
                 </div>
               </QuestionBlock>
             )}
 
-            {step === 5 && (
+            {step === 6 && (
+              <QuestionBlock label="What is your availability status?">
+                <div className="flex flex-wrap gap-2">
+                  {AVAILABILITY_OPTIONS.map((o) => (
+                    <Chip key={o} active={availabilityStatus === o} onClick={() => setAvailabilityStatus(o)}>
+                      {o}
+                    </Chip>
+                  ))}
+                </div>
+              </QuestionBlock>
+            )}
+
+            {step === 7 && (
               <QuestionBlock label="What is your notice period?">
                 <div className="flex flex-wrap gap-2">
                   {NOTICE_OPTIONS.map((o) => (
@@ -292,6 +399,19 @@ export default function PreferencesPage() {
                     </Chip>
                   ))}
                 </div>
+                {notice === "Immediate" && (
+                  <div className="mt-4 pt-4" style={{ borderTop: "1px dashed #E1E4EA" }}>
+                    <label className="text-xs font-medium" style={{ color: "#3A4460" }}>
+                      Last working day
+                    </label>
+                    <input
+                      type="date"
+                      value={lastWorkingDay}
+                      onChange={(e) => setLastWorkingDay(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
+                    />
+                  </div>
+                )}
               </QuestionBlock>
             )}
 
