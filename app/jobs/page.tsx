@@ -10,7 +10,7 @@ import QuickApplyModal from "@/components/jobs/QuickApplyModal";
 import AutoMatchCard from "@/components/jobs/AutoMatchCard";
 import { Search } from "lucide-react";
 
-type FeedTab = "for_you" | "saved" | "applied" | "all";
+type FeedTab = "for_you" | "all";
 
 export default function DiscoverPage() {
   const supabase = createClient();
@@ -85,8 +85,6 @@ export default function DiscoverPage() {
 
   const filtered = useMemo(() => {
     let list = jobs;
-    if (tab === "saved") list = list.filter((j) => savedIds.has(j.id));
-    if (tab === "applied") list = list.filter((j) => appliedIds.has(j.id));
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((j) => j.title.toLowerCase().includes(q) || j.company.toLowerCase().includes(q));
@@ -126,7 +124,7 @@ export default function DiscoverPage() {
 
       {applySuccess && (
         <div className="bg-verified/10 border border-verified/30 text-verified text-sm rounded-lg px-4 py-3 mb-4">
-          Application submitted! Track it under the "Applied" tab.
+          Application submitted! Track it under the "Applied" tab at the top of this page.
         </div>
       )}
 
@@ -134,8 +132,6 @@ export default function DiscoverPage() {
       <div className="flex gap-1 mb-4 flex-wrap">
         {([
           ["for_you", "For You"],
-          ["saved", "Saved"],
-          ["applied", "Applied"],
           ["all", "All Jobs"],
         ] as [FeedTab, string][]).map(([key, label]) => (
           <button
