@@ -3,12 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Button from "@/components/Button";
 
 export default function EmployerSignUpPage() {
   const router = useRouter();
   const supabase = createClient();
-
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -16,180 +14,84 @@ export default function EmployerSignUpPage() {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const strength =
-    password.length >= 12 ? "Strong" : password.length >= 8 ? "Good" : "Too short";
-
-  const canSubmit =
-    name.trim().length >= 2 &&
-    /\S+@\S+\.\S+/.test(email) &&
-    password.length >= 8 &&
-    agreed;
+  const strength = password.length >= 12 ? "Strong" : password.length >= 8 ? "Good" : "Too short";
+  const canSubmit = name.trim().length >= 2 && /\S+@\S+\.\S+/.test(email) && password.length >= 8 && agreed;
 
   async function handleOAuth(provider: "google" | "linkedin_oidc") {
     setError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback?intent=employer` },
-    });
+    const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: `${window.location.origin}/auth/callback?intent=employer` } });
     if (error) setError(error.message);
   }
 
   async function handleEmailSignUp() {
     if (!canSubmit) return;
-    setLoading(true);
-    setError(null);
-
-    // signup_intent flows into raw_user_meta_data immediately — useful if we
-    // ever need Postgres-trigger-level role awareness later.
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name, signup_intent: "employer" } },
-    });
-
+    setLoading(true); setError(null);
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name, signup_intent: "employer" } } });
     setLoading(false);
-
-    if (error) {
-      if (error.message.toLowerCase().includes("already registered")) {
-        setError("An account already exists. Log in instead.");
-      } else {
-        setError(error.message);
-      }
-      return;
-    }
-
-    if (data.user && data.user.identities && data.user.identities.length === 0) {
-      setError("An account already exists. Log in instead.");
-      return;
-    }
-
-    router.push(
-      `/verify?email=${encodeURIComponent(email)}&next=${encodeURIComponent(
-        "/employer/onboarding/company"
-      )}`
-    );
+    if (error) { setError(error.message.toLowerCase().includes("already registered") ? "An account already exists. Log in instead." : error.message); return; }
+    if (data.user && data.user.identities && data.user.identities.length === 0) { setError("An account already exists. Log in instead."); return; }
+    router.push(`/verify?email=${encodeURIComponent(email)}&next=${encodeURIComponent("/employer/onboarding/company")}`);
   }
 
+  const inputStyle: React.CSSProperties = { width: "100%", border: "1px solid #e2e4ec", borderRadius: 10, padding: "12px 14px", fontSize: 14, color: "#0f1f3d", outline: "none", background: "#ffffff", boxSizing: "border-box" };
+
   return (
-    <main className="min-h-screen bg-paper flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <span className="inline-flex items-center gap-2"><img src="/brand/logo-icon.png" alt="" className="h-5 w-auto" /><span className="font-display italic text-lg text-ink">HRaniti</span></span>
+    <main style={{ minHeight: "100vh", display: "flex", fontFamily: "'Inter', system-ui, sans-serif", background: "#f4f3ef" }}>
+      <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%", maxWidth: 500, flexShrink: 0, padding: "40px 48px", background: "#f4f3ef", minHeight: "100vh" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <img src="/brand/logo-icon.png" alt="HRaniti" style={{ height: 32, width: "auto" }} />
+          <span style={{ fontSize: 18, fontWeight: 600, color: "#0f1f3d", letterSpacing: "-0.02em" }}>HRaniti</span>
         </div>
-
-        <div className="paper-card p-7 sm:p-9 text-center">
-          <p className="font-mono text-[11px] tracking-widest text-verified uppercase mb-3">
-            For Employers
-          </p>
-          <h1 className="font-display text-3xl text-ink mb-2">Find your next hire</h1>
-          <p className="text-ink-soft text-[15px] mb-1">
-            Get matched with verified, pre-assessed candidates in seconds.
-          </p>
-          <p className="font-mono text-[11px] text-verified mb-7">
-            ✓ Post your first job free
-          </p>
-
-          <div className="space-y-3">
-            <Button
-              variant="secondary"
-              className="w-full justify-center"
-              onClick={() => handleOAuth("google")}
-            >
-              Continue with Google
-            </Button>
-            <Button
-              variant="secondary"
-              className="w-full justify-center"
-              onClick={() => handleOAuth("linkedin_oidc")}
-            >
-              Continue with LinkedIn
-            </Button>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "48px 0", maxWidth: 380 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.14em", color: "#8a90a8", marginBottom: 18, textTransform: "uppercase" as const }}>For Employers</p>
+          <h1 style={{ fontFamily: "'Georgia', 'Times New Roman', serif", fontSize: 50, fontWeight: 400, lineHeight: 1.08, letterSpacing: "-0.02em", color: "#0f1f3d", marginBottom: 16 }}>
+            Find the right<br /><span style={{ color: "#6c5ce7" }}>talent.</span>
+          </h1>
+          <p style={{ fontSize: 15, color: "#8a90a8", lineHeight: 1.65, marginBottom: 36, fontWeight: 400 }}>Access pre-vetted enterprise talent and specialized experts ready for your next project.</p>
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 12, marginBottom: 24 }}>
+            {[{ provider: "google" as const, label: "Continue with Google", icon: <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> }, { provider: "linkedin_oidc" as const, label: "Continue with LinkedIn", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> }].map(({ provider, label, icon }) => (
+              <button key={provider} onClick={() => handleOAuth(provider)} style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff", border: "1px solid #e2e4ec", borderRadius: 12, padding: "13px 18px", fontSize: 14, fontWeight: 500, color: "#0f1f3d", cursor: "pointer", textAlign: "left" as const }}>
+                {icon}{label}<span style={{ marginLeft: "auto", color: "#c4c8d8" }}>→</span>
+              </button>
+            ))}
           </div>
-
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+            <div style={{ flex: 1, height: 1, background: "#e2e4ec" }} />
+            <span style={{ fontSize: 12, color: "#b0b4c8" }}>or continue with email</span>
+            <div style={{ flex: 1, height: 1, background: "#e2e4ec" }} />
+          </div>
           {!showEmailForm ? (
-            <button
-              onClick={() => setShowEmailForm(true)}
-              className="mt-5 text-sm text-ink-soft underline underline-offset-4 hover:text-ink"
-            >
-              Or sign up with email
-            </button>
+            <button onClick={() => setShowEmailForm(true)} style={{ fontSize: 13, color: "#6c5ce7", fontWeight: 500, background: "none", border: "none", cursor: "pointer", textAlign: "left" as const, padding: 0 }}>Sign up with email →</button>
           ) : (
-            <div className="mt-6 space-y-3 text-left">
-              <div className="dashed-divider pt-6" />
-              <div>
-                <label className="text-xs font-medium text-ink-soft">Your full name</label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Jamie Rao"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-ink-soft">Business email</label>
-                <input
-                  type="email"
-                  className="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@company.com"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-ink-soft">Password</label>
-                <input
-                  type="password"
-                  className="mt-1 w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-ink outline-none"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 8 characters"
-                />
-                {password.length > 0 && (
-                  <p
-                    className={`mt-1 text-xs font-mono ${
-                      strength === "Strong"
-                        ? "text-verified"
-                        : strength === "Good"
-                        ? "text-gold"
-                        : "text-alert"
-                    }`}
-                  >
-                    {strength}
-                  </p>
-                )}
-              </div>
-              <label className="flex items-start gap-2 text-xs text-ink-soft pt-1">
-                <input
-                  type="checkbox"
-                  checked={agreed}
-                  onChange={(e) => setAgreed(e.target.checked)}
-                  className="mt-0.5"
-                />
+            <div style={{ display: "flex", flexDirection: "column" as const, gap: 12 }}>
+              {([{ label: "FULL NAME", type: "text", value: name, onChange: setName, placeholder: "Jamie Rao" }, { label: "BUSINESS EMAIL", type: "email", value: email, onChange: setEmail, placeholder: "you@company.com" }, { label: "PASSWORD", type: "password", value: password, onChange: setPassword, placeholder: "At least 8 characters" }] as const).map(({ label, type, value, onChange, placeholder }) => (
+                <div key={label}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: "#8a90a8", letterSpacing: "0.1em", display: "block", marginBottom: 6 }}>{label}</label>
+                  <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={inputStyle} />
+                  {type === "password" && value.length > 0 && <p style={{ fontSize: 11, marginTop: 4, color: strength === "Strong" ? "#00b894" : strength === "Good" ? "#f0a040" : "#e84040" }}>{strength}</p>}
+                </div>
+              ))}
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "#8a90a8", cursor: "pointer" }}>
+                <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ marginTop: 2 }} />
                 I agree to the Terms &amp; Conditions and Privacy Policy
               </label>
-
-              {error && <p className="text-sm text-alert">{error}</p>}
-
-              <Button
-                className="w-full justify-center mt-2"
-                disabled={!canSubmit}
-                loading={loading}
-                onClick={handleEmailSignUp}
-              >
-                Create Employer Account
-              </Button>
+              {error && <p style={{ fontSize: 13, color: "#e84040" }}>{error}</p>}
+              <button onClick={handleEmailSignUp} disabled={!canSubmit || loading} style={{ background: canSubmit ? "#6c5ce7" : "#e2e4ec", color: canSubmit ? "#fff" : "#aaa", border: "none", borderRadius: 12, padding: "14px 24px", fontSize: 14, fontWeight: 600, cursor: canSubmit ? "pointer" : "not-allowed", marginTop: 4 }}>
+                {loading ? "Creating account…" : "Create Employer Account →"}
+              </button>
             </div>
           )}
-
-          <p className="mt-7 text-xs text-ink-soft">
-            Looking for a job, not to hire?{" "}
-            <a href="/signup" className="underline underline-offset-4">
-              Sign up as a candidate here.
-            </a>
-          </p>
+          {error && !showEmailForm && <p style={{ fontSize: 13, color: "#e84040", marginTop: 12 }}>{error}</p>}
         </div>
+        <p style={{ fontSize: 13, color: "#b0b4c8" }}>
+          Looking for opportunities instead?{" "}
+          <a href="/signup" style={{ color: "#6c5ce7", fontWeight: 600, textDecoration: "none" }}>Join as Talent. →</a>
+        </p>
       </div>
+      <div style={{ flex: 1, position: "relative", overflow: "hidden", display: "none" }} className="lg-photo-panel">
+        <img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1400&q=85&auto=format&fit=crop" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }} />
+      </div>
+      <style>{`.lg-photo-panel { display: none; } @media(min-width: 1024px) { .lg-photo-panel { display: block !important; } }`}</style>
     </main>
   );
 }
