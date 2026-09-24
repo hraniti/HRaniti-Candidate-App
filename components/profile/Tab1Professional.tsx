@@ -34,10 +34,12 @@ export default function Tab1Professional({
   profile,
   queueSave,
   saveNow,
+  onContinue,
 }: {
   profile: Profile;
   queueSave: (patch: Partial<Profile>) => void;
   saveNow: () => void;
+  onContinue?: () => void;
 }) {
   const router = useRouter();
   const supabase = createClient();
