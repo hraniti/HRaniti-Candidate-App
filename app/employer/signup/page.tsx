@@ -86,7 +86,7 @@ export default function EmployerSignUpPage() {
       </div>
       <div style={{ width: "45%", minHeight: "100vh", position: "relative", overflow: "hidden", flexShrink: 0 }}>
         <img
-          src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1200&q=90&auto=format&fit=crop&crop=center"
+          src="/employer-hero.jpg"
           alt="Minimal Scandinavian workspace"
           style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
         />
