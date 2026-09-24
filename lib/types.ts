@@ -317,6 +317,10 @@ export interface Profile {
   expected_salary: number | null;
   salary_currency: string | null;
   notice_period: string | null;
+  last_working_day: string | null;
+  job_type_preference: string[] | null;
+  expected_salary_currency: string | null;
+  visa_held_countries: string[] | null;
   availability_status: string | null;
   visa_required: boolean | null;
   visa_status: string | null;
