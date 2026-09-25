@@ -1,68 +1,86 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 
 const options = [
   {
+    eyebrow: "FOR EMPLOYERS",
     title: "Your next great hire starts here.",
-    description: "Find the right people for your next role — simply and confidently.",
+    description: "Find, evaluate and connect with top talent — faster, smarter and simpler.",
     cta: "Hire Talent",
     href: "/employer/signup",
+    image: "/images/hraniti-employer-girl.webp",
+    alt: "Professional woman reviewing talent profiles at her desk",
     tone: "employer",
-    image: "/illustrations/hiring.svg",
-    alt: "People connecting talent with a hiring opportunity",
   },
   {
+    eyebrow: "FOR TALENT",
     title: "Your next chapter starts here.",
-    description: "Discover opportunities that fit your skills, goals and ambitions.",
+    description: "Discover opportunities that match your skills, goals and potential.",
     cta: "Explore Opportunities",
     href: "/talent/signup",
+    image: "/images/hraniti-talent-girl.webp",
+    alt: "Professional woman exploring career opportunities",
     tone: "talent",
-    image: "/illustrations/opportunities.svg",
-    alt: "People exploring a new career opportunity",
   },
 ] as const;
 
 export default function WelcomePage() {
   return (
-    <main className="min-h-screen bg-[#FCFDFC] text-[#102D52]">
-      <header className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-6 py-7 sm:px-10 lg:px-14">
-        <img src="/brand/hraniti-logo.svg" alt="HRaniti — Where change begins" className="h-auto w-[205px] sm:w-[235px]" />
-        <div className="hidden text-right sm:block">
-          <p className="text-[12px] tracking-[0.08em] text-[#8393A5]">Better people</p>
-          <p className="mt-0.5 text-[12px] tracking-[0.08em] text-[#A1AEBB]">Better opportunities</p>
+    <main className="min-h-screen overflow-hidden bg-[#FCFCFA] text-[#173454]">
+      <header className="mx-auto flex w-full max-w-[1600px] items-center justify-between px-7 py-7 sm:px-10 lg:px-14 xl:px-20">
+        <img
+          src="/brand/hraniti-logo.svg"
+          alt="HRaniti — Where change begins"
+          className="h-auto w-[170px] sm:w-[190px] lg:w-[205px]"
+        />
+
+        <div className="hidden items-center gap-2 text-[13px] font-medium text-[#74879B] sm:flex lg:text-[14px]">
+          <span>Better People</span>
+          <span className="text-[#8DA0B2]">›</span>
+          <span>Better Opportunities</span>
+          <span className="text-[#8DA0B2]">›</span>
+          <span>A Brighter Future</span>
+          <span className="ml-1 text-[#8DA0B2]">›</span>
         </div>
       </header>
 
-      <section className="mx-auto grid min-h-[calc(100vh-105px)] w-full max-w-[1440px] grid-cols-1 lg:grid-cols-2">
+      <section className="mx-auto grid w-full max-w-[1600px] grid-cols-1 lg:grid-cols-2">
         {options.map((item, index) => (
           <div
             key={item.cta}
-            className={`flex flex-col items-center justify-center px-7 pb-16 pt-8 text-center sm:px-12 lg:px-16 lg:pb-24 lg:pt-10 ${index === 0 ? "border-b border-[#E5ECEC] lg:border-b-0 lg:border-r" : ""}`}
+            className={index === 0 ? "flex min-h-[calc(100vh-105px)] flex-col items-center border-b border-[#E4E9E8] px-7 pb-12 pt-5 text-center sm:px-12 lg:border-b-0 lg:border-r lg:px-12 xl:px-20" : "flex min-h-[calc(100vh-105px)] flex-col items-center px-7 pb-12 pt-5 text-center sm:px-12 lg:px-12 xl:px-20"}
           >
-            <div className="w-full max-w-[560px]">
-              <div className="mx-auto flex h-[250px] w-full max-w-[500px] items-center justify-center sm:h-[285px]">
-                <img src={item.image} alt={item.alt} className="h-full w-full object-contain" />
+            <div className="flex w-full max-w-[650px] flex-1 flex-col items-center justify-center">
+              <div className="relative w-full max-w-[620px] overflow-hidden rounded-[30%_30%_25%_25%] bg-white shadow-[0_18px_55px_rgba(35,61,83,0.06)]">
+                <div className="aspect-[1.68/1]">
+                  <img
+                    src={item.image}
+                    alt={item.alt}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
               </div>
 
-              <div className="mx-auto mt-3 max-w-[520px]">
-                <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.20em] text-[#78909C]">
-                  {item.tone === "employer" ? "For employers" : "For talent"}
+              <div className="mt-7 max-w-[610px]">
+                <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7890A0]">
+                  {item.eyebrow}
                 </p>
-                <h1 className="text-[36px] font-medium leading-[1.12] tracking-[-0.035em] text-[#102D52] sm:text-[44px] lg:text-[48px]">
+
+                <h1 className="mx-auto max-w-[590px] text-[37px] font-medium leading-[1.13] tracking-[-0.045em] text-[#173454] sm:text-[45px] lg:text-[46px] xl:text-[50px]">
                   {item.title}
                 </h1>
-                <p className="mx-auto mt-5 max-w-[430px] text-[16px] leading-7 text-[#708195] sm:text-[17px]">
+
+                <p className="mx-auto mt-5 max-w-[500px] text-[16px] leading-7 text-[#71859A] sm:text-[17px]">
                   {item.description}
                 </p>
 
                 <a
                   href={item.href}
-                  className={`group mt-8 inline-flex min-h-12 items-center justify-center gap-3 rounded-full px-7 text-[15px] font-semibold transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-[#102D52]/10 ${item.tone === "employer" ? "bg-[#1E756F] text-white hover:-translate-y-0.5 hover:bg-[#195F5A]" : "bg-[#102D52] text-white hover:-translate-y-0.5 hover:bg-[#183E68]"}`}
+                  className={item.tone === "employer" ? "group mt-7 inline-flex min-h-[58px] items-center justify-center gap-3 rounded-full bg-[#167D73] px-9 text-[15px] font-semibold text-white shadow-[0_10px_25px_rgba(16,45,82,0.10)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#126B63] focus:outline-none focus:ring-4 focus:ring-[#173454]/10" : "group mt-7 inline-flex min-h-[58px] items-center justify-center gap-3 rounded-full bg-[#168AF2] px-9 text-[15px] font-semibold text-white shadow-[0_10px_25px_rgba(16,45,82,0.10)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0877D8] focus:outline-none focus:ring-4 focus:ring-[#173454]/10"}
                 >
                   {item.cta}
-                  <ArrowRight size={17} strokeWidth={2.2} className="transition-transform group-hover:translate-x-0.5" />
+                  <ArrowRight size={18} strokeWidth={2.1} className="transition-transform group-hover:translate-x-1" />
                 </a>
               </div>
             </div>
@@ -70,9 +88,9 @@ export default function WelcomePage() {
         ))}
       </section>
 
-      <footer className="pb-7 text-center text-[11px] tracking-[0.05em] text-[#9AA7B4]">
+      <div className="pb-6 text-center text-[10px] tracking-[0.08em] text-[#A2AFBA] sm:pb-4">
         A simpler way to connect people and opportunity.
-      </footer>
+      </div>
     </main>
   );
 }
