@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 95" role="img" aria-labelledby="title desc">
+  <title id="title">HRaniti</title>
+  <desc id="desc">HRaniti logo</desc>
+  <g transform="translate(10 9)">
+    <circle cx="34" cy="14" r="13" fill="#7A00FF"/>
+    <path d="M9 39c0-13.8 11.2-25 25-25v25H9Z" fill="#7A00FF"/>
+    <path d="M34 14h25c0 13.8-11.2 25-25 25V14Z" fill="#FF3F3F"/>
+    <path d="M9 39h50c0 13.8-11.2 25-25 25S9 52.8 9 39Z" fill="#18C7E5"/>
+  </g>
+  <text x="91" y="54" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700" letter-spacing="-2.5" fill="#102D52">HRaniti</text>
+</svg>
