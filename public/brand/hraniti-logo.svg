@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 190">
+<g transform="translate(18 18)">
+<circle cx="74" cy="28" r="28" fill="#7A00FF"/>
+<path d="M20 82c0-29.8 24.2-54 54-54v54H20Z" fill="#7A00FF"/>
+<path d="M74 28h54c0 29.8-24.2 54-54 54V28Z" fill="#FF3F3F"/>
+<path d="M20 82h108c0 29.8-24.2 54-54 54S20 111.8 20 82Z" fill="#18C7E5"/>
+</g>
+<text x="180" y="82" font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="700" letter-spacing="-3" fill="#102D52">HRaniti</text>
+<text x="182" y="125" font-family="Arial, Helvetica, sans-serif" font-size="22" letter-spacing="3" fill="#71859A">Where change begins</text>
+</svg>
