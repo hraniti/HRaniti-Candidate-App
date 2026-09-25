@@ -21,7 +21,7 @@ function VerifyForm() {
   const supabase = createClient();
 
   const nextTarget = params.get("next") ?? "/onboarding/resume";
-  const backTarget = nextTarget.startsWith("/employer") ? "/employer/signup" : "/signup";
+  const backTarget = nextTarget.startsWith("/employer") ? "/employer/signup" : "/talent/signup";
 
   const [digits, setDigits] = useState(Array(6).fill(""));
   const [error, setError] = useState<string | null>(null);
