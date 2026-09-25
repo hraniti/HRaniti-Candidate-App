@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
+import employerHero from "./employer-hero.webp";
+import talentHero from "./talent-hero.webp";
 
 const options = [
   {
@@ -10,7 +12,7 @@ const options = [
     description: "Find, evaluate and connect with top talent — faster, smarter and simpler.",
     cta: "Hire Talent",
     href: "/employer/signup",
-    image: "/signup/employer-hero.webp?v=3",
+    image: employerHero,
     alt: "Professional woman reviewing talent profiles at her desk",
     tone: "employer",
   },
@@ -20,7 +22,7 @@ const options = [
     description: "Discover opportunities that match your skills, goals and potential.",
     cta: "Explore Opportunities",
     href: "/talent/signup",
-    image: "/signup/talent-hero.webp?v=3",
+    image: talentHero,
     alt: "Professional woman exploring career opportunities",
     tone: "talent",
   },
@@ -61,14 +63,13 @@ export default function WelcomePage() {
           >
             <div className="flex w-full max-w-[620px] flex-1 flex-col items-center justify-center">
               <div className="relative w-full max-w-[570px] overflow-hidden rounded-[30%_30%_24%_24%] bg-white shadow-[0_16px_45px_rgba(35,61,83,0.055)]">
-                <img
+                <Image
                   src={item.image}
                   alt={item.alt}
                   width={900}
                   height={500}
-                  loading="eager"
-                  fetchPriority="high"
-                  decoding="async"
+                  priority
+                  sizes="(max-width: 1023px) 90vw, 42vw"
                   className="block h-auto w-full object-cover"
                 />
               </div>
