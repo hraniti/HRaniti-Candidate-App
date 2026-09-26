@@ -37,8 +37,12 @@ export default function EmployerDashboard() {
       setLoading(false);
 
       if (data && !data.onboarding_completed) {
-        const step = data.onboarding_step || "company";
-        router.replace(`/employer/onboarding/${step === "done" ? "company" : step}`);
+        // Legacy accounts created before the one-step onboarding flow may
+        // still carry an old onboarding marker. Keep them out of the
+        // deleted step 2–6 routes and send them through the single company
+        // profile step instead.
+        router.replace("/employer/onboarding/company");
+        return;
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

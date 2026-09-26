@@ -44,11 +44,6 @@ export const CERTIFICATION_CATEGORIES: Record<string, string[]> = {
 
 export const ONBOARDING_STEPS = [
   { key: "company", label: "Company Info", path: "/employer/onboarding/company" },
-  { key: "contact", label: "Contact", path: "/employer/onboarding/contact" },
-  { key: "branding", label: "Branding", path: "/employer/onboarding/branding" },
-  { key: "perks", label: "Perks", path: "/employer/onboarding/perks" },
-  { key: "certifications", label: "Certifications", path: "/employer/onboarding/certifications" },
-  { key: "verify", label: "Verify", path: "/employer/onboarding/verify" },
 ];
 
 export interface Company {

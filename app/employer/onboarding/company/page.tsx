@@ -87,7 +87,8 @@ export default function CompanyInfoStep() {
         hq_location: hqLocation,
         locations: hiringLocations,
         description,
-        onboarding_step: "contact",
+        onboarding_step: "done",
+        onboarding_completed: true,
       })
       .eq("id", companyId);
 
@@ -96,7 +97,7 @@ export default function CompanyInfoStep() {
       setError(error.message);
       return;
     }
-    router.push("/employer/onboarding/contact");
+    router.push("/employer/dashboard");
   }
 
   if (loading) return null;
@@ -104,7 +105,7 @@ export default function CompanyInfoStep() {
   return (
     <StepShell
       step={1}
-      total={6}
+      total={1}
       eyebrow="Employer Onboarding"
       title="Tell candidates who you are"
       subtitle="This appears on every job post and shortlist notification you send."
