@@ -1,0 +1,2 @@
+import EmployerSectionPage from "@/components/employer/EmployerSectionPage";
+export default function Page(){return <EmployerSectionPage section="settings" eyebrow="ACCOUNT" title="Settings" description="Manage your company details, team permissions, hiring preferences, and workspace controls." />}
