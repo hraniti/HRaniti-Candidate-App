@@ -1,0 +1,2 @@
+import EmployerSectionPage from "@/components/employer/EmployerSectionPage";
+export default function Page(){return <EmployerSectionPage section="interviews" eyebrow="HIRING" title="Interviews" description="Keep interview plans, feedback, and candidate conversations in one calm workspace." actionLabel="View calendar" actionHref="/employer/calendar" />}
