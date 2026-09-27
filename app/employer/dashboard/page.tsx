@@ -78,7 +78,7 @@ export default function EmployerDashboard() {
             <p className="text-[15px] text-[#71859A] mt-1">Here’s what’s happening with your hiring today.</p>
           </div>
           <div className="hidden sm:flex items-center gap-2 text-[12px] text-[#71859A]">
-            <CalendarDays size={15} /> Thu, 24 Apr 2025
+            <CalendarDays size={15} /> {new Date().toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
           </div>
         </div>
 
