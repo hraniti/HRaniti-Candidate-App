@@ -1,0 +1,2 @@
+import EmployerSectionPage from "@/components/employer/EmployerSectionPage";
+export default function Page(){return <EmployerSectionPage section="reports" eyebrow="HIRING" title="Reports" description="Understand your hiring funnel, role performance, applicant activity, and time-to-hire as your workspace grows." actionLabel="Open Jobs" actionHref="/employer/jobs" />}
