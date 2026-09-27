@@ -1,0 +1,2 @@
+import EmployerSectionPage from "@/components/employer/EmployerSectionPage";
+export default function Page(){return <EmployerSectionPage section="billing" eyebrow="ACCOUNT" title="Billing & Plan" description="Manage your HRaniti plan and review account usage." />}
