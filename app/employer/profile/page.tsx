@@ -1,0 +1,2 @@
+import EmployerSectionPage from "@/components/employer/EmployerSectionPage";
+export default function Page(){return <EmployerSectionPage section="profile" eyebrow="ACCOUNT" title="Profile" description="Manage the employer profile shown across your HRaniti workspace." />}
