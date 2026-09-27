@@ -1,0 +1,2 @@
+import EmployerSectionPage from "@/components/employer/EmployerSectionPage";
+export default function Page(){return <EmployerSectionPage section="talent" eyebrow="TALENT" title="Talent Pool" description="Discover pre-vetted professionals and keep promising talent close to your hiring workspace." actionLabel="Find talent" actionHref="/employer/applicants" />}
