@@ -1,0 +1,2 @@
+import EmployerSectionPage from "@/components/employer/EmployerSectionPage";
+export default function Page(){return <EmployerSectionPage section="bgv" eyebrow="HIRING" title="Background Verification" description="Track verification requests and exceptions as candidates move toward hire." actionLabel="View hires" actionHref="/employer/hires" />}
