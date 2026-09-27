@@ -225,7 +225,7 @@ function ShortlistPageInner() {
                     Unlock candidate
                   </Button>
                 ) : (
-                  <Button variant="secondary">Request interview</Button>
+                  <Button variant="secondary" onClick={() => router.push("/employer/interviews")}>Request interview</Button>
                 )}
               </div>
             );
