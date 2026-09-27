@@ -1,0 +1,2 @@
+import EmployerSectionPage from "@/components/employer/EmployerSectionPage";
+export default function Page(){return <EmployerSectionPage section="hires" eyebrow="HIRING" title="Hires" description="A clear record of people who have moved from candidate to colleague." actionLabel="View applicants" actionHref="/employer/applicants" />}
