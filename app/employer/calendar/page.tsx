@@ -1,0 +1,2 @@
+import EmployerSectionPage from "@/components/employer/EmployerSectionPage";
+export default function Page(){return <EmployerSectionPage section="calendar" eyebrow="HIRING" title="Calendar" description="See upcoming interviews and hiring activity without leaving your HRaniti workspace." actionLabel="View interviews" actionHref="/employer/interviews" />}
