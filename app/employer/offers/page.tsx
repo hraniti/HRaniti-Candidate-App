@@ -1,0 +1,2 @@
+import EmployerSectionPage from "@/components/employer/EmployerSectionPage";
+export default function Page(){return <EmployerSectionPage section="offers" eyebrow="HIRING" title="Offers" description="Keep offers, approvals, and candidate decisions organized from one place." actionLabel="View applicants" actionHref="/employer/applicants" />}
