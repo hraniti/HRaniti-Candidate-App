@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/Button";
 import Field from "@/components/employer/Field";
 import { CAREER_TRACKS } from "@/lib/types";
-import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";\nimport EmployerInputStyles from "@/components/employer/EmployerInputStyles";
+import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 type JobFormValues = {
   title: string;
