@@ -27,6 +27,10 @@ export default function EditJobPage({ params }: { params: { id: string } }) {
       const requirements = parsed.requirements ?? {};
       const process = parsed.process ?? {};
       const compensation = parsed.compensation ?? {};
+      const locationParts = String(job.location ?? "").split(",").map((part: string) => part.trim()).filter(Boolean);
+      const city = requirements.city ?? locationParts[0] ?? "";
+      const state = requirements.state ?? locationParts[1] ?? "";
+      const country = requirements.country ?? locationParts[2] ?? "";
       setValues({
         title: job.title ?? "",
         department: requirements.department ?? "",
@@ -35,8 +39,9 @@ export default function EditJobPage({ params }: { params: { id: string } }) {
         experienceMin: job.min_experience_years ? String(job.min_experience_years) : "",
         experienceMax: requirements.experienceMax ?? "",
         experienceLevel: requirements.experienceLevel ?? "",
-        location: job.location ?? "",
-        locations: Array.isArray(job.locations) ? job.locations.slice(1) : [],
+        city,
+        state,
+        country,
         workMode: job.work_mode ?? "On-site",
         employmentType: job.employment_type ?? "Full-time",
         requiredSkills: job.required_skills ?? [],
