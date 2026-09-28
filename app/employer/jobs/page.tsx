@@ -53,9 +53,11 @@ export default function EmployerJobsPage() {
     const rows = (data ?? []) as JobRow[];
     setJobs(rows);
 
-    const { data: applications } = await supabase.from("applications").select("job_id").in("job_id", rows.map((job) => job.id));
     const counts: Record<string, number> = {};
-    for (const row of applications ?? []) counts[row.job_id] = (counts[row.job_id] ?? 0) + 1;
+    if (rows.length) {
+      const { data: applications } = await supabase.from("applications").select("job_id").in("job_id", rows.map((job) => job.id));
+      for (const row of applications ?? []) counts[row.job_id] = (counts[row.job_id] ?? 0) + 1;
+    }
     setApplicationCounts(counts);
     setLoading(false);
   }
