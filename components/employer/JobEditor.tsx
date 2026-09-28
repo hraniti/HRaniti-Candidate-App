@@ -8,6 +8,7 @@ import Button from "@/components/Button";
 import Field from "@/components/employer/Field";
 import { CAREER_TRACKS } from "@/lib/types";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
+import EmployerInputStyles from "@/components/employer/EmployerInputStyles";
 
 type JobFormValues = {
   title: string;
@@ -313,7 +314,9 @@ export default function JobEditor({
   }
 
   return (
-    <div className="min-h-full bg-[#FCFCFA]">
+    <>
+      <EmployerInputStyles />
+      <div className="min-h-full bg-[#FCFCFA]">
       <div className="mx-auto max-w-[1120px] px-5 py-8 sm:px-8 sm:py-10">
         <button type="button" onClick={() => router.push("/employer/jobs")} className="inline-flex items-center gap-2 text-[13px] text-[#71859A] hover:text-[#173454] mb-5">
           <ArrowLeft size={15} /> Back to Jobs
@@ -452,6 +455,7 @@ export default function JobEditor({
           </aside>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
