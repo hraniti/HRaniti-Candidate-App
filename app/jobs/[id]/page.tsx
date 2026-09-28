@@ -54,7 +54,7 @@ export default function JobDetailPage() {
       if (!user) return;
 
       const [{ data: j }, { data: p }, { data: jobs }, { data: applied }] = await Promise.all([
-        supabase.from("jobs").select("*").eq("id", jobId).single(),
+        supabase.from("jobs").select("*").eq("id", jobId).in("status", ["active", "Active"]).single(),
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("jobs").select("*"),
         supabase.from("applications").select("id").eq("user_id", user.id).eq("job_id", jobId).maybeSingle(),
