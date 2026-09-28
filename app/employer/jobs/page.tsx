@@ -6,6 +6,7 @@ import { ChevronDown, MapPin, MoreHorizontal, Plus, Search, SlidersHorizontal } 
 import EmployerShell from "@/components/employer/EmployerShell";
 import { createClient } from "@/lib/supabase/client";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
+import { COUNTRIES } from "@/lib/countries";
 
 type JobRow = {
   id: string;
@@ -16,6 +17,7 @@ type JobRow = {
   created_at: string;
   applicant_count?: number | null;
   career_track?: string | null;
+  description?: string | null;
 };
 
 function displayStatus(status: string) {
@@ -40,7 +42,7 @@ export default function EmployerJobsPage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [locationFilter, setLocationFilter] = useState("All");
+  const [countryFilter, setCountryFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
   const [menuId, setMenuId] = useState<string | null>(null);
 
@@ -49,7 +51,7 @@ export default function EmployerJobsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
     const companyId = await getOrCreateCompanyId(supabase, user);
-    const { data } = await supabase.from("jobs").select("id,title,location,employment_type,status,created_at,applicant_count,career_track").eq("company_id", companyId).order("created_at", { ascending: false });
+    const { data } = await supabase.from("jobs").select("id,title,location,employment_type,status,created_at,applicant_count,career_track,description").eq("company_id", companyId).order("created_at", { ascending: false });
     const rows = (data ?? []) as JobRow[];
     setJobs(rows);
 
@@ -64,16 +66,24 @@ export default function EmployerJobsPage() {
 
   useEffect(() => { loadJobs(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const locations = useMemo(() => Array.from(new Set(jobs.map((job) => job.location).filter(Boolean))).sort(), [jobs]);
+  function jobCountry(job: JobRow) {
+    try {
+      const parsed = JSON.parse(job.description ?? "");
+      return parsed?.requirements?.country ?? "";
+    } catch {}
+    const parts = (job.location ?? "").split(",").map((part) => part.trim()).filter(Boolean);
+    return parts.length >= 2 ? parts[parts.length - 1] : "";
+  }
+
   const types = useMemo(() => Array.from(new Set(jobs.map((job) => job.employment_type).filter(Boolean))).sort(), [jobs]);
   const filteredJobs = useMemo(() => jobs.filter((job) => {
     const q = query.trim().toLowerCase();
     const matchesQuery = !q || job.title.toLowerCase().includes(q) || job.location.toLowerCase().includes(q) || (job.career_track ?? "").toLowerCase().includes(q);
     const matchesStatus = statusFilter === "All" || displayStatus(job.status) === statusFilter;
-    const matchesLocation = locationFilter === "All" || job.location === locationFilter;
+    const matchesCountry = countryFilter === "All" || jobCountry(job) === countryFilter;
     const matchesType = typeFilter === "All" || job.employment_type === typeFilter;
-    return matchesQuery && matchesStatus && matchesLocation && matchesType;
-  }), [jobs, query, statusFilter, locationFilter, typeFilter]);
+    return matchesQuery && matchesStatus && matchesCountry && matchesType;
+  }), [jobs, query, statusFilter, countryFilter, typeFilter]);
 
   async function changeStatus(job: JobRow, next: "active" | "paused" | "closed") {
     setMenuId(null);
@@ -122,7 +132,7 @@ export default function EmployerJobsPage() {
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
               <div className="flex h-10 flex-1 items-center gap-2 rounded-xl bg-[#F7F9F9] px-3"><Search size={16} className="text-[#8A99A5]" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search jobs..." className="w-full bg-transparent text-[13px] text-[#173454] outline-none placeholder:text-[#9AA8B3]" /></div>
               <div className="flex gap-2 overflow-x-auto">
-                <label className="relative"><SlidersHorizontal size={14} className="absolute left-3 top-3 text-[#8A99A5]" /><select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="h-10 appearance-none rounded-xl border border-[#DDE5EA] bg-white pl-9 pr-8 text-[12px] text-[#526A7D] outline-none"><option value="All">Location</option>{locations.map((item) => <option key={item}>{item}</option>)}</select><ChevronDown size={13} className="pointer-events-none absolute right-3 top-3.5 text-[#8A99A5]" /></label>
+                <label className="relative"><SlidersHorizontal size={14} className="absolute left-3 top-3 text-[#8A99A5]" /><select value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)} className="h-10 max-w-[190px] appearance-none rounded-xl border border-[#DDE5EA] bg-white pl-9 pr-8 text-[12px] text-[#526A7D] outline-none"><option value="All">Country</option>{COUNTRIES.map((country) => <option key={country}>{country}</option>)}</select><ChevronDown size={13} className="pointer-events-none absolute right-3 top-3.5 text-[#8A99A5]" /></label>
                 <label className="relative"><select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="h-10 appearance-none rounded-xl border border-[#DDE5EA] bg-white px-3 pr-8 text-[12px] text-[#526A7D] outline-none"><option value="All">Job type</option>{types.map((item) => <option key={item}>{item}</option>)}</select><ChevronDown size={13} className="pointer-events-none absolute right-3 top-3.5 text-[#8A99A5]" /></label>
               </div>
             </div>
