@@ -41,7 +41,7 @@ export default function DiscoverPage() {
 
       const [{ data: p }, { data: j }, { data: saved }, { data: applied }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase.from("jobs").select("*").order("created_at", { ascending: false }),
+        supabase.from("jobs").select("*").in("status", ["active", "Active"]).order("created_at", { ascending: false }),
         supabase.from("saved_jobs").select("job_id").eq("user_id", user.id),
         supabase.from("applications").select("job_id").eq("user_id", user.id),
       ]);
