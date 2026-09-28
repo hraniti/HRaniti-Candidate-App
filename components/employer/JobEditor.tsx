@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/Button";
 import Field from "@/components/employer/Field";
 import { CAREER_TRACKS } from "@/lib/types";
+import { COUNTRIES } from "@/lib/countries";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 import EmployerInputStyles from "@/components/employer/EmployerInputStyles";
 
@@ -18,8 +19,9 @@ type JobFormValues = {
   experienceMin: string;
   experienceMax: string;
   experienceLevel: string;
-  location: string;
-  locations: string[];
+  city: string;
+  state: string;
+  country: string;
   workMode: "On-site" | "Hybrid" | "Remote";
   employmentType: "Full-time" | "Contract" | "Freelance";
   requiredSkills: string[];
@@ -59,8 +61,9 @@ const emptyForm: JobFormValues = {
   experienceMin: "",
   experienceMax: "",
   experienceLevel: "",
-  location: "",
-  locations: [],
+  city: "",
+  state: "",
+  country: "",
   workMode: "On-site",
   employmentType: "Full-time",
   requiredSkills: [],
@@ -164,7 +167,7 @@ export default function JobEditor({
 
   function stepValid(index: number) {
     if (index === 0) {
-      return Boolean(form.title.trim() && form.department.trim() && form.careerTrack && form.location.trim() && form.openings);
+      return Boolean(form.title.trim() && form.department.trim() && form.careerTrack && form.city.trim() && form.country && form.openings);
     }
     if (index === 1) {
       return form.requiredSkills.length > 0 && Boolean(form.experienceMin || form.experienceMax || form.experienceLevel);
@@ -203,6 +206,9 @@ export default function JobEditor({
         requirements: {
           department: form.department,
           openings: Number(form.openings || 1),
+          city: form.city,
+          state: form.state,
+          country: form.country,
           experienceMax: form.experienceMax,
           experienceLevel: form.experienceLevel,
           education: form.education,
@@ -239,8 +245,8 @@ export default function JobEditor({
         company: company?.name ?? "Your Company",
         company_id: companyId,
         posted_by: user.id,
-        location: form.location.trim(),
-        locations: [form.location.trim(), ...form.locations.filter((item) => item !== form.location.trim())],
+        location: [form.city.trim(), form.state.trim(), form.country].filter(Boolean).join(", "),
+        locations: [[form.city.trim(), form.state.trim(), form.country].filter(Boolean).join(", ")],
         career_track: form.careerTrack,
         skills: form.requiredSkills,
         required_skills: form.requiredSkills,
@@ -355,7 +361,9 @@ export default function JobEditor({
                   <Field label="Department" required><input className="input" value={form.department} onChange={(e) => update("department", e.target.value)} placeholder="Technology" /></Field>
                   <Field label="Career Area" required><select className="input" value={form.careerTrack} onChange={(e) => update("careerTrack", e.target.value)}><option value="">Select</option>{CAREER_TRACKS.map((item) => <option key={item}>{item}</option>)}</select></Field>
                   <Field label="Number of openings" required><input className="input" type="number" min="1" value={form.openings} onChange={(e) => update("openings", e.target.value)} /></Field>
-                  <Field label="Location" required><input className="input" value={form.location} onChange={(e) => update("location", e.target.value)} placeholder="Mumbai, India" /></Field>
+                  <Field label="City" required><input className="input" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="Mumbai" /></Field>
+                  <Field label="State / Province"><input className="input" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="Maharashtra" /></Field>
+                  <Field label="Country" required><select className="input" value={form.country} onChange={(e) => update("country", e.target.value)}><option value="">Select country</option>{COUNTRIES.map((country) => <option key={country}>{country}</option>)}</select></Field>
                   <Field label="Work arrangement" required><select className="input" value={form.workMode} onChange={(e) => update("workMode", e.target.value as JobFormValues["workMode"])}><option>On-site</option><option>Hybrid</option><option>Remote</option></select></Field>
                   <Field label="Employment type" required><select className="input" value={form.employmentType} onChange={(e) => update("employmentType", e.target.value as JobFormValues["employmentType"])}><option>Full-time</option><option>Contract</option><option>Freelance</option></select></Field>
                 </div>
@@ -366,9 +374,9 @@ export default function JobEditor({
               <div className="space-y-6">
                 <div><h2 className="text-lg font-semibold text-[#173454]">Requirements</h2><p className="mt-1 text-sm text-[#71859A]">Keep the essentials clear. Avoid turning the job into a checklist.</p></div>
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <Field label="Minimum experience"><input className="input" type="number" min="0" value={form.experienceMin} onChange={(e) => update("experienceMin", e.target.value)} placeholder="5" /></Field>
-                  <Field label="Maximum experience"><input className="input" type="number" min="0" value={form.experienceMax} onChange={(e) => update("experienceMax", e.target.value)} placeholder="10" /></Field>
-                  <Field label="Experience level"><select className="input" value={form.experienceLevel} onChange={(e) => update("experienceLevel", e.target.value)}><option value="">Select</option><option>Entry</option><option>Mid</option><option>Senior</option><option>Lead</option></select></Field>
+                  <Field label="Minimum experience" required><input className="input" type="number" min="0" value={form.experienceMin} onChange={(e) => update("experienceMin", e.target.value)} placeholder="5" /></Field>
+                  <Field label="Maximum experience" required><input className="input" type="number" min="0" value={form.experienceMax} onChange={(e) => update("experienceMax", e.target.value)} placeholder="10" /></Field>
+                  <Field label="Experience level" required><select className="input" value={form.experienceLevel} onChange={(e) => update("experienceLevel", e.target.value)}><option value="">Select</option><option>Entry</option><option>Mid</option><option>Senior</option><option>Lead</option></select></Field>
                 </div>
                 <Field label="Required skills" required>{renderChips("requiredSkills", "Add a skill and press Enter")}</Field>
                 <Field label="Preferred skills">{renderChips("preferredSkills", "Optional skills")}</Field>
