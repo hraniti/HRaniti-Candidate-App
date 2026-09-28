@@ -200,6 +200,10 @@ export default function JobEditor({
         description: form.description,
         responsibilities: form.responsibilities,
         requirements: {
+          department: form.department,
+          openings: Number(form.openings || 1),
+          experienceMax: form.experienceMax,
+          experienceLevel: form.experienceLevel,
           education: form.education,
           educationRequired: form.educationRequired,
           certifications: form.certifications,
@@ -229,6 +233,7 @@ export default function JobEditor({
       });
 
       const payload = {
+        openings: Number(form.openings || 1),
         title: form.title.trim(),
         company: company?.name ?? "Your Company",
         company_id: companyId,
