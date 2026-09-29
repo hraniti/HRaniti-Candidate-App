@@ -75,7 +75,7 @@ export default function EmployerJobsPage() {
     return parts.length >= 2 ? parts[parts.length - 1] : "";
   }
 
-  const types = useMemo(() => Array.from(new Set(jobs.map((job) => job.employment_type).filter(Boolean))).sort(), [jobs]);
+  const types = ["Full-time", "Contract", "Freelance"];
   const filteredJobs = useMemo(() => jobs.filter((job) => {
     const q = query.trim().toLowerCase();
     const matchesQuery = !q || job.title.toLowerCase().includes(q) || job.location.toLowerCase().includes(q) || (job.career_track ?? "").toLowerCase().includes(q);
