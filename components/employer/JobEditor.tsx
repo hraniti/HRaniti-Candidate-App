@@ -170,12 +170,27 @@ export default function JobEditor({
       return Boolean(form.title.trim() && form.department.trim() && form.careerTrack && form.city.trim() && form.country && form.openings);
     }
     if (index === 1) {
-      return form.requiredSkills.length > 0 && Boolean(form.experienceMin || form.experienceMax || form.experienceLevel);
+      const hasRequiredSkill = form.requiredSkills.length > 0 || Boolean(inputValues.requiredSkills?.trim());
+      const minExperience = form.experienceMin.trim();
+      const maxExperience = form.experienceMax.trim();
+      const level = form.experienceLevel.trim();
+      return hasRequiredSkill && Boolean(minExperience && maxExperience && level);
     }
     if (index === 2) {
       return Boolean(form.description.trim() && form.responsibilities.trim());
     }
     return true;
+  }
+
+  function goToNextStep() {
+    if (step === 1) {
+      const pendingSkill = inputValues.requiredSkills?.trim();
+      if (pendingSkill) {
+        update("requiredSkills", addUnique(form.requiredSkills, pendingSkill));
+        setInputValues((current) => ({ ...current, requiredSkills: "" }));
+      }
+    }
+    setStep((current) => current + 1);
   }
 
   function canPublish() {
@@ -442,7 +457,7 @@ export default function JobEditor({
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button variant="secondary" type="button" loading={saving === "draft"} disabled={Boolean(saving)} onClick={() => save("draft")}>Save draft</Button>
                 {step < steps.length - 1 ? (
-                  <Button type="button" disabled={!stepValid(step)} onClick={() => setStep(step + 1)}>Next: {steps[step + 1].title} <ArrowRight size={15} /></Button>
+                  <Button type="button" disabled={!stepValid(step)} onClick={goToNextStep}>Next: {steps[step + 1].title} <ArrowRight size={15} /></Button>
                 ) : (
                   <Button type="button" disabled={!canPublish()} loading={saving === "publish"} onClick={() => save("publish")}><Check size={15} /> Publish job</Button>
                 )}
