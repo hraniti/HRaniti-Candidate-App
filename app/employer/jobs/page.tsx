@@ -24,6 +24,7 @@ function displayStatus(status: string) {
   if (status === "active" || status === "open" || status === "Open") return "Open";
   if (status === "paused" || status === "Paused") return "Paused";
   if (status === "closed" || status === "Closed") return "Closed";
+  if (status === "pending_approval" || status === "Pending approval") return "Pending approval";
   return "Draft";
 }
 
@@ -32,6 +33,7 @@ function statusClass(status: string) {
   if (label === "Open") return "bg-[#E7F3F1] text-[#167D73]";
   if (label === "Paused") return "bg-[#F6F1E7] text-[#8B6D31]";
   if (label === "Closed") return "bg-[#F1F3F4] text-[#71859A]";
+  if (label === "Pending approval") return "bg-[#F6F1E7] text-[#8B6D31]";
   return "bg-[#EEF1F4] text-[#607385]";
 }
 
@@ -106,6 +108,7 @@ export default function EmployerJobsPage() {
   const counts = {
     All: jobs.length,
     Open: jobs.filter((j) => displayStatus(j.status) === "Open").length,
+    "Pending approval": jobs.filter((j) => displayStatus(j.status) === "Pending approval").length,
     Draft: jobs.filter((j) => displayStatus(j.status) === "Draft").length,
     Paused: jobs.filter((j) => displayStatus(j.status) === "Paused").length,
     Closed: jobs.filter((j) => displayStatus(j.status) === "Closed").length,
