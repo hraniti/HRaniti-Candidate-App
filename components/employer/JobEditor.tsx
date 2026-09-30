@@ -322,7 +322,7 @@ export default function JobEditor({
           ...(form.hiringManager ? [{ id: form.hiringManagerId || null, name: form.hiringManager, email: form.hiringManagerEmail, role: "Hiring Manager" }] : []),
         ],
         notice_period_required: null,
-        status: status === "publish" && !form.approvalRequired ? "active" : "draft",
+        status: status === "publish" ? (form.approvalRequired ? "pending_approval" : "active") : "draft",
         public_slug: mode === "edit" ? undefined : slugify(form.title),
       };
 
