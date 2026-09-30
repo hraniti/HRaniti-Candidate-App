@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardCheck, FileText, History, Mail, MessageSquareText, ShieldCheck, UserRound, UsersRound, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardCheck, FileText, History, Mail, MessageSquareText, XCircle } from "lucide-react";
 import EmployerShell from "@/components/employer/EmployerShell";
 import { createClient } from "@/lib/supabase/client";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 type App={id:string;user_id:string;job_id:string;status:string|null;applied_at:string;pipeline_stage:string|null;match_score:number|null;skill_score:number|null;experience_score:number|null;location_score:number|null;next_step:string|null;employer_feedback:string|null;expected_timeline:string|null;updated_at:string|null};
 type Job={id:string;title:string;location:string|null;employment_type:string|null;description:string|null;career_track:string|null};
-type Profile={id:string;full_name:string|null;email:string|null;phone:string|null;linkedin_url:string|null;professional_summary:string|null;current_company:string|null;current_designation:string|null;years_experience:string|null;current_location:string|null;experience:any;education:any;skills:any;certifications:any;notice_period:string|null;availability_status:string|null;work_preference:string[]|null;expected_salary:number|null;salary_currency:string|null};
+type Profile={id:string;full_name:string|null;email:string|null;phone:string|null;linkedin_url:string|null;professional_summary:string|null;current_company:string|null;current_designation:string|null;years_experience:string|null;current_location:string|null;experience:any;education:any;skills:any;certifications:any;notice_period:string|null;availability_status:string|null;work_preference:string[]|null;expected_salary:number|null;salary_currency:string|null;resume_uploaded:boolean|null};
 type Tab="Overview"|"Resume"|"Experience"|"Assessments"|"Interviews"|"Feedback"|"Notes"|"Activity";
 
 const aliases:Record<string,string>={applied:"Applied",new:"Applied",screening:"Recruiter Screen","recruiter screen":"Recruiter Screen",assessment:"Assessment",interview:"Technical Interview","technical interview":"Technical Interview","hiring manager review":"Hiring Manager Review",offer:"Offer",hired:"Hired"};
