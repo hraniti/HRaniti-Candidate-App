@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, BriefcaseBusiness, ChevronDown, Filter, MoreHorizontal, Search, UsersRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Filter, MoreHorizontal, Search, UsersRound } from "lucide-react";
 import EmployerShell from "@/components/employer/EmployerShell";
 import { createClient } from "@/lib/supabase/client";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
@@ -56,7 +56,7 @@ export default function ApplicantsPage(){
   const back=()=>{setSelected(null);setMode("jobs");setQuery("");setStageFilter("All");setStatusFilter("All")};
 
   return <EmployerShell jobCount={jobs.length}><div className="min-h-[calc(100vh-72px)] bg-[#FCFCFA]"><div className="mx-auto max-w-[1240px] px-5 py-8 sm:px-8 sm:py-10">
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[10px] font-semibold tracking-[0.18em] text-[#167D73] uppercase">HIRING</p><h1 className="mt-2 font-display text-3xl text-[#173454]">Applicants</h1><p className="mt-2 text-sm text-[#71859A]">{selectedJob?"Review and move candidates for this role.":"Start with a role, then focus on the people who applied."}</p></div>{!selectedJob&&<Link href="/employer/jobs/new" className="inline-flex items-center gap-2 rounded-xl bg-[#167D73] px-4 py-2.5 text-sm font-medium text-white"><BriefcaseBusiness size={15}/> Post a job</Link>}</div>
+    <div><p className="text-[10px] font-semibold tracking-[0.18em] text-[#167D73] uppercase">HIRING</p><h1 className="mt-2 font-display text-3xl text-[#173454]">Applicants</h1><p className="mt-2 text-sm text-[#71859A]">{selectedJob?"Review and move candidates for this role.":"Start with a role, then focus on the people who applied."}</p></div>
 
     {!selectedJob ? <div className="mt-7">
       <div className="flex gap-1 border-b border-[#DDE5EA]"><button onClick={()=>setMode("jobs")} className={"border-b-2 px-3 pb-3 text-xs font-medium "+(mode==="jobs"?"border-[#167D73] text-[#167D73]":"border-transparent text-[#71859A]")}>Jobs</button><button onClick={()=>setMode("all")} className={"border-b-2 px-3 pb-3 text-xs font-medium "+(mode==="all"?"border-[#167D73] text-[#167D73]":"border-transparent text-[#71859A]")}>All candidates</button></div>
