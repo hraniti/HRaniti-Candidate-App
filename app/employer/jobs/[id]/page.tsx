@@ -13,6 +13,7 @@ function statusLabel(status: string) {
   if (status === "active" || status === "open" || status === "Open") return "Open";
   if (status === "paused" || status === "Paused") return "Paused";
   if (status === "closed" || status === "Closed") return "Closed";
+  if (status === "pending_approval" || status === "Pending approval") return "Pending approval";
   return "Draft";
 }
 
