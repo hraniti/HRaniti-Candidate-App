@@ -153,6 +153,8 @@ export default function JobEditor({
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [pipelines, setPipelines] = useState<any[]>([]);
   const [assessments, setAssessments] = useState<any[]>([]);
+  const [customPipelineName, setCustomPipelineName] = useState("Custom hiring");
+  const [customStages, setCustomStages] = useState<Array<{name:string;type:string}>>([{name:"Applied",type:"Application"},{name:"Recruiter screen",type:"Screening"},{name:"Interview",type:"Interview"},{name:"Offer",type:"Offer"},{name:"Hired",type:"Hired"}]);
 
   useEffect(() => {
     setForm({ ...emptyForm, ...initialValues });
@@ -272,7 +274,7 @@ export default function JobEditor({
           interviewDuration: form.interviewDuration,
           assessment: form.assessment,
           assessmentName: assessments.find((a:any) => a.id === form.assessment)?.name ?? form.assessment,
-          customPipeline: form.pipeline === "Custom" ? { name: "Custom hiring", stages: [] } : null,
+          customPipeline: form.pipeline === "Custom" ? { name: customPipelineName, stages: customStages } : null,
           screeningQuestions: form.screeningQuestions,
           approvalRequired: form.approvalRequired,
         },
@@ -465,8 +467,14 @@ export default function JobEditor({
                   <Field label="Hiring pipeline"><select className="input" value={form.pipeline} onChange={(e) => update("pipeline", e.target.value)}><option>Standard</option><option>Technical hiring</option><option>Leadership</option>{pipelines.map((p:any)=><option key={p.id} value={p.id}>{p.name}</option>)}<option>Custom</option></select></Field>
                   <Field label="Interview rounds"><select className="input" value={form.interviewRounds} onChange={(e) => update("interviewRounds", e.target.value)}><option>1</option><option>2</option><option>3</option><option>4</option></select></Field>
                   <Field label="Interview duration"><select className="input" value={form.interviewDuration} onChange={(e) => update("interviewDuration", e.target.value)}><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option></select></Field>
-                  <Field label="Assessment"><select className="input" value={form.assessment} onChange={(e) => update("assessment", e.target.value)}><option value="None">None</option>{assessments.map((a:any)=><option key={a.id} value={a.id}>{a.name}</option>)}<option value="Create custom assessment">Create custom assessment</option></select></Field>
+                  <Field label="Assessment"><select className="input" value={form.assessment} onChange={(e) => { if(e.target.value==="Create custom assessment"){ router.push("/employer/assessments/new"); return; } update("assessment", e.target.value); }}><option value="None">None</option>{assessments.map((a:any)=><option key={a.id} value={a.id}>{a.name}</option>)}<option value="Create custom assessment">Create custom assessment</option></select></Field>
                 </div>
+                {form.pipeline === "Custom" && <div className="rounded-xl border border-[#DDE5EA] bg-[#FCFDFD] p-4">
+                  <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium text-[#173454]">Custom pipeline</p><p className="mt-1 text-xs text-[#71859A]">Build only the stages this role needs.</p></div></div>
+                  <input className="input mt-3" value={customPipelineName} onChange={(e)=>setCustomPipelineName(e.target.value)} placeholder="Pipeline name" />
+                  <div className="mt-3 space-y-2">{customStages.map((s,i)=><div key={i} className="flex gap-2 items-center"><span className="w-5 text-center text-xs text-[#9AA8B3]">{i+1}</span><input className="input flex-1" value={s.name} onChange={(e)=>setCustomStages(v=>v.map((x,j)=>j===i?{...x,name:e.target.value}:x))}/><select className="input w-40" value={s.type} onChange={(e)=>setCustomStages(v=>v.map((x,j)=>j===i?{...x,type:e.target.value}:x))}><option>Screening</option><option>Assessment</option><option>Interview</option><option>Hiring Manager Review</option><option>Offer</option><option>Hired</option><option>Custom</option></select><button type="button" onClick={()=>setCustomStages(v=>v.filter((_,j)=>j!==i))} className="px-2 text-[#9AA8B3]" aria-label="Remove stage"><X size={15}/></button></div>)}</div>
+                  <button type="button" onClick={()=>setCustomStages(v=>[...v,{name:"New stage",type:"Custom"}])} className="mt-3 text-xs font-medium text-[#167D73]">+ Add stage</button>
+                </div>}
                 <Field label="Screening questions">{renderChips("screeningQuestions", "Add a question")}</Field>
                 <label className="flex items-start gap-3 rounded-xl border border-[#DDE5EA] p-4 cursor-pointer hover:bg-[#FAFCFB]"><input type="checkbox" className="mt-0.5 accent-[#167D73]" checked={form.approvalRequired} onChange={(e) => update("approvalRequired", e.target.checked)} /><span><span className="block text-sm font-medium text-[#173454]">Approval required before publishing</span><span className="block mt-1 text-xs text-[#71859A]">The job stays private and appears in Approval Center until an Owner or Admin approves it.</span></span></label>
               </div>
