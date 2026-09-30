@@ -290,7 +290,6 @@ export default function JobEditor({
       });
 
       const payload = {
-        openings: Number(form.openings || 1),
         title: form.title.trim(),
         company: company?.name ?? "Your Company",
         company_id: companyId,
