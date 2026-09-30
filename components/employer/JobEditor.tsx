@@ -36,8 +36,12 @@ type JobFormValues = {
   description: string;
   responsibilities: string;
   benefits: string[];
+  recruiterId: string;
   recruiterName: string;
+  recruiterEmail: string;
+  hiringManagerId: string;
   hiringManager: string;
+  hiringManagerEmail: string;
   pipeline: string;
   interviewRounds: string;
   interviewDuration: string;
@@ -78,8 +82,12 @@ const emptyForm: JobFormValues = {
   description: "",
   responsibilities: "",
   benefits: [],
+  recruiterId: "",
   recruiterName: "",
+  recruiterEmail: "",
+  hiringManagerId: "",
   hiringManager: "",
+  hiringManagerEmail: "",
   pipeline: "Standard",
   interviewRounds: "2",
   interviewDuration: "60",
@@ -142,10 +150,29 @@ export default function JobEditor({
   const [saving, setSaving] = useState<"draft" | "publish" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [pipelines, setPipelines] = useState<any[]>([]);
+  const [assessments, setAssessments] = useState<any[]>([]);
 
   useEffect(() => {
     setForm({ ...emptyForm, ...initialValues });
   }, [initialValues]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const companyId = await getOrCreateCompanyId(supabase, user);
+      const [team, pipelineRows, assessmentRows] = await Promise.all([
+        supabase.from("company_team_members").select("id,user_id,full_name,email,role,status").eq("company_id", companyId).order("full_name"),
+        supabase.from("hiring_pipelines").select("id,name,description,stages,is_default").eq("company_id", companyId).order("created_at"),
+        supabase.from("assessments").select("id,name,type,status,config").eq("company_id", companyId).eq("status","Active").order("created_at")
+      ]);
+      setTeamMembers(team.data ?? []);
+      setPipelines(pipelineRows.data ?? []);
+      setAssessments(assessmentRows.data ?? []);
+    })();
+  }, []);
 
   function update<K extends keyof JobFormValues>(key: K, value: JobFormValues[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -234,12 +261,18 @@ export default function JobEditor({
           relocation: form.relocation,
         },
         process: {
+          recruiterId: form.recruiterId,
           recruiterName: form.recruiterName,
+          recruiterEmail: form.recruiterEmail,
+          hiringManagerId: form.hiringManagerId,
           hiringManager: form.hiringManager,
+          hiringManagerEmail: form.hiringManagerEmail,
           pipeline: form.pipeline,
           interviewRounds: form.interviewRounds,
           interviewDuration: form.interviewDuration,
           assessment: form.assessment,
+          assessmentName: assessments.find((a:any) => a.id === form.assessment)?.name ?? form.assessment,
+          customPipeline: form.pipeline === "Custom" ? { name: "Custom hiring", stages: [] } : null,
           screeningQuestions: form.screeningQuestions,
           approvalRequired: form.approvalRequired,
         },
@@ -283,11 +316,11 @@ export default function JobEditor({
         website: company?.website ?? "",
         perks: form.benefits,
         hiring_team: [
-          ...(form.recruiterName ? [{ name: form.recruiterName, role: "Recruiter" }] : []),
-          ...(form.hiringManager ? [{ name: form.hiringManager, role: "Hiring Manager" }] : []),
+          ...(form.recruiterName ? [{ id: form.recruiterId || null, name: form.recruiterName, email: form.recruiterEmail, role: "Recruiter" }] : []),
+          ...(form.hiringManager ? [{ id: form.hiringManagerId || null, name: form.hiringManager, email: form.hiringManagerEmail, role: "Hiring Manager" }] : []),
         ],
         notice_period_required: null,
-        status: status === "publish" ? "active" : "draft",
+        status: status === "publish" && !form.approvalRequired ? "active" : "draft",
         public_slug: mode === "edit" ? undefined : slugify(form.title),
       };
 
@@ -300,8 +333,12 @@ export default function JobEditor({
       }
 
       if (result.error) throw result.error;
-
-      router.push(mode === "edit" && jobId ? `/employer/jobs/${jobId}` : "/employer/jobs");
+      const savedJobId = mode === "edit" && jobId ? jobId : result.data?.id;
+      if (status === "publish" && form.approvalRequired && savedJobId) {
+        const activeApprovers = teamMembers.filter((m:any) => m.status === "Active" && m.user_id).map((m:any) => m.user_id);
+        await supabase.from("job_approval_requests").insert({ job_id:savedJobId, company_id:companyId, requested_by:user.id, approver_ids:activeApprovers, status:"Pending" });
+      }
+      router.push(mode === "edit" && jobId ? `/employer/jobs/${jobId}` : status === "publish" && form.approvalRequired ? "/employer/approvals" : "/employer/jobs");
     } catch (err: any) {
       setError(err?.message ?? "Something went wrong. Please try again.");
     } finally {
@@ -423,15 +460,15 @@ export default function JobEditor({
               <div className="space-y-5">
                 <div><h2 className="text-lg font-semibold text-[#173454]">Hiring Process</h2><p className="mt-1 text-sm text-[#71859A]">Set the process once. Candidate progress is managed in Applicants.</p></div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Recruiter"><input className="input" value={form.recruiterName} onChange={(e) => update("recruiterName", e.target.value)} placeholder="Name" /></Field>
-                  <Field label="Hiring manager"><input className="input" value={form.hiringManager} onChange={(e) => update("hiringManager", e.target.value)} placeholder="Name" /></Field>
-                  <Field label="Hiring pipeline"><select className="input" value={form.pipeline} onChange={(e) => update("pipeline", e.target.value)}><option>Standard</option><option>Technical hiring</option><option>Leadership</option><option>Custom</option></select></Field>
+                  <Field label="Recruiter"><select className="input" value={form.recruiterId} onChange={(e) => { const m=teamMembers.find((x:any)=>x.id===e.target.value); update("recruiterId",e.target.value); update("recruiterName",m?.full_name??""); update("recruiterEmail",m?.email??""); }}><option value="">Select recruiter</option>{teamMembers.filter((m:any)=>["Owner","Admin","Recruiter"].includes(m.role)).map((m:any)=><option key={m.id} value={m.id}>{m.full_name || m.email || "Team member"}{m.email ? " · " + m.email : ""}</option>)}</select></Field>
+                  <Field label="Hiring manager"><select className="input" value={form.hiringManagerId} onChange={(e) => { const m=teamMembers.find((x:any)=>x.id===e.target.value); update("hiringManagerId",e.target.value); update("hiringManager",m?.full_name??""); update("hiringManagerEmail",m?.email??""); }}><option value="">Select hiring manager</option>{teamMembers.filter((m:any)=>["Owner","Admin","Hiring Manager"].includes(m.role)).map((m:any)=><option key={m.id} value={m.id}>{m.full_name || m.email || "Team member"}{m.email ? " · " + m.email : ""}</option>)}</select></Field>
+                  <Field label="Hiring pipeline"><select className="input" value={form.pipeline} onChange={(e) => update("pipeline", e.target.value)}><option>Standard</option><option>Technical hiring</option><option>Leadership</option>{pipelines.map((p:any)=><option key={p.id} value={p.id}>{p.name}</option>)}<option>Custom</option></select></Field>
                   <Field label="Interview rounds"><select className="input" value={form.interviewRounds} onChange={(e) => update("interviewRounds", e.target.value)}><option>1</option><option>2</option><option>3</option><option>4</option></select></Field>
                   <Field label="Interview duration"><select className="input" value={form.interviewDuration} onChange={(e) => update("interviewDuration", e.target.value)}><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option></select></Field>
-                  <Field label="Assessment"><select className="input" value={form.assessment} onChange={(e) => update("assessment", e.target.value)}><option>None</option><option>Technical assessment</option><option>Custom assessment</option></select></Field>
+                  <Field label="Assessment"><select className="input" value={form.assessment} onChange={(e) => update("assessment", e.target.value)}><option value="None">None</option>{assessments.map((a:any)=><option key={a.id} value={a.id}>{a.name}</option>)}<option value="Create custom assessment">Create custom assessment</option></select></Field>
                 </div>
                 <Field label="Screening questions">{renderChips("screeningQuestions", "Add a question")}</Field>
-                <label className="flex items-start gap-3 rounded-xl border border-[#DDE5EA] p-4 cursor-pointer hover:bg-[#FAFCFB]"><input type="checkbox" className="mt-0.5 accent-[#167D73]" checked={form.approvalRequired} onChange={(e) => update("approvalRequired", e.target.checked)} /><span><span className="block text-sm font-medium text-[#173454]">Approval required before publishing</span><span className="block mt-1 text-xs text-[#71859A]">Use this when another team member needs to review the role first.</span></span></label>
+                <label className="flex items-start gap-3 rounded-xl border border-[#DDE5EA] p-4 cursor-pointer hover:bg-[#FAFCFB]"><input type="checkbox" className="mt-0.5 accent-[#167D73]" checked={form.approvalRequired} onChange={(e) => update("approvalRequired", e.target.checked)} /><span><span className="block text-sm font-medium text-[#173454]">Approval required before publishing</span><span className="block mt-1 text-xs text-[#71859A]">The job stays private and appears in Approval Center until an Owner or Admin approves it.</span></span></label>
               </div>
             )}
 
