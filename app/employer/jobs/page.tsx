@@ -105,6 +105,43 @@ export default function EmployerJobsPage() {
     if (!error) await loadJobs();
   }
 
+  async function deleteJob(job: JobRow) {
+    setMenuId(null);
+
+    const confirmed = window.confirm(
+      `Delete "${job.title}"? This permanently removes the job from your workspace. This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    const { count, error: countError } = await supabase
+      .from("applications")
+      .select("id", { count: "exact", head: true })
+      .eq("job_id", job.id);
+
+    if (countError) {
+      window.alert("We couldn't verify whether this job has applications. Please try again.");
+      return;
+    }
+
+    if ((count ?? 0) > 0) {
+      window.alert("This job has applications and cannot be deleted. Close the job instead so the candidate history is preserved.");
+      return;
+    }
+
+    const { error } = await supabase.from("jobs").delete().eq("id", job.id);
+    if (error) {
+      window.alert("This job could not be deleted. If it has related hiring records, close it instead.");
+      return;
+    }
+
+    setJobs((current) => current.filter((item) => item.id !== job.id));
+    setApplicationCounts((current) => {
+      const next = { ...current };
+      delete next[job.id];
+      return next;
+    });
+  }
+
   const counts = {
     All: jobs.length,
     Open: jobs.filter((j) => displayStatus(j.status) === "Open").length,
@@ -153,7 +190,7 @@ export default function EmployerJobsPage() {
                 <span className="text-[12px] text-[#526A7D]">{job.employment_type}</span>
                 <span><span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-medium ${statusClass(job.status)}`}>{displayStatus(job.status)}</span></span>
                 <Link href={`/employer/applicants?job=${job.id}`} className="text-[13px] font-medium text-[#173454] hover:text-[#167D73]">{applications}</Link>
-                <div className="relative flex justify-end"><button onClick={() => setMenuId(menuId === job.id ? null : job.id)} className="rounded-lg p-2 text-[#71859A] hover:bg-[#F2F6F5] hover:text-[#173454]" aria-label={`Actions for ${job.title}`}><MoreHorizontal size={17} /></button>{menuId === job.id && <div className="absolute right-0 top-10 z-20 w-44 rounded-xl border border-[#DDE5EA] bg-white p-1.5 shadow-[0_14px_35px_rgba(23,52,84,0.14)]"><Link href={`/employer/jobs/${job.id}`} onClick={() => setMenuId(null)} className="block rounded-lg px-3 py-2 text-xs text-[#526A7D] hover:bg-[#F5F8F8]">View job</Link><Link href={`/employer/jobs/${job.id}/edit`} onClick={() => setMenuId(null)} className="block rounded-lg px-3 py-2 text-xs text-[#526A7D] hover:bg-[#F5F8F8]">Edit job</Link>{displayStatus(job.status) === "Open" && <button onClick={() => changeStatus(job,"paused")} className="block w-full rounded-lg px-3 py-2 text-left text-xs text-[#526A7D] hover:bg-[#F5F8F8]">Pause job</button>}{displayStatus(job.status) === "Paused" && <button onClick={() => changeStatus(job,"active")} className="block w-full rounded-lg px-3 py-2 text-left text-xs text-[#526A7D] hover:bg-[#F5F8F8]">Resume job</button>}{displayStatus(job.status) !== "Closed" && <button onClick={() => changeStatus(job,"closed")} className="block w-full rounded-lg px-3 py-2 text-left text-xs text-[#B34E3E] hover:bg-[#FDF5F3]">Close job</button>}<button onClick={() => duplicate(job)} className="block w-full rounded-lg px-3 py-2 text-left text-xs text-[#526A7D] hover:bg-[#F5F8F8]">Duplicate</button></div>}</div>
+                <div className="relative flex justify-end"><button onClick={() => setMenuId(menuId === job.id ? null : job.id)} className="rounded-lg p-2 text-[#71859A] hover:bg-[#F2F6F5] hover:text-[#173454]" aria-label={`Actions for ${job.title}`}><MoreHorizontal size={17} /></button>{menuId === job.id && <div className="absolute right-0 top-10 z-20 w-44 rounded-xl border border-[#DDE5EA] bg-white p-1.5 shadow-[0_14px_35px_rgba(23,52,84,0.14)]"><Link href={`/employer/jobs/${job.id}`} onClick={() => setMenuId(null)} className="block rounded-lg px-3 py-2 text-xs text-[#526A7D] hover:bg-[#F5F8F8]">View job</Link><Link href={`/employer/jobs/${job.id}/edit`} onClick={() => setMenuId(null)} className="block rounded-lg px-3 py-2 text-xs text-[#526A7D] hover:bg-[#F5F8F8]">Edit job</Link>{displayStatus(job.status) === "Open" && <button onClick={() => changeStatus(job,"paused")} className="block w-full rounded-lg px-3 py-2 text-left text-xs text-[#526A7D] hover:bg-[#F5F8F8]">Pause job</button>}{displayStatus(job.status) === "Paused" && <button onClick={() => changeStatus(job,"active")} className="block w-full rounded-lg px-3 py-2 text-left text-xs text-[#526A7D] hover:bg-[#F5F8F8]">Resume job</button>}{displayStatus(job.status) !== "Closed" && <button onClick={() => changeStatus(job,"closed")} className="block w-full rounded-lg px-3 py-2 text-left text-xs text-[#B34E3E] hover:bg-[#FDF5F3]">Close job</button>}<button onClick={() => duplicate(job)} className="block w-full rounded-lg px-3 py-2 text-left text-xs text-[#526A7D] hover:bg-[#F5F8F8]">Duplicate</button><div className="my-1 border-t border-[#EEF2F4]" /><button onClick={() => deleteJob(job)} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-[#B34E3E] hover:bg-[#FDF5F3]">Delete job</button></div>}</div>
               </div>;
             })}
           </div>
