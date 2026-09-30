@@ -22,9 +22,16 @@ export default function ApplicantDetail({params}:{params:{id:string}}){
  const [app,setApp]=useState<App|null>(null),[job,setJob]=useState<Job|null>(null),[profile,setProfile]=useState<Profile|null>(null);
  const [assessment,setAssessment]=useState<any[]>([]),[interviews,setInterviews]=useState<any[]>([]),[offer,setOffer]=useState<any|null>(null),[rejection,setRejection]=useState<any|null>(null);
  const [tab,setTab]=useState<Tab>("Overview"),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[note,setNote]=useState("");
+ const isDemo=params.id==="demo-candidate-1";
 
  async function load(){
-  setLoading(true); const {data:{user}}=await supabase.auth.getUser(); if(!user){setLoading(false);return}
+  setLoading(true);
+  if(isDemo){
+   setApp({id:"demo-candidate-1",user_id:"demo-candidate-1",job_id:"",status:"Active",applied_at:"2026-09-28T09:30:00Z",pipeline_stage:"Applied",match_score:91,skill_score:94,experience_score:92,location_score:88,next_step:"Review profile",employer_feedback:null,expected_timeline:"3-5 days",updated_at:"2026-09-28T09:30:00Z"});
+   setProfile({id:"demo-candidate-1",full_name:"Aarav Mehta",email:"aarav.mehta@example.com",phone:"+91 98765 43210",linkedin_url:"https://www.linkedin.com/in/aarav-mehta",professional_summary:"SAP ABAP professional with 8 years of experience across S/4HANA, ABAP development and enterprise integrations.",current_company:"TechNova Solutions",current_designation:"Senior SAP ABAP Consultant",years_experience:"8 years",current_location:"Bengaluru, India",experience:[{company:"TechNova Solutions",role:"Senior SAP ABAP Consultant",duration:"2021–Present"},{company:"Enterprise Systems India",role:"SAP ABAP Consultant",duration:"2018–2021"}],education:[{degree:"B.Tech, Computer Science",institution:"Bengaluru Institute of Technology"}],skills:["SAP ABAP","S/4HANA","CDS Views","OData","BAdIs"],certifications:["SAP Certified Development Professional"],notice_period:"30 days",availability_status:"Available in 30 days",work_preference:["Hybrid"],expected_salary:2800000,salary_currency:"INR",resume_uploaded:true});
+   setJob({id:"demo-job",title:"SAP ABAP HANA Developer",location:"Bengaluru, India",employment_type:"Full-time",description:"",career_track:"SAP"});
+   setLoading(false);return;
+  } const {data:{user}}=await supabase.auth.getUser(); if(!user){setLoading(false);return}
   const company=await getOrCreateCompanyId(supabase,user);
   const {data:a}=await supabase.from("applications").select("id,user_id,job_id,status,applied_at,pipeline_stage,match_score,skill_score,experience_score,location_score,next_step,employer_feedback,expected_timeline,updated_at").eq("id",params.id).single();
   if(!a){setLoading(false);return}
@@ -42,11 +49,12 @@ export default function ApplicantDetail({params}:{params:{id:string}}){
  useEffect(()=>{load()},[params.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
  async function update(patch:Partial<App>){
-  if(!app)return;setSaving(true);const {error}=await supabase.from("applications").update(patch).eq("id",app.id);if(!error)setApp({...app,...patch});setSaving(false);
+  if(!app)return;
+  if(isDemo){setApp({...app,...patch});return;}setSaving(true);const {error}=await supabase.from("applications").update(patch).eq("id",app.id);if(!error)setApp({...app,...patch});setSaving(false);
  }
  async function saveNote(){await update({employer_feedback:note})}
  async function move(next:string){await update({pipeline_stage:next,next_step:next==="Technical Interview"?"Schedule interview":next==="Assessment"?"Send assessment":"Review candidate"})}
- async function reject(){const reason=window.prompt("Reason for rejection (optional):","Not selected for this role");if(reason===null)return;await update({status:"rejected",next_step:"Closed"});await supabase.from("rejections").insert({application_id:app?.id,reason,note:null});await load()}
+ async function reject(){const reason=window.prompt("Reason for rejection (optional):","Not selected for this role");if(reason===null)return;await update({status:"rejected",next_step:"Closed"});if(!isDemo){await supabase.from("rejections").insert({application_id:app?.id,reason,note:null});await load()}}
 
  if(loading)return <EmployerShell><div className="px-6 py-16 text-center text-sm text-[#71859A]">Loading candidate…</div></EmployerShell>;
  if(!app||!job||!profile)return <EmployerShell><div className="px-6 py-16 text-center"><p className="text-sm text-[#71859A]">This application could not be found.</p><Link href="/employer/applicants" className="mt-3 inline-flex text-sm text-[#167D73]">Back to Applicants</Link></div></EmployerShell>;
