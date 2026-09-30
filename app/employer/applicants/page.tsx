@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, BriefcaseBusiness, ChevronDown, Filter, MoreHorizontal, Search, UsersRound } from "lucide-react";
 import EmployerShell from "@/components/employer/EmployerShell";
 import { createClient } from "@/lib/supabase/client";
@@ -21,7 +20,8 @@ const initials=(v?:string|null)=>(v??"Candidate").split(" ").filter(Boolean).sli
 function stagesFor(job:Job){try{const x=JSON.parse(job.description??"");const custom=x?.process?.customPipelineStages??x?.process?.pipelineStages;if(Array.isArray(custom)&&custom.length)return custom.map((s:any)=>typeof s==="string"?s:s.name).filter(Boolean)}catch{}return defaultStages}
 
 export default function ApplicantsPage(){
-  const supabase=createClient(); const params=useSearchParams(); const requested=params.get("job");
+  const supabase=createClient();
+  const [requested,setRequested]=useState<string|null>(null);
   const [jobs,setJobs]=useState<Job[]>([]),[apps,setApps]=useState<App[]>([]),[profiles,setProfiles]=useState<Record<string,Profile>>({});
   const [loading,setLoading]=useState(true),[selected,setSelected]=useState<string|null>(requested),[mode,setMode]=useState<"jobs"|"all"|"list"|"pipeline">(requested?"list":"jobs");
   const [query,setQuery]=useState(""),[stageFilter,setStageFilter]=useState("All"),[statusFilter,setStatusFilter]=useState("All"),[menu,setMenu]=useState<string|null>(null);
@@ -36,6 +36,10 @@ export default function ApplicantsPage(){
     if(u.length){const {data:pd}=await supabase.from("profiles").select("id,full_name,email,current_designation,current_company,years_experience,current_location,professional_summary,skills,experience,education,notice_period,availability_status,work_preference").in("id",u);const m:Record<string,Profile>={};for(const p of (pd??[]) as Profile[])m[p.id]=p;setProfiles(m)}
     setLoading(false);
   }
+  useEffect(()=>{
+    const job = new URLSearchParams(window.location.search).get("job");
+    setRequested(job);
+  },[]);
   useEffect(()=>{load()},[]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(requested){setSelected(requested);setMode("list")}},[requested]);
 
