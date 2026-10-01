@@ -28,6 +28,7 @@ type Interview = {
   calendar_event_id: string | null;
   interviewer_ids: string[] | null;
   scorecard_id: string | null;
+  scorecard_criteria?: any[] | null;
   reminder_minutes: number[] | null;
   candidate_confirmed_at: string | null;
   candidate_response: string | null;
@@ -64,11 +65,55 @@ const isFuture=(row:Row)=>{
   const value=row.confirmed_time??row.proposed_times?.[0]; if(!value)return false;
   const d=new Date(value); return !Number.isNaN(d.getTime())&&d.getTime()>=Date.now();
 };
-const defaultCriteria=[
-  {name:"Role knowledge",description:"Understanding of the role and relevant expertise",scale:5},
-  {name:"Problem solving",description:"Approach to practical problems and ambiguity",scale:5},
-  {name:"Communication",description:"Clarity, listening and stakeholder communication",scale:5},
-  {name:"Collaboration",description:"Works effectively with others",scale:5},
+const defaultScorecards=[
+  {
+    name:"General Interview Scorecard",
+    description:"A reusable core scorecard for structured interviews.",
+    interviewType:"General",
+    criteria:[
+      {name:"Role knowledge",description:"Understanding of the role and relevant expertise",scale:5},
+      {name:"Problem solving",description:"Approach to practical problems and ambiguity",scale:5},
+      {name:"Communication",description:"Clarity, listening and stakeholder communication",scale:5},
+      {name:"Collaboration",description:"Works effectively with others",scale:5},
+      {name:"Ownership",description:"Takes responsibility and follows through",scale:5},
+    ],
+  },
+  {
+    name:"Recruiter Screen Scorecard",
+    description:"A structured first-screen evaluation for motivation and role alignment.",
+    interviewType:"Recruiter screen",
+    criteria:[
+      {name:"Role alignment",description:"Experience and expectations align with the role",scale:5},
+      {name:"Motivation",description:"Clarity of interest and reasons for the move",scale:5},
+      {name:"Communication",description:"Clarity, listening and professional communication",scale:5},
+      {name:"Availability",description:"Notice period, location and practical availability",scale:5},
+      {name:"Compensation alignment",description:"Expectations are reasonably aligned with the role",scale:5},
+    ],
+  },
+  {
+    name:"Technical Interview Scorecard",
+    description:"A structured technical evaluation for engineering and specialist roles.",
+    interviewType:"Technical interview",
+    criteria:[
+      {name:"Technical depth",description:"Depth of relevant technical knowledge",scale:5},
+      {name:"Problem solving",description:"Reasoning, debugging and practical problem solving",scale:5},
+      {name:"System thinking",description:"Ability to connect technical decisions to the wider system",scale:5},
+      {name:"Practical application",description:"Can apply knowledge to realistic role scenarios",scale:5},
+      {name:"Technical communication",description:"Explains technical thinking clearly",scale:5},
+    ],
+  },
+  {
+    name:"Hiring Manager Scorecard",
+    description:"A structured evaluation of impact, ownership and team contribution.",
+    interviewType:"Hiring manager interview",
+    criteria:[
+      {name:"Business impact",description:"Understands outcomes and how their work creates value",scale:5},
+      {name:"Ownership",description:"Takes responsibility for outcomes and decisions",scale:5},
+      {name:"Leadership",description:"Influences, prioritizes and drives work effectively",scale:5},
+      {name:"Collaboration",description:"Works well across teams and stakeholders",scale:5},
+      {name:"Growth mindset",description:"Learns, adapts and responds to feedback",scale:5},
+    ],
+  },
 ];
 
 export default function InterviewsPage(){
@@ -118,9 +163,13 @@ export default function InterviewsPage(){
     ]);
     setMembers((team??[]) as TeamMember[]);
     let cardsData=(cards??[]) as Scorecard[];
-    if(!cardsData.length){
-      const {data:created}=await supabase.from("interview_scorecards").insert({company_id:company,name:"General Interview Scorecard",description:"A reusable core scorecard for structured interviews.",interview_type:"General",criteria:defaultCriteria,created_by:user.id}).select("id,name,description,interview_type,criteria,is_active").single();
-      if(created)cardsData=[created as Scorecard];
+    const existingNames=new Set(cardsData.map(x=>x.name));
+    const missing=defaultScorecards.filter(x=>!existingNames.has(x.name));
+    if(missing.length){
+      const {data:created}=await supabase.from("interview_scorecards").insert(
+        missing.map(x=>({company_id:company,name:x.name,description:x.description,interview_type:x.interviewType,criteria:x.criteria,created_by:user.id}))
+      ).select("id,name,description,interview_type,criteria,is_active");
+      cardsData=[...cardsData,...((created??[]) as Scorecard[])];
     }
     setScorecards(cardsData);
     if(!scorecardId&&cardsData[0])setScorecardId(cardsData[0].id);
@@ -176,7 +225,9 @@ export default function InterviewsPage(){
       application_id:applicationId,status:"Requested",proposed_times:[proposed.toISOString()],requested_by:user.id,
       interview_type:interviewType,interview_mode:mode,duration_minutes:Number(duration),timezone,
       meeting_link:meetingLink||null,meeting_provider:mode==="Online"?meetingProvider:null,
-      interviewer_ids:selectedInterviewers,scorecard_id:scorecardId||null,reminder_minutes:reminders,notes:notes||null
+      interviewer_ids:selectedInterviewers,scorecard_id:scorecardId||null,
+      scorecard_criteria:scorecardId ? (scorecards.find(x=>x.id===scorecardId)?.criteria ?? null) : null,
+      reminder_minutes:reminders,notes:notes||null
     });
     if(error)setNotice(error.message);else{setShowNew(false);resetForm();await load();}
     setSaving(false);
@@ -204,8 +255,12 @@ export default function InterviewsPage(){
   }
   function openFeedback(row:Row){
     setFeedback(row);
-    const first=scorecards.find(x=>x.id===row.scorecard_id)||row.scorecard||scorecards[0];
-    const ratings:Record<string,number>={};(first?.criteria??[]).forEach((c:any)=>{ratings[c.name]=0});setFeedbackRatings(ratings);setRecommendation("");setStrengths("");setConcerns("");setFeedbackNotes("");
+    const snapshot=(row as Row & {scorecard_criteria?:any[]}).scorecard_criteria;
+    const first=snapshot?.length
+      ? {...(scorecards.find(x=>x.id===row.scorecard_id)||row.scorecard||scorecards[0]),criteria:snapshot}
+      : (scorecards.find(x=>x.id===row.scorecard_id)||row.scorecard||scorecards[0]);
+    const ratings:Record<string,number>={};(first?.criteria??[]).forEach((c:any)=>{ratings[c.name]=0});
+    setFeedbackRatings(ratings);setRecommendation("");setStrengths("");setConcerns("");setFeedbackNotes("");
   }
   async function saveFeedback(){
     if(!feedback)return;setSaving(true);setNotice("");
@@ -216,7 +271,11 @@ export default function InterviewsPage(){
     if(!error){await supabase.from("interview_requests").update({status:"Completed"}).eq("id",feedback.id);setFeedback(null);await load();}else setNotice(error.message);
     setSaving(false);
   }
-  const selectedCard=feedback?(scorecards.find(x=>x.id===feedback.scorecard_id)||feedback.scorecard||scorecards[0]):null;
+  const selectedCard=feedback
+    ? ((feedback as Row & {scorecard_criteria?:any[]}).scorecard_criteria?.length
+        ? {...(scorecards.find(x=>x.id===feedback.scorecard_id)||feedback.scorecard||scorecards[0]),criteria:(feedback as Row & {scorecard_criteria?:any[]}).scorecard_criteria}
+        : (scorecards.find(x=>x.id===feedback.scorecard_id)||feedback.scorecard||scorecards[0]))
+    : null;
 
   return <EmployerShell><div className="min-h-[calc(100vh-72px)] bg-[#FCFCFA]">
     <div className="mx-auto max-w-[1220px] px-5 py-8 sm:px-8 sm:py-10">
@@ -257,6 +316,7 @@ export default function InterviewsPage(){
         <div className="sm:col-span-2"><div className="flex items-center justify-between"><span className="label">Interviewers</span><button type="button" onClick={()=>setShowInterviewerPicker(v=>!v)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#B9DDD7] bg-[#E7F3F1] px-2.5 py-1.5 text-[11px] font-medium text-[#167D73]">+ Add interviewer</button></div><div className="mt-2 flex flex-wrap gap-2">{selectedInterviewers.map(id=>{const m=members.find(x=>x.id===id);return <span key={id} className="inline-flex items-center gap-2 rounded-full border border-[#B9DDD7] bg-[#E7F3F1] px-3 py-1.5 text-[11px] text-[#167D73]">{m?.full_name||m?.email||"Interviewer"}<button type="button" onClick={()=>setSelectedInterviewers(v=>v.filter(x=>x!==id))} aria-label="Remove interviewer">×</button></span>})}{!selectedInterviewers.length&&<span className="text-xs text-[#9AA8B3]">No interviewers assigned yet.</span>}</div>{showInterviewerPicker&&<div className="mt-3 rounded-xl border border-[#DDE5EA] bg-[#FCFCFA] p-4"><p className="text-xs font-medium text-[#173454]">Add from your team</p><p className="mt-1 text-[11px] text-[#71859A]">Select one or more existing team members. You can add several interviewers.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{members.map(m=><button type="button" key={m.id} onClick={()=>setSelectedInterviewers(v=>v.includes(m.id)?v.filter(x=>x!==m.id):[...v,m.id])} className={"rounded-xl border bg-white p-3 text-left "+(selectedInterviewers.includes(m.id)?"border-[#B9DDD7] bg-[#E7F3F1]":"border-[#DDE5EA]")}><p className="text-xs font-medium text-[#173454]">{m.full_name||"Team member"}</p><p className="mt-0.5 text-[10px] text-[#71859A]">{m.email||"No email"} · {m.role||"Team member"}</p></button>)}</div><div className="mt-4 border-t border-[#DDE5EA] pt-4"><p className="text-xs font-medium text-[#173454]">External interviewer</p><p className="mt-1 text-[11px] text-[#71859A]">For a client, SME or guest who is not in your HRaniti team.</p><div className="mt-2 grid gap-2 sm:grid-cols-3"><input value={externalInterviewer.name} onChange={e=>setExternalInterviewer(v=>({...v,name:e.target.value}))} placeholder="Name" className="input"/><input value={externalInterviewer.email} onChange={e=>setExternalInterviewer(v=>({...v,email:e.target.value}))} placeholder="Email" className="input"/><input value={externalInterviewer.role} onChange={e=>setExternalInterviewer(v=>({...v,role:e.target.value}))} placeholder="Role / relationship" className="input"/></div><p className="mt-2 text-[10px] text-[#9AA8B3]">External interviewers will be supported in the next invitation layer; their details are not stored as team members.</p></div></div>}</div>
         {mode==="Online"&&<><label><span className="label">Meeting provider</span><select value={meetingProvider} onChange={e=>setMeetingProvider(e.target.value)} className="input"><option>Google Meet</option><option>Microsoft Teams</option><option>Zoom</option><option>Other</option></select></label><label><span className="label">Meeting link</span><div className="relative"><Link2 size={14} className="absolute left-3 top-3.5 text-[#9AA8B3]"/><input value={meetingLink} onChange={e=>setMeetingLink(e.target.value)} className="input pl-9" placeholder="https://…"/></div></label></>}
         <label><span className="label">Scorecard</span><select value={scorecardId} onChange={e=>setScorecardId(e.target.value)} className="input"><option value="">No scorecard</option>{scorecards.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+        {scorecardId&&<div className="sm:col-span-2 rounded-xl border border-[#DDE5EA] bg-[#F8FBFA] p-4"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium text-[#173454]">What this scorecard evaluates</p><p className="mt-1 text-[11px] leading-5 text-[#71859A]">{scorecards.find(s=>s.id===scorecardId)?.description}</p></div><span className="rounded-full bg-[#E7F3F1] px-2.5 py-1 text-[10px] font-medium text-[#167D73]">{scorecards.find(s=>s.id===scorecardId)?.criteria?.length??0} criteria</span></div><div className="mt-3 flex flex-wrap gap-2">{(scorecards.find(s=>s.id===scorecardId)?.criteria??[]).map((criterion:any)=><span key={criterion.name} className="rounded-full border border-[#DDE5EA] bg-white px-2.5 py-1 text-[10px] text-[#526A7D]">{criterion.name}</span>)}</div><p className="mt-3 text-[10px] text-[#8A99A5]">The criteria are saved as a snapshot on this interview, so later scorecard edits will not change completed interview records.</p></div>}
         <div><span className="label">Reminders</span><div className="mt-2 flex flex-wrap gap-2">{[[1440,"24h"],[60,"1h"],[15,"15m"]].map(([v,label])=><button type="button" key={String(v)} onClick={()=>setReminders(r=>r.includes(v as number)?r.filter(x=>x!==v):[...r,v as number])} className={"rounded-xl border px-3 py-2 text-[11px] "+(reminders.includes(v as number)?"border-[#B9DDD7] bg-[#E7F3F1] text-[#167D73]":"border-[#DDE5EA] bg-white text-[#526A7D]")}>{label}</button>)}</div></div>
         <label className="sm:col-span-2"><span className="label">Internal notes</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} className="input min-h-[90px]" placeholder="Anything the interview team should know…"/></label>
       </div>
