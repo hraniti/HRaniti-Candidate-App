@@ -57,7 +57,7 @@ export default function ApplicantDetail({params}:{params:{id:string}}){
 
  async function update(patch:Partial<App>){
   if(!app)return;
-  if(isDemo){setApp({...app,...patch});return;}setSaving(true);const {error}=await supabase.from("applications").update(patch).eq("id",app.id);if(!error)setApp({...app,...patch});setSaving(false);
+  if(isDemo){const next={stage:patch.pipeline_stage??app.pipeline_stage??"Applied",status:patch.status??app.status??"Active"};setApp({...app,...patch,pipeline_stage:next.stage,status:next.status});setDemoState(next);try{window.localStorage.setItem("hraniti-demo-candidate",JSON.stringify(next))}catch{}return;}setSaving(true);const {error}=await supabase.from("applications").update(patch).eq("id",app.id);if(!error)setApp({...app,...patch});setSaving(false);
  }
  async function saveNote(){await update({employer_feedback:note})}
  async function move(next:string){const x=job?stagesFor(job,pipelines):defaultStages;const i=x.findIndex(s=>s.toLowerCase()===stage(next).toLowerCase());const following=i>=0&&i<x.length-1?x[i+1]:null;await update({pipeline_stage:next,next_step:following?"Move to "+following:"Complete hiring"})}
