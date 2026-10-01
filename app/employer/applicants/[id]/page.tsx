@@ -60,7 +60,7 @@ export default function ApplicantDetail({params}:{params:{id:string}}){
   if(isDemo){setApp({...app,...patch});return;}setSaving(true);const {error}=await supabase.from("applications").update(patch).eq("id",app.id);if(!error)setApp({...app,...patch});setSaving(false);
  }
  async function saveNote(){await update({employer_feedback:note})}
- async function move(next:string){const stages=hiringStages;const i=stages.findIndex(s=>s.toLowerCase()===stage(next).toLowerCase());const following=i>=0&&i<stages.length-1?stages[i+1]:null;await update({pipeline_stage:next,next_step:following?"Move to "+following:"Complete hiring"})}
+ async function move(next:string){const x=job?stagesFor(job,pipelines):defaultStages;const i=x.findIndex(s=>s.toLowerCase()===stage(next).toLowerCase());const following=i>=0&&i<x.length-1?x[i+1]:null;await update({pipeline_stage:next,next_step:following?"Move to "+following:"Complete hiring"})}
  async function reject(){const reason=window.prompt("Reason for rejection (optional):","Not selected for this role");if(reason===null)return;await update({status:"rejected",next_step:"Closed"});if(!isDemo){await supabase.from("rejections").insert({application_id:app?.id,reason,note:null});await load()}}
  const currentStage=stage(app?.pipeline_stage); const nextStage=job?nextStageFor(job,currentStage,pipelines):null; const hiringStages=job?stagesFor(job,pipelines):defaultStages;
  const nextAction=nextStage?("Move to "+nextStage):"";
