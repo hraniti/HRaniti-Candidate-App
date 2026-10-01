@@ -9,6 +9,7 @@ import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 type App={id:string;user_id:string;job_id:string;status:string|null;applied_at:string;pipeline_stage:string|null;match_score:number|null;skill_score:number|null;experience_score:number|null;location_score:number|null;next_step:string|null;employer_feedback:string|null;expected_timeline:string|null;updated_at:string|null};
 type Job={id:string;title:string;location:string|null;employment_type:string|null;description:string|null;career_track:string|null};
+type HiringPipeline={id:string;name:string;stages:any;is_default:boolean|null};
 type Profile={id:string;full_name:string|null;email:string|null;phone:string|null;linkedin_url:string|null;professional_summary:string|null;current_company:string|null;current_designation:string|null;years_experience:string|null;current_location:string|null;experience:any;education:any;skills:any;certifications:any;notice_period:string|null;availability_status:string|null;work_preference:string[]|null;expected_salary:number|null;salary_currency:string|null;resume_uploaded:boolean|null};
 type Tab="Overview"|"Resume"|"Experience"|"Assessments"|"Interviews"|"Feedback"|"Notes"|"Activity";
 
@@ -17,12 +18,12 @@ const stage=(v?:string|null)=>v?(aliases[v.toLowerCase().trim()]??v):"Applied";
 const date=(v?:string|null)=>v?new Date(v).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"—";
 const initials=(v?:string|null)=>(v??"Candidate").split(" ").filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();
 const defaultStages=["Applied","Recruiter Screen","Assessment","Technical Interview","Hiring Manager Review","Offer","Hired"];
-function stagesFor(job:Job){try{const x=JSON.parse(job.description??"");const p=x?.process??{};const custom=p?.customPipeline?.stages??p?.customPipelineStages??p?.pipelineStages;if(Array.isArray(custom)&&custom.length)return custom.map((s:any)=>typeof s==="string"?s:s.name).filter(Boolean);if(p.pipeline==="Leadership")return ["Applied","Recruiter Screen","Leadership Interview","Executive Review","Offer","Hired"];if(p.pipeline==="Technical hiring"){const s=["Applied","Recruiter Screen","Assessment","Technical Interview","Hiring Manager Review","Offer","Hired"];return p.assessment==="None"?s.filter(x=>x!=="Assessment"):s}}catch{}return defaultStages}
-function nextStageFor(job:Job,current:string){const stages=stagesFor(job);const i=stages.findIndex(s=>s.toLowerCase()===current.toLowerCase());return i>=0&&i<stages.length-1?stages[i+1]:null}
+function stagesFor(job:Job,pipelines:HiringPipeline[]=[]){try{const x=JSON.parse(job.description??"");const p=x?.process??{};const custom=p?.customPipeline?.stages??p?.customPipelineStages??p?.pipelineStages;if(Array.isArray(custom)&&custom.length)return custom.map((s:any)=>typeof s==="string"?s:s?.name).filter(Boolean).map((s:string)=>stage(s));const saved=pipelines.find(x=>x.name===p.pipeline||x.id===p.pipeline);if(saved?.stages){const s=Array.isArray(saved.stages)?saved.stages:[];if(s.length)return s.map((v:any)=>typeof v==="string"?v:v?.name).filter(Boolean).map((v:string)=>stage(v));}if(p.pipeline==="Leadership")return ["Applied","Recruiter Screen","Leadership Interview","Executive Review","Offer","Hired"];if(p.pipeline==="Technical hiring"){const s=["Applied","Recruiter Screen","Assessment","Technical Interview","Hiring Manager Review","Offer","Hired"];return p.assessment==="None"?s.filter(x=>x!=="Assessment"):s}}catch{}return defaultStages}
+function nextStageFor(job:Job,current:string,pipelines:HiringPipeline[]=[]){const stages=stagesFor(job,pipelines);const i=stages.findIndex(s=>s.toLowerCase()===stage(current).toLowerCase());return i>=0&&i<stages.length-1?stages[i+1]:null}
 
 export default function ApplicantDetail({params}:{params:{id:string}}){
  const supabase=createClient();
- const [app,setApp]=useState<App|null>(null),[job,setJob]=useState<Job|null>(null),[profile,setProfile]=useState<Profile|null>(null);
+ const [app,setApp]=useState<App|null>(null),[job,setJob]=useState<Job|null>(null),[profile,setProfile]=useState<Profile|null>(null),[pipelines,setPipelines]=useState<HiringPipeline[]>([]);
  const [assessment,setAssessment]=useState<any[]>([]),[interviews,setInterviews]=useState<any[]>([]),[offer,setOffer]=useState<any|null>(null),[rejection,setRejection]=useState<any|null>(null);
  const [tab,setTab]=useState<Tab>("Overview"),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[note,setNote]=useState(""),[showActions,setShowActions]=useState(false);
  const isDemo=params.id==="demo-candidate-1";
@@ -39,8 +40,11 @@ export default function ApplicantDetail({params}:{params:{id:string}}){
   const {data:a}=await supabase.from("applications").select("id,user_id,job_id,status,applied_at,pipeline_stage,match_score,skill_score,experience_score,location_score,next_step,employer_feedback,expected_timeline,updated_at").eq("id",params.id).single();
   if(!a){setLoading(false);return}
   setApp(a as App);
-  const {data:j}=await supabase.from("jobs").select("id,title,location,employment_type,description,career_track").eq("id",a.job_id).eq("company_id",company).single(); setJob(j as Job);
-  const {data:p}=await supabase.from("profiles").select("id,full_name,email,phone,linkedin_url,professional_summary,current_company,current_designation,years_experience,current_location,experience,education,skills,certifications,notice_period,availability_status,work_preference,expected_salary,salary_currency").eq("id",a.user_id).single(); setProfile(p as Profile);
+  const [{data:j},{data:pr}]=await Promise.all([
+   supabase.from("jobs").select("id,title,location,employment_type,description,career_track").eq("id",a.job_id).eq("company_id",company).single(),
+   supabase.from("hiring_pipelines").select("id,name,stages,is_default").eq("company_id",company).order("created_at")
+  ]); setJob(j as Job); setPipelines((pr??[]) as HiringPipeline[]);
+  const {data:p}=await supabase.from("profiles").select("id,full_name,email,phone,linkedin_url,professional_summary,current_company,current_designation,years_experience,current_location,experience,education,skills,certifications,notice_period,availability_status,work_preference,expected_salary,salary_currency,resume_uploaded").eq("id",a.user_id).single(); setProfile(p as Profile);
   const [{data:ar},{data:ir},{data:o},{data:r}]=await Promise.all([
    supabase.from("assessment_results").select("*").eq("user_id",a.user_id).order("completed_at",{ascending:false}),
    supabase.from("interview_requests").select("*").eq("application_id",a.id).order("created_at",{ascending:false}),
@@ -58,7 +62,7 @@ export default function ApplicantDetail({params}:{params:{id:string}}){
  async function saveNote(){await update({employer_feedback:note})}
  async function move(next:string){await update({pipeline_stage:next,next_step:next==="Assessment"?"Send assessment":next.toLowerCase().includes("interview")?"Schedule interview":"Move to "+next})}
  async function reject(){const reason=window.prompt("Reason for rejection (optional):","Not selected for this role");if(reason===null)return;await update({status:"rejected",next_step:"Closed"});if(!isDemo){await supabase.from("rejections").insert({application_id:app?.id,reason,note:null});await load()}}
- const currentStage=stage(app?.pipeline_stage); const nextStage=job?nextStageFor(job,currentStage):null;
+ const currentStage=stage(app?.pipeline_stage); const nextStage=job?nextStageFor(job,currentStage,pipelines):null; const hiringStages=job?stagesFor(job,pipelines):defaultStages;
  const nextAction=nextStage?("Move to "+nextStage):"";
  const doNext=()=>{if(nextStage)move(nextStage)};
 
