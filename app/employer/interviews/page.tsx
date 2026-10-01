@@ -45,6 +45,8 @@ type Row = Interview & {
   job?: Job;
 };
 
+type ApplicationChoice = Application & { candidate?: Candidate; job?: Job };
+
 type Filter = "Upcoming" | "Requests" | "Completed" | "All";
 
 const formatDateTime = (value?: string | null) => {
@@ -88,6 +90,7 @@ function isFuture(row: Row) {
 export default function InterviewsPage() {
   const supabase = createClient();
   const [rows, setRows] = useState<Row[]>([]);
+  const [applicationChoices, setApplicationChoices] = useState<ApplicationChoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("Upcoming");
   const [query, setQuery] = useState("");
@@ -148,6 +151,7 @@ export default function InterviewsPage() {
     const appMap = new Map((apps ?? []).map(x => [x.id, x as Application]));
     const jobMap = new Map((jobs ?? []).map(x => [x.id, x as Job]));
     const profileMap = new Map((profiles ?? []).map(x => [x.id, x as Candidate]));
+    setApplicationChoices((apps ?? []).map(x => ({ ...(x as Application), candidate: profileMap.get(x.user_id), job: jobMap.get(x.job_id) })));
 
     setRows((interviews ?? []).map(x => ({
       ...(x as Interview),
@@ -159,6 +163,14 @@ export default function InterviewsPage() {
   }
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const requestedApplication = new URLSearchParams(window.location.search).get("application");
+    if (requestedApplication) {
+      setApplicationId(requestedApplication);
+      setShowNew(true);
+    }
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -236,10 +248,7 @@ export default function InterviewsPage() {
     if (!error) await load();
   }
 
-  const applicationOptions = rows
-    .map(r => r.application)
-    .filter((x): x is Application => Boolean(x))
-    .filter((x, i, arr) => arr.findIndex(y => y.id === x.id) === i);
+  const applicationOptions = applicationChoices.filter(x => !["rejected", "withdrawn", "hired"].includes((x.status ?? "").toLowerCase()));
 
   return (
     <EmployerShell>
@@ -354,11 +363,7 @@ export default function InterviewsPage() {
                 <span className="text-[11px] font-medium text-[#526A7D]">Candidate application</span>
                 <select value={applicationId} onChange={e => setApplicationId(e.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-[#DDE5EA] bg-white px-3 text-xs text-[#526A7D] outline-none focus:border-[#A9D4CE]">
                   <option value="">Select candidate…</option>
-                  {applicationOptions.map(app => {
-                    const candidate = rows.find(r => r.application_id === app.id)?.candidate;
-                    const job = rows.find(r => r.application_id === app.id)?.job;
-                    return <option key={app.id} value={app.id}>{candidate?.full_name ?? "Candidate"} · {job?.title ?? "Job"}</option>;
-                  })}
+                  {applicationOptions.map(app => <option key={app.id} value={app.id}>{app.candidate?.full_name ?? "Candidate"} · {app.job?.title ?? "Job"}</option>)}
                 </select>
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
