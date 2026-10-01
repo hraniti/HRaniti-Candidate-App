@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
 type View="month"|"week"|"day";
-type Interview={id:string;application_id:string|null;status:string|null;confirmed_time:string|null;duration_minutes:number|null;interview_type:string|null;interview_mode:string|null;meeting_link:string|null;meeting_provider:string|null;interviewer_ids:string[]|null;candidate?:Profile;job?:Job};
+type Interview={id:string;application_id:string|null;status:string|null;confirmed_time:string|null;duration_minutes:number|null;interview_type:string|null;interview_mode:string|null;meeting_link:string|null;meeting_provider:string|null;interviewer_ids:string[]|null;candidate?:Profile;job?:Job;interviewers?:Team[]};
 type Profile={id:string;full_name:string|null;email:string|null;current_designation:string|null};
 type Job={id:string;title:string;location:string|null;status:string|null;target_start_date:string|null};
 type Offer={id:string;application_id:string;start_date:string|null;status:string|null;candidate?:Profile;job?:Job};
@@ -75,12 +75,12 @@ export default function CalendarPage(){
      supabase.from("offers").select("id,application_id,start_date,status").in("application_id",appIds).order("start_date",{ascending:true}),
      supabase.from("profiles").select("id,full_name,email,current_designation").in("id",appRows.map(x=>x.user_id))
    ]);
-   const jm=new Map(jobRows.map(x=>[x.id,x]));
+   const jm=new Map(jobRows.map(x=>[x.id,x])); const tm=new Map((teamd??[]).map(x=>[x.id,x as Team]));
    const am=new Map(appRows.map(x=>[x.id,x]));
    const pm=new Map((profiles??[]).map(x=>[x.id,x as Profile]));
    setInterviews((idata??[]).map(x=>{
      const a=am.get(x.application_id??"");
-     return {...x,candidate:pm.get(a?.user_id??""),job:jm.get(a?.job_id??"")} as Interview
+     return {...x,candidate:pm.get(a?.user_id??""),job:jm.get(a?.job_id??""),interviewers:(x.interviewer_ids??[]).map((id:string)=>tm.get(id)).filter(Boolean) as Team[]} as Interview
    }).filter(x=>!!x.confirmed_time));
    setOffers((odata??[]).map(x=>{
      const a=am.get(x.application_id);
@@ -116,7 +116,7 @@ export default function CalendarPage(){
    const q=query.trim().toLowerCase();
    const matchesQ=!q||[e.title,e.subtitle,e.job?.title,e.job?.location].filter(Boolean).join(" ").toLowerCase().includes(q);
    const matchesKind=kind==="All"||e.kind===kind;
-   const ids=e.interview?.interviewers?.map(x=>x.id)??[];
+   const ids=e.interview?.interviewer_ids??[];
    const matchesRecruiter=recruiter==="All"||ids.includes(recruiter);
    return matchesQ&&matchesKind&&matchesRecruiter;
  }),[events,query,kind,recruiter]);
