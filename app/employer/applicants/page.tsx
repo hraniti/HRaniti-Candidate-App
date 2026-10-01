@@ -7,7 +7,8 @@ import EmployerShell from "@/components/employer/EmployerShell";
 import { createClient } from "@/lib/supabase/client";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
-type Job = { id:string; title:string; location:string|null; employment_type:string|null; status:string; career_track:string|null; description:string|null };\ntype HiringPipeline = { id:string; name:string; stages:any; is_default:boolean|null };
+type Job = { id:string; title:string; location:string|null; employment_type:string|null; status:string; career_track:string|null; description:string|null };
+type HiringPipeline = { id:string; name:string; stages:any; is_default:boolean|null };
 type App = { id:string; user_id:string; job_id:string; status:string|null; applied_at:string; pipeline_stage:string|null; match_score:number|null; next_step:string|null; employer_feedback:string|null; expected_timeline:string|null; updated_at:string|null };
 type Profile = { id:string; full_name:string|null; email:string|null; current_designation:string|null; current_company:string|null; years_experience:string|null; current_location:string|null; professional_summary:string|null; skills:any; experience:any; education:any; notice_period:string|null; availability_status:string|null; work_preference:string[]|null };
 
