@@ -296,11 +296,13 @@ export default function InterviewsPage(){
     const {error}=await supabase.from("interview_feedback").insert({interview_id:feedback.id,company_id:company,interviewer_id:interviewerId,ratings:feedbackRatings,overall_recommendation:recommendation||null,strengths:strengths||null,concerns:concerns||null,notes:feedbackNotes||null});
     if(!error){
       const [{data:invites},{data:allFeedback}] = await Promise.all([
-        supabase.from("interview_invitations").select("id,submitted_at").eq("interview_id",feedback.id),
+        supabase.from("interview_invitations").select("id,submitted_at,interviewer_id").eq("interview_id",feedback.id),
         supabase.from("interview_feedback").select("id,interviewer_id").eq("interview_id",feedback.id)
       ]);
       const assignedCount=(feedback.interviewers?.length??0) + (((feedback as any).external_interviewers??[]).length);
-      const completedCount=new Set([...(invites??[]).filter(x=>x.submitted_at).map(x=>x.id),...(allFeedback??[]).map(x=>x.interviewer_id).filter(Boolean)]).size;
+      const internalFeedbackCount=new Set((allFeedback??[]).map(x=>x.interviewer_id).filter(Boolean)).size;
+      const externalSubmittedCount=(invites??[]).filter(x=>x.submitted_at && !x.interviewer_id).length;
+      const completedCount=internalFeedbackCount+externalSubmittedCount;
       if(assignedCount===0 || completedCount>=assignedCount) await supabase.from("interview_requests").update({status:"Completed"}).eq("id",feedback.id);
       setFeedback(null);await load();
     }else setNotice(error.message);
