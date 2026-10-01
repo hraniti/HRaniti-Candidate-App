@@ -179,7 +179,7 @@ export default function InterviewsPage(){
     const appIds=(apps??[]).map(x=>x.id);
     if(!appIds.length){setRows([]);setLoading(false);return;}
     const [{data:interviews},{data:profiles}]=await Promise.all([
-      supabase.from("interview_requests").select("id,application_id,status,proposed_times,confirmed_time,requested_by,created_at,interview_type,interview_mode,duration_minutes,timezone,meeting_link,meeting_provider,calendar_provider,calendar_event_id,interviewer_ids,scorecard_id,reminder_minutes,candidate_confirmed_at,candidate_response,notes").in("application_id",appIds).order("created_at",{ascending:false}),
+      supabase.from("interview_requests").select("id,application_id,status,proposed_times,confirmed_time,requested_by,created_at,interview_type,interview_mode,duration_minutes,timezone,meeting_link,meeting_provider,calendar_provider,calendar_event_id,interviewer_ids,scorecard_id,reminder_minutes,candidate_confirmed_at,candidate_response,notes,scorecard_criteria").in("application_id",appIds).order("created_at",{ascending:false}),
       supabase.from("profiles").select("id,full_name,email,current_designation").in("id",[...new Set((apps??[]).map(x=>x.user_id))]),
     ]);
     const appMap=new Map((apps??[]).map(x=>[x.id,x as Application]));
