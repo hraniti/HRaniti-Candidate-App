@@ -56,7 +56,7 @@ export default function ApplicantDetail({params}:{params:{id:string}}){
   if(isDemo){setApp({...app,...patch});return;}setSaving(true);const {error}=await supabase.from("applications").update(patch).eq("id",app.id);if(!error)setApp({...app,...patch});setSaving(false);
  }
  async function saveNote(){await update({employer_feedback:note})}
- async function move(next:string){await update({pipeline_stage:next,next_step:next==="Technical Interview"?"Schedule interview":next==="Assessment"?"Send assessment":"Review candidate"})}
+ async function move(next:string){await update({pipeline_stage:next,next_step:next==="Assessment"?"Send assessment":next.toLowerCase().includes("interview")?"Schedule interview":"Move to "+next})}
  async function reject(){const reason=window.prompt("Reason for rejection (optional):","Not selected for this role");if(reason===null)return;await update({status:"rejected",next_step:"Closed"});if(!isDemo){await supabase.from("rejections").insert({application_id:app?.id,reason,note:null});await load()}}
  const currentStage=stage(app?.pipeline_stage); const nextStage=job?nextStageFor(job,currentStage):null;
  const nextAction=nextStage?("Move to "+nextStage):"";
