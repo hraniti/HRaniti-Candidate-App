@@ -16,6 +16,9 @@ const aliases:Record<string,string>={applied:"Applied",new:"Applied",screening:"
 const stage=(v?:string|null)=>v?(aliases[v.toLowerCase().trim()]??v):"Applied";
 const date=(v?:string|null)=>v?new Date(v).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"—";
 const initials=(v?:string|null)=>(v??"Candidate").split(" ").filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();
+const defaultStages=["Applied","Recruiter Screen","Assessment","Technical Interview","Hiring Manager Review","Offer","Hired"];
+function stagesFor(job:Job){try{const x=JSON.parse(job.description??"");const p=x?.process??{};const custom=p?.customPipeline?.stages??p?.customPipelineStages??p?.pipelineStages;if(Array.isArray(custom)&&custom.length)return custom.map((s:any)=>typeof s==="string"?s:s.name).filter(Boolean);if(p.pipeline==="Leadership")return ["Applied","Recruiter Screen","Leadership Interview","Executive Review","Offer","Hired"];if(p.pipeline==="Technical hiring")return ["Applied","Recruiter Screen","Assessment","Technical Interview","Hiring Manager Review","Offer","Hired"]}catch{}return defaultStages}
+function nextStageFor(job:Job,current:string){const stages=stagesFor(job);const i=stages.findIndex(s=>s.toLowerCase()===current.toLowerCase());return i>=0&&i<stages.length-1?stages[i+1]:null}
 
 export default function ApplicantDetail({params}:{params:{id:string}}){
  const supabase=createClient();
@@ -55,8 +58,7 @@ export default function ApplicantDetail({params}:{params:{id:string}}){
  async function saveNote(){await update({employer_feedback:note})}
  async function move(next:string){await update({pipeline_stage:next,next_step:next==="Technical Interview"?"Schedule interview":next==="Assessment"?"Send assessment":"Review candidate"})}
  async function reject(){const reason=window.prompt("Reason for rejection (optional):","Not selected for this role");if(reason===null)return;await update({status:"rejected",next_step:"Closed"});if(!isDemo){await supabase.from("rejections").insert({application_id:app?.id,reason,note:null});await load()}}
- const currentStage=stage(app?.pipeline_stage);
- const nextStage=currentStage==="Applied"?"Recruiter Screen":currentStage==="Recruiter Screen"?"Assessment":currentStage==="Assessment"?"Technical Interview":currentStage==="Technical Interview"?"Hiring Manager Review":currentStage==="Hiring Manager Review"?"Offer":currentStage==="Offer"?"Hired":null;
+ const currentStage=stage(app?.pipeline_stage); const nextStage=job?nextStageFor(job,currentStage):null;
  const nextAction=nextStage?("Move to "+nextStage):"";
  const doNext=()=>{if(nextStage)move(nextStage)};
 
