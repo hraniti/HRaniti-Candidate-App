@@ -150,6 +150,7 @@ export default function InterviewsPage(){
   const [feedbackNotes,setFeedbackNotes]=useState("");
   const [saving,setSaving]=useState(false);
   const [notice,setNotice]=useState("");
+  const [inviteLinks,setInviteLinks]=useState<string[]>([]);
 
   async function load(){
     setLoading(true);
@@ -218,18 +219,32 @@ export default function InterviewsPage(){
   }
   async function createInterview(){
     if(!applicationId||!dateValue||!timeValue){setNotice("Choose a candidate, date and time.");return;}
-    setSaving(true);setNotice("");
+    setSaving(true);setNotice("");setInviteLinks([]);
     const {data:{user}}=await supabase.auth.getUser(); if(!user){setNotice("Please sign in again.");setSaving(false);return;}
+    const company=await getOrCreateCompanyId(supabase,user);
     const proposed=new Date(dateValue+"T"+timeValue);
-    const {error}=await supabase.from("interview_requests").insert({
+    const external = externalInterviewer.email.trim() ? [{name:externalInterviewer.name,email:externalInterviewer.email,role:externalInterviewer.role,invite_type:"External"}] : [];
+    const {data:created,error}=await supabase.from("interview_requests").insert({
       application_id:applicationId,status:"Requested",proposed_times:[proposed.toISOString()],requested_by:user.id,
       interview_type:interviewType,interview_mode:mode,duration_minutes:Number(duration),timezone,
       meeting_link:meetingLink||null,meeting_provider:mode==="Online"?meetingProvider:null,
       interviewer_ids:selectedInterviewers,scorecard_id:scorecardId||null,
       scorecard_criteria:scorecardId ? (scorecards.find(x=>x.id===scorecardId)?.criteria ?? null) : null,
-      reminder_minutes:reminders,notes:notes||null
-    });
-    if(error)setNotice(error.message);else{setShowNew(false);resetForm();await load();}
+      reminder_minutes:reminders,notes:notes||null,
+      external_interviewers:external
+    }).select("id").single();
+    if(error){setNotice(error.message);setSaving(false);return;}
+    const recipients=[...selectedInterviewers.map(id=>{const m=members.find(x=>x.id===id);return m?.email?{interviewer_id:m.id,email:m.email,name:m.full_name,role:m.role,invite_type:"Internal"}:null}).filter(Boolean),...external];
+    if(created?.id&&recipients.length){
+      const {data:inviteData,error:inviteError}=await supabase.functions.invoke("interview-invitations",{body:{action:"create_invites",interview_id:created.id,company_id:company,recipients}});
+      if(inviteError) setNotice("Interview created, but invitations could not be sent. You can retry from the interview details.");
+      else if(inviteData?.invitations?.length){
+        const unsent=(inviteData.invitations as any[]).filter(x=>!x.emailSent).map(x=>x.link).filter(Boolean);
+        setInviteLinks(unsent);
+        setNotice(unsent.length ? "Interview created. Email sending is not configured yet; secure invitation links are ready below." : "Interview created and invitations sent.");
+      }
+    } else setNotice("Interview created. Add interviewers from Team & Permissions to send scorecard invitations.");
+    setShowNew(false);resetForm();await load();
     setSaving(false);
   }
   async function confirmInterview(row:Row,time:string){
@@ -237,6 +252,17 @@ export default function InterviewsPage(){
     if(!error)await load();
   }
   async function setStatus(row:Row,status:string){const {error}=await supabase.from("interview_requests").update({status}).eq("id",row.id);if(!error)await load();}
+  async function sendInvites(row:Row){
+    const {data:{user}}=await supabase.auth.getUser(); if(!user){setNotice("Please sign in again.");return;}
+    const company=await getOrCreateCompanyId(supabase,user);
+    const recipients=[...(row.interviewers??[]).map(m=>m.email?{interviewer_id:m.id,email:m.email,name:m.full_name,role:m.role,invite_type:"Internal"}:null).filter(Boolean),...(((row as any).external_interviewers??[]))];
+    if(!recipients.length){setNotice("Add at least one interviewer with an email address.");return;}
+    const {data,error}=await supabase.functions.invoke("interview-invitations",{body:{action:"create_invites",interview_id:row.id,company_id:company,recipients}});
+    if(error){setNotice(error.message);return;}
+    const links=(data?.invitations??[]).filter((x:any)=>!x.emailSent).map((x:any)=>x.link).filter(Boolean);
+    setInviteLinks(links);setNotice(links.length?"Invitation links are ready. Configure RESEND_API_KEY for automatic email delivery.":"Invitations sent.");
+  }
+
   function addToCalendar(row:Row){
     const start=row.confirmed_time?new Date(row.confirmed_time):null;if(!start)return;
     const end=new Date(start.getTime()+(row.duration_minutes??60)*60000);
@@ -321,12 +347,12 @@ export default function InterviewsPage(){
         <label className="sm:col-span-2"><span className="label">Internal notes</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} className="input min-h-[90px]" placeholder="Anything the interview team should know…"/></label>
       </div>
       {notice&&<p className="mt-4 rounded-xl bg-[#FFF8E8] px-3 py-2.5 text-xs text-[#9A6A19]">{notice}</p>}
-      <div className="mt-6 flex justify-end gap-2"><button onClick={()=>setShowNew(false)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Cancel</button><button disabled={saving} onClick={createInterview} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white disabled:opacity-50">{saving?"Saving…":"Create interview"}</button></div>
+      <div className="mt-4 space-y-2">{inviteLinks.map(link=><div key={link} className="rounded-xl bg-[#F8FBFA] px-3 py-2 text-[11px] text-[#526A7D] break-all">Secure invitation link: <a className="text-[#167D73] underline" href={link} target="_blank" rel="noreferrer">{link}</a></div>)}</div><div className="mt-6 flex justify-end gap-2"><button onClick={()=>setShowNew(false)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Cancel</button><button disabled={saving} onClick={createInterview} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white disabled:opacity-50">{saving?"Saving…":"Create interview"}</button></div>
     </div></div>}
 
     {detail&&<div className="fixed inset-0 z-50 overflow-y-auto bg-[#173454]/20 px-5 py-8"><div className="mx-auto w-full max-w-[760px] rounded-2xl border border-[#DDE5EA] bg-white shadow-[0_24px_70px_rgba(23,52,84,0.18)]"><div className="border-b border-[#EEF2F4] p-6 flex items-start justify-between"><div><p className="text-[10px] font-semibold tracking-[0.15em] text-[#167D73] uppercase">INTERVIEW DETAILS</p><h2 className="mt-1 text-xl font-semibold text-[#173454]">{detail.candidate?.full_name??"Candidate"}</h2><p className="mt-1 text-xs text-[#71859A]">{detail.job?.title??"Job"} · {detail.interview_type??"Interview"}</p></div><button onClick={()=>setDetail(null)}><X size={18} className="text-[#71859A]"/></button></div>
-      <div className="grid gap-4 p-6 sm:grid-cols-2"><div className="card"><p className="kicker">Schedule</p><p className="value">{formatDateTime(detail.confirmed_time??detail.proposed_times?.[0])}</p><p className="muted">{detail.duration_minutes??60} min · {detail.timezone??"Local"}</p></div><div className="card"><p className="kicker">Mode</p><p className="value">{detail.interview_mode??"Online"}</p><p className="muted">{detail.meeting_provider??""} {detail.meeting_link?"· link ready":""}</p></div><div className="card"><p className="kicker">Interviewers</p><p className="value">{detail.interviewers?.map(x=>x.full_name||x.email).filter(Boolean).join(", ")||"Not assigned"}</p></div><div className="card"><p className="kicker">Candidate response</p><p className="value">{detail.candidate_response??"Awaiting response"}</p>{detail.candidate_confirmed_at&&<p className="muted">Confirmed {formatDateTime(detail.candidate_confirmed_at)}</p>}</div><div className="sm:col-span-2 card"><p className="kicker">Scorecard</p><p className="value">{detail.scorecard?.name??"No scorecard assigned"}</p><p className="muted">{detail.scorecard?.criteria?.length??0} criteria</p></div><div className="sm:col-span-2 card"><p className="kicker">Reminders</p><p className="value">{(detail.reminder_minutes??[]).map(m=>m>=1440?Math.round(m/1440)+" day":m+" min").join(" · ")||"None"}</p></div></div>
-      <div className="border-t border-[#EEF2F4] p-6 flex flex-wrap gap-2"><Link href={"/employer/applicants/"+(detail.application?.id??"")} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Open candidate</Link>{detail.meeting_link&&<a href={detail.meeting_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]"><Video size={14}/> Join meeting <ExternalLink size={12}/></a>}{detail.status==="Confirmed"&&<><button onClick={()=>addToCalendar(detail)} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs text-white">Add to Google Calendar</button><button onClick={()=>downloadIcs(detail)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Download .ics</button><button onClick={()=>{setDetail(null);openFeedback(detail)}} className="inline-flex items-center gap-1.5 rounded-xl border border-[#B9DDD7] bg-[#E7F3F1] px-4 py-2.5 text-xs text-[#167D73]"><FileCheck2 size={14}/> Submit feedback</button></>}</div>
+      <div className="grid gap-4 p-6 sm:grid-cols-2"><div className="card"><p className="kicker">Schedule</p><p className="value">{formatDateTime(detail.confirmed_time??detail.proposed_times?.[0])}</p><p className="muted">{detail.duration_minutes??60} min · {detail.timezone??"Local"}</p></div><div className="card"><p className="kicker">Mode</p><p className="value">{detail.interview_mode??"Online"}</p><p className="muted">{detail.meeting_provider??""} {detail.meeting_link?"· link ready":""}</p></div><div className="card"><p className="kicker">Interviewers</p><p className="value">{detail.interviewers?.map(x=>x.full_name||x.email).filter(Boolean).join(", ")||"Not assigned"}</p></div><div className="card"><p className="kicker">Candidate response</p><p className="value">{detail.candidate_response??"Awaiting response"}</p>{detail.candidate_confirmed_at&&<p className="muted">Confirmed {formatDateTime(detail.candidate_confirmed_at)}</p>}</div><div className="sm:col-span-2 card"><p className="kicker">Scorecard</p><p className="value">{detail.scorecard?.name??"No scorecard assigned"}</p><p className="muted">{detail.scorecard?.criteria?.length??0} criteria · interviewers receive a secure scorecard workspace invitation</p></div><div className="sm:col-span-2 card"><p className="kicker">Reminders</p><p className="value">{(detail.reminder_minutes??[]).map(m=>m>=1440?Math.round(m/1440)+" day":m+" min").join(" · ")||"None"}</p></div></div>
+      <div className="border-t border-[#EEF2F4] p-6 flex flex-wrap gap-2"><button onClick={()=>sendInvites(detail)} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs text-white">Send scorecard invitations</button><Link href={"/employer/applicants/"+(detail.application?.id??"")} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Open candidate</Link>{detail.meeting_link&&<a href={detail.meeting_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]"><Video size={14}/> Join meeting <ExternalLink size={12}/></a>}{detail.status==="Confirmed"&&<><button onClick={()=>addToCalendar(detail)} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs text-white">Add to Google Calendar</button><button onClick={()=>downloadIcs(detail)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Download .ics</button><button onClick={()=>{setDetail(null);openFeedback(detail)}} className="inline-flex items-center gap-1.5 rounded-xl border border-[#B9DDD7] bg-[#E7F3F1] px-4 py-2.5 text-xs text-[#167D73]"><FileCheck2 size={14}/> Submit feedback</button></>}</div>
     </div></div>}
 
     {feedback&&<div className="fixed inset-0 z-[60] overflow-y-auto bg-[#173454]/25 px-5 py-8"><div className="mx-auto w-full max-w-[680px] rounded-2xl border border-[#DDE5EA] bg-white p-6 shadow-[0_24px_70px_rgba(23,52,84,0.18)] sm:p-8"><div className="flex items-start justify-between"><div><p className="text-[10px] font-semibold tracking-[0.15em] text-[#167D73] uppercase">INTERVIEW FEEDBACK</p><h2 className="mt-1 text-xl font-semibold text-[#173454]">{feedback.candidate?.full_name??"Candidate"}</h2><p className="mt-1 text-xs text-[#71859A]">{selectedCard?.name??"Interview scorecard"}</p></div><button onClick={()=>setFeedback(null)}><X size={18} className="text-[#71859A]"/></button></div>
