@@ -25,7 +25,7 @@ export default function ApplicantDetail({params}:{params:{id:string}}){
  const supabase=createClient();
  const [app,setApp]=useState<App|null>(null),[job,setJob]=useState<Job|null>(null),[profile,setProfile]=useState<Profile|null>(null),[pipelines,setPipelines]=useState<HiringPipeline[]>([]);
  const [assessment,setAssessment]=useState<any[]>([]),[interviews,setInterviews]=useState<any[]>([]),[offer,setOffer]=useState<any|null>(null),[rejection,setRejection]=useState<any|null>(null);
- const [tab,setTab]=useState<Tab>("Overview"),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[note,setNote]=useState(""),[showActions,setShowActions]=useState(false);
+ const [tab,setTab]=useState<Tab>("Overview"),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[note,setNote]=useState(""),[showActions,setShowActions]=useState(false),[demoState,setDemoState]=useState({stage:"Applied",status:"Active"});
  const isDemo=params.id==="demo-candidate-1";
 
  async function load(){
