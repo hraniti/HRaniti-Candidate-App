@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-fraunces: Georgia, "Times New Roman", serif;
+  --font-plex-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-plex-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --font-inter: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -11,106 +18,3 @@ body {
   color: #16213E;
 }
 
-/* ============================================================
-   THE SEAL — the app's one signature visual idea. Used ONLY for
-   real verification moments: AI confidence, "Verified" badges,
-   Trusted Referrer levels, KYC status. Never used decoratively —
-   that's what keeps it special. Styled like an actual wax seal /
-   rubber stamp, not a generic pill.
-   ============================================================ */
-.seal {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-family: var(--font-plex-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 4px 11px 4px 9px;
-  border-radius: 999px;
-  border: 1.5px solid #0E7C71;
-  color: #0E7C71;
-  background: #E4F3F1;
-  box-shadow: 0 0 0 2px #F3F4F6, 0 0 0 3px rgba(14,124,113,0.25);
-}
-
-.seal::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: #0E7C71;
-  flex-shrink: 0;
-}
-
-.seal.low {
-  border-color: #B9791F;
-  color: #8F5C13;
-  background: #FBF0DE;
-  box-shadow: 0 0 0 2px #F3F4F6, 0 0 0 3px rgba(185,121,31,0.25);
-}
-.seal.low::before {
-  background: #B9791F;
-}
-
-/* A deeper variant for high-stakes verification (KYC, trusted referrer) —
-   uses the ink navy itself so the whole app stays inside the navy/teal/
-   amber family rather than introducing a separate accent color. */
-.seal.stamp {
-  border-color: #16213E;
-  color: #16213E;
-  background: #E3E6EC;
-  box-shadow: 0 0 0 2px #F3F4F6, 0 0 0 3px rgba(22,33,62,0.25);
-}
-.seal.stamp::before {
-  background: #16213E;
-}
-
-/* ============================================================
-   PAPER CARD — the document metaphor. A thin "letterhead" bar
-   across the top of every card gives the app rhythm and hierarchy
-   that flat white cards alone can't, without needing per-page work.
-   ============================================================ */
-.paper-card {
-  background: #FFFFFF;
-  border: 1px solid #E1E4EA;
-  border-radius: 6px;
-  border-top: 3px solid #16213E;
-  box-shadow: 0 1px 2px rgba(22,33,62,0.05), 0 12px 28px -14px rgba(22,33,62,0.16);
-}
-
-/* Quieter variant for dense/secondary content, no letterhead bar */
-.paper-card-quiet {
-  background: #FFFFFF;
-  border: 1px solid #E1E4EA;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(22,33,62,0.04);
-}
-
-.dashed-divider {
-  border-top: 1px dashed #C7CCD6;
-}
-
-::selection {
-  background: #FBF0DE;
-}
-
-/* Visible keyboard focus, everywhere */
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid #16213E;
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
-}
