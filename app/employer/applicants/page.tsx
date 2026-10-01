@@ -7,7 +7,7 @@ import EmployerShell from "@/components/employer/EmployerShell";
 import { createClient } from "@/lib/supabase/client";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
-type Job = { id:string; title:string; location:string|null; employment_type:string|null; status:string; career_track:string|null; description:string|null };
+type Job = { id:string; title:string; location:string|null; employment_type:string|null; status:string; career_track:string|null; description:string|null };\ntype HiringPipeline = { id:string; name:string; stages:any; is_default:boolean|null };
 type App = { id:string; user_id:string; job_id:string; status:string|null; applied_at:string; pipeline_stage:string|null; match_score:number|null; next_step:string|null; employer_feedback:string|null; expected_timeline:string|null; updated_at:string|null };
 type Profile = { id:string; full_name:string|null; email:string|null; current_designation:string|null; current_company:string|null; years_experience:string|null; current_location:string|null; professional_summary:string|null; skills:any; experience:any; education:any; notice_period:string|null; availability_status:string|null; work_preference:string[]|null };
 
@@ -17,21 +17,25 @@ const stage=(v?:string|null)=>v ? (aliases[v.toLowerCase().trim()] ?? v) : "Appl
 const status=(v?:string|null)=>({rejected:"Rejected",withdrawn:"Withdrawn",hired:"Hired",on_hold:"On hold","on hold":"On hold"} as Record<string,string>)[(v??"").toLowerCase()] ?? "Active";
 const date=(v?:string|null)=>v?new Date(v).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"—";
 const initials=(v?:string|null)=>(v??"Candidate").split(" ").filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();
-function stagesFor(job:Job){try{const x=JSON.parse(job.description??"");const p=x?.process??{};const custom=p?.customPipeline?.stages??p?.customPipelineStages??p?.pipelineStages;if(Array.isArray(custom)&&custom.length)return custom.map((s:any)=>typeof s==="string"?s:s.name).filter(Boolean);if(p.pipeline==="Leadership")return ["Applied","Recruiter Screen","Leadership Interview","Executive Review","Offer","Hired"];if(p.pipeline==="Technical hiring")return ["Applied","Recruiter Screen","Assessment","Technical Interview","Hiring Manager Review","Offer","Hired"]}catch{}return defaultStages}
+function stagesFor(job:Job){try{const x=JSON.parse(job.description??"");const p=x?.process??{};const custom=p?.customPipeline?.stages??p?.customPipelineStages??p?.pipelineStages;if(Array.isArray(custom)&&custom.length)return custom.map((s:any)=>typeof s==="string"?s:s.name).filter(Boolean);const saved=pipelines.find(x=>x.name===p.pipeline);if(saved?.stages){const s=Array.isArray(saved.stages)?saved.stages:[];if(s.length)return s.map((v:any)=>typeof v==="string"?v:v?.name).filter(Boolean)}if(p.pipeline==="Leadership")return ["Applied","Recruiter Screen","Leadership Interview","Executive Review","Offer","Hired"];if(p.pipeline==="Technical hiring")return ["Applied","Recruiter Screen","Assessment","Technical Interview","Hiring Manager Review","Offer","Hired"]}catch{}return defaultStages}
 function nextStageFor(job:Job,current:string){const stages=stagesFor(job);const i=stages.findIndex(s=>s.toLowerCase()===current.toLowerCase());return i>=0&&i<stages.length-1?stages[i+1]:null}
 function actionLabel(current:string,next:string|null){if(current==="Applied")return "Review profile";if(next)return "Move to "+next;return "Complete hiring"}
 
 export default function ApplicantsPage(){
   const supabase=createClient();
   const [requested,setRequested]=useState<string|null>(null),[demo,setDemo]=useState(false),[demoStage,setDemoStage]=useState("Applied"),[demoStatus,setDemoStatus]=useState("Active");
-  const [jobs,setJobs]=useState<Job[]>([]),[apps,setApps]=useState<App[]>([]),[profiles,setProfiles]=useState<Record<string,Profile>>({});
+  const [jobs,setJobs]=useState<Job[]>([]),[apps,setApps]=useState<App[]>([]),[profiles,setProfiles]=useState<Record<string,Profile>>({}),[pipelines,setPipelines]=useState<HiringPipeline[]>([]);
   const [loading,setLoading]=useState(true),[selected,setSelected]=useState<string|null>(requested),[mode,setMode]=useState<"jobs"|"all"|"list"|"stages">(requested?"list":"jobs");
   const [query,setQuery]=useState(""),[stageFilter,setStageFilter]=useState("All"),[statusFilter,setStatusFilter]=useState("All"),[menu,setMenu]=useState<string|null>(null);
 
   async function load(){
     setLoading(true); const {data:{user}}=await supabase.auth.getUser(); if(!user){setLoading(false);return}
     const company=await getOrCreateCompanyId(supabase,user);
-    const {data:jd}=await supabase.from("jobs").select("id,title,location,employment_type,status,career_track,description").eq("company_id",company).order("created_at",{ascending:false});
+    const [{data:jd},{data:pipelineRows}]=await Promise.all([
+      supabase.from("jobs").select("id,title,location,employment_type,status,career_track,description").eq("company_id",company).order("created_at",{ascending:false}),
+      supabase.from("hiring_pipelines").select("id,name,stages,is_default").eq("company_id",company).order("created_at")
+    ]);
+    setPipelines((pipelineRows??[]) as HiringPipeline[]);
     const jr=(jd??[]) as Job[]; setJobs(jr); const ids=jr.map(j=>j.id); if(!ids.length){setApps([]);setLoading(false);return}
     const {data:ad}=await supabase.from("applications").select("id,user_id,job_id,status,applied_at,pipeline_stage,match_score,next_step,employer_feedback,expected_timeline,updated_at").in("job_id",ids).order("applied_at",{ascending:false});
     const ar=(ad??[]) as App[]; setApps(ar); const u=[...new Set(ar.map(a=>a.user_id).filter(Boolean))];
