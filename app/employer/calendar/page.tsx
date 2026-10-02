@@ -146,7 +146,7 @@ export default function CalendarPage() {
   const events = useMemo<CalendarEvent[]>(() => interviews.map((interview) => ({
     id: interview.id,
     date: new Date(interview.confirmed_time as string),
-    kind: "Interview",
+    kind: "Interview" as const,
     title: interview.candidate?.full_name ?? "Candidate",
     subtitle: interview.job?.title ?? interview.interview_type ?? "Interview",
     interview,
