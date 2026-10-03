@@ -20,7 +20,7 @@ type Check = {
 type Item = { id:string; background_check_id:string; check_type:string; status:string; provider:string|null; result_summary:string|null; reviewer_note:string|null; completed_at:string|null; };
 
 const CHECK_TYPES = ["Identity","Address","Employment","Education","Criminal","Reference","Right to work","Professional licence"];
-const STATUS = ["All","Not started","Requested","In progress","Needs attention","Clear","Consider","Failed","Cancelled"];
+const STATUS = ["All","Not started","Requested","In progress","Needs attention","Unable to proceed","Clear","Completed","Cancelled"];
 
 function tone(s:string) {
   if (s==="Clear") return "bg-[#E7F3F1] text-[#167D73]";
