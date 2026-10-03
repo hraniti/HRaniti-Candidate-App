@@ -12,7 +12,7 @@ export async function GET(){
  const db=admin();
  const {data:member}=await db.from("bgv_provider_members").select("provider_org_id,full_name,email,role").eq("user_id",user.id).eq("status","Active").maybeSingle();
  if(!member)return NextResponse.json({error:"Provider access is not configured."},{status:403});
- const {data:cases,error}=await db.from("bgv_provider_cases").select("id,background_check_id,company_id,status,background_checks(id,candidate_name,candidate_email,job_title,status,provider_name,provider_case_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,overall_note)").eq("provider_org_id",member.provider_org_id).eq("status","Active").order("assigned_at",{ascending:false});
+ const {data:cases,error}=await db.from("bgv_provider_cases").select("id,background_check_id,company_id,status,background_checks(id,candidate_name,candidate_email,job_title,status,verification_method,consent_status,consent_at,unable_to_proceed_reason,provider_name,provider_case_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,overall_note)").eq("provider_org_id",member.provider_org_id).eq("status","Active").order("assigned_at",{ascending:false});
  if(error)return NextResponse.json({error:error.message},{status:500});
  const checkIds=(cases||[]).map((x:any)=>x.background_check_id);
  const {data:items}=checkIds.length?await db.from("background_check_items").select("id,background_check_id,check_type,status,provider,result_summary,reviewer_note,completed_at").in("background_check_id",checkIds):{data:[]};
