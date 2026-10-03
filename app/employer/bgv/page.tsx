@@ -13,7 +13,7 @@ type Profile = { id:string; full_name:string|null; email:string|null; current_lo
 type Offer = { id:string; application_id:string|null; candidate_name:string|null; candidate_email:string|null; job_title:string|null; status:string|null; };
 type Check = {
   id:string; application_id:string|null; offer_id:string|null; candidate_name:string; candidate_email:string|null;
-  job_title:string|null; status:string; package_name?:string; verification_method?:string; provider_name:string|null; provider_case_id:string|null; provider_status:string|null; report_url:string|null; report_received_at:string|null; last_provider_update_at:string|null;
+  job_title:string|null; status:string; package_name?:string; verification_method?:string; provider_name:string|null; provider_case_id:string|null; provider_org_id:string|null; provider_status:string|null; report_url:string|null; report_received_at:string|null; last_provider_update_at:string|null;
   requested_at:string|null; due_at:string|null; completed_at:string|null; overall_note:string|null;
   consent_status:string; consent_at:string|null; jurisdiction:string|null; legal_basis:string|null; retention_until:string|null;
 };
@@ -61,7 +61,7 @@ export default function BGVPage() {
   const [note,setNote]=useState("");
   const [saving,setSaving]=useState(false);
   const [requestedApplication,setRequestedApplication]=useState<string | null>(null);
-  const [access,setAccess]=useState<"none"|"view"|"initiate">("none");
+  const [access,setAccess]=useState<"none"|"view"|"initiate">("none");\n  const [providerEmail,setProviderEmail]=useState("");\n  const [providerContactName,setProviderContactName]=useState("");\n  const [providerInviteUrl,setProviderInviteUrl]=useState("");\n  const [invitingProvider,setInvitingProvider]=useState(false);
 
   async function load() {
     setLoading(true);
@@ -79,7 +79,7 @@ export default function BGVPage() {
     setAccess(resolved);
     if(resolved==="none"){setLoading(false);return}
     const [{data:cd},{data:jd},{data:od}] = await Promise.all([
-      supabase.from("background_checks").select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,provider_name,provider_case_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").eq("company_id",company).order("created_at",{ascending:false}),
+      supabase.from("background_checks").select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,provider_name,provider_case_id,provider_org_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").eq("company_id",company).order("created_at",{ascending:false}),
       supabase.from("jobs").select("id,title,location").eq("company_id",company).order("created_at",{ascending:false}),
       supabase.from("offers").select("id,application_id,candidate_name,candidate_email,job_title,status").eq("company_id",company).in("status",["Accepted","Sent","Approved"]).order("created_at",{ascending:false})
     ]);
@@ -139,6 +139,18 @@ export default function BGVPage() {
     return (p?.full_name??"Candidate")+" · "+(j?.title??"Role");
   }
 
+  async function inviteProvider() {
+    if(!selected){return}
+    setInvitingProvider(true);setMessage("");setProviderInviteUrl("");
+    const {data:{session}}=await supabase.auth.getSession();
+    if(!session){setMessage("Your session has expired.");setInvitingProvider(false);return}
+    const r=await fetch("/api/bgv/provider/invite",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({backgroundCheckId:selected.id,providerName:selected.provider_name||"BGV Provider",email:providerEmail,fullName:providerContactName})});
+    const b=await r.json().catch(()=>({}));
+    if(!r.ok){setMessage(b.error||"Could not create provider access.");setInvitingProvider(false);return}
+    setProviderInviteUrl(b.inviteUrl||"");setMessage("Secure provider access link created. Share it with the provider contact.");
+    await load();setInvitingProvider(false);
+  }
+
   async function createCheck() {
     setSaving(true); setMessage("");
     let name="",email:string|null=null,role="";
@@ -155,7 +167,7 @@ export default function BGVPage() {
       company_id:companyId,application_id:applicationId,offer_id:offerId,candidate_name:name,candidate_email:email,job_title:role,
       status:"In progress",provider_name:providerName.trim()||null,provider_case_id:providerCaseId.trim()||null,requested_at:now,due_at:dueDate?new Date(dueDate+"T23:59:59").toISOString():null,
       consent_status:"Not applicable",jurisdiction:null,legal_basis:null,retention_until:null,overall_note:note||null
-    }).select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").single();
+    }).select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,provider_name,provider_case_id,provider_org_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").single();
     if(error||!data){setMessage(error?.message??"Could not create the BGV case.");setSaving(false);return}
     await supabase.from("background_check_events").insert({background_check_id:data.id,company_id:companyId,event_type:"bgv_case_created",metadata:{source:"employer",note:note||null}});
     if(applicationId) await supabase.from("applications").update({next_step:"Background verification",updated_at:now}).eq("id",applicationId);
@@ -164,7 +176,7 @@ export default function BGVPage() {
 
   async function updateCheck(patch:Partial<Check>) {
     if(!selected)return;
-    const {data,error}=await supabase.from("background_checks").update({...patch,updated_at:new Date().toISOString()}).eq("id",selected.id).select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,package_name,verification_method,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction").single();
+    const {data,error}=await supabase.from("background_checks").update({...patch,updated_at:new Date().toISOString()}).eq("id",selected.id).select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,provider_name,provider_case_id,provider_org_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction").single();
     if(error||!data){setMessage(error?.message??"Could not save.");return}
     setSelected(data as Check); setChecks(x=>x.map(c=>c.id===selected.id?data as Check:c));
     await supabase.from("background_check_events").insert({background_check_id:selected.id,company_id:companyId,event_type:"check_updated",metadata:patch});
@@ -228,7 +240,16 @@ export default function BGVPage() {
           <aside className="border-b border-[#E6ECEF] p-5 lg:border-b-0 lg:border-r sm:p-7">
             <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E7F3F1] text-[#167D73]"><UserRound size={18}/></span><div><p className="text-sm font-semibold text-[#173454]">{selected.candidate_name}</p><p className="text-[11px] text-[#71859A]">{selected.candidate_email||"Email not provided"}</p></div></div>
             <div className="mt-5 space-y-3"><div><p className="text-[10px] uppercase tracking-[0.12em] text-[#9AA8B3]">Role</p><p className="mt-1 text-xs text-[#526A7D]">{selected.job_title||"—"}</p></div><div><p className="text-[10px] uppercase tracking-[0.12em] text-[#9AA8B3]">Provider</p><p className="mt-1 text-xs text-[#526A7D]">{selected.provider_name||"External BGV provider"}</p></div><div><p className="text-[10px] uppercase tracking-[0.12em] text-[#9AA8B3]">Due</p><p className="mt-1 text-xs text-[#526A7D]">{date(selected.due_at)}</p></div></div>
-            <div className="mt-6 rounded-2xl bg-[#F7F9F9] p-4"><p className="text-[10px] uppercase tracking-[0.12em] text-[#9AA8B3]">Provider status</p><p className="mt-1 text-xs text-[#526A7D]">{selected.provider_status||selected.status}</p><p className="mt-3 text-[10px] leading-4 text-[#71859A]">The employer and BGV provider own the verification process. HRANITI is the visibility layer.</p></div><div className="mt-4 flex flex-col gap-2">{selected.application_id&&<Link href={"/employer/applicants/"+selected.application_id} className="rounded-xl border border-[#DDE5EA] px-3 py-2.5 text-center text-xs text-[#526A7D]">Open applicant</Link>}{selected.report_url&&<a href={selected.report_url} target="_blank" rel="noreferrer" className="rounded-xl bg-[#167D73] px-3 py-2.5 text-center text-xs font-medium text-white">Open provider report</a>}</div>
+            <div className="mt-6 rounded-2xl bg-[#F7F9F9] p-4"><p className="text-[10px] uppercase tracking-[0.12em] text-[#9AA8B3]">Provider status</p><p className="mt-1 text-xs text-[#526A7D]">{selected.provider_status||selected.status}</p><p className="mt-3 text-[10px] leading-4 text-[#71859A]">The employer and BGV provider own the verification process. HRANITI is the visibility layer.</p></div><div className="mt-4 rounded-2xl border border-[#DDE5EA] bg-white p-4">
+              <p className="text-xs font-semibold text-[#173454]">Provider access</p>
+              <p className="mt-1 text-[10px] leading-4 text-[#71859A]">Create a restricted provider account for this case. No HRANITI employer access is granted.</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <input value={providerContactName} onChange={e=>setProviderContactName(e.target.value)} className="h-9 rounded-lg border border-[#DDE5EA] px-3 text-[11px]" placeholder="Provider contact name"/>
+                <input value={providerEmail} onChange={e=>setProviderEmail(e.target.value)} className="h-9 rounded-lg border border-[#DDE5EA] px-3 text-[11px]" placeholder="Provider work email" type="email"/>
+              </div>
+              <button onClick={inviteProvider} disabled={invitingProvider||!providerEmail.trim()} className="mt-2 rounded-lg border border-[#B9DDD7] bg-[#F3FAF8] px-3 py-2 text-[10px] font-medium text-[#167D73] disabled:opacity-50">{invitingProvider?"Creating secure link…":"Create provider access link"}</button>
+              {providerInviteUrl&&<div className="mt-3 rounded-lg bg-[#F7F9F9] p-3"><p className="text-[10px] text-[#71859A]">Share this one-time link with the provider. It expires in 7 days.</p><div className="mt-2 flex gap-2"><input readOnly value={providerInviteUrl} className="min-w-0 flex-1 rounded-lg border border-[#DDE5EA] bg-white px-2 py-2 text-[10px] text-[#526A7D]"/><button onClick={()=>navigator.clipboard?.writeText(providerInviteUrl)} className="rounded-lg bg-[#173454] px-3 py-2 text-[10px] font-medium text-white">Copy</button></div></div>}
+            </div><div className="mt-4 flex flex-col gap-2">{selected.application_id&&<Link href={"/employer/applicants/"+selected.application_id} className="rounded-xl border border-[#DDE5EA] px-3 py-2.5 text-center text-xs text-[#526A7D]">Open applicant</Link>}{selected.report_url&&<a href={selected.report_url} target="_blank" rel="noreferrer" className="rounded-xl bg-[#167D73] px-3 py-2.5 text-center text-xs font-medium text-white">Open provider report</a>}</div>
           </aside>
           <section className="p-5 sm:p-7">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold text-[#173454]">Provider results</p><p className="mt-1 text-[11px] text-[#71859A]">HRANITI displays the provider-reported status and report information. It does not perform the verification.</p></div><span className={"rounded-full px-2.5 py-1 text-[10px] font-medium "+tone(selected.status)}>{selected.status}</span></div>
