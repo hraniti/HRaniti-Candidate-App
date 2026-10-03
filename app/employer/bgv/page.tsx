@@ -55,14 +55,7 @@ export default function BGVPage() {
   const [selectedItems,setSelectedItems]=useState<Item[]>([]);
   const [candidateId,setCandidateId]=useState("");
   const [jobId,setJobId]=useState("");
-  const [packageName,setPackageName]=useState("Standard");
-  const [method,setMethod]=useState("Manual");
   const [dueDate,setDueDate]=useState("");
-  const [jurisdiction,setJurisdiction]=useState("India");
-  const [legalBasis,setLegalBasis]=useState("Contract / pre-contract");
-  const [consent,setConsent]=useState("Not requested");
-  const [retentionUntil,setRetentionUntil]=useState("");
-  const [types,setTypes]=useState<string[]>(["Identity","Address","Employment","Education","Criminal"]);
   const [note,setNote]=useState("");
   const [saving,setSaving]=useState(false);
   const [requestedApplication,setRequestedApplication]=useState<string | null>(null);
@@ -74,7 +67,7 @@ export default function BGVPage() {
     const company=await getOrCreateCompanyId(supabase,user);
     setCompanyId(company);
     const [{data:cd},{data:jd},{data:od}] = await Promise.all([
-      supabase.from("background_checks").select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,package_name,verification_method,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").eq("company_id",company).order("created_at",{ascending:false}),
+      supabase.from("background_checks").select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").eq("company_id",company).order("created_at",{ascending:false}),
       supabase.from("jobs").select("id,title,location").eq("company_id",company).order("created_at",{ascending:false}),
       supabase.from("offers").select("id,application_id,candidate_name,candidate_email,job_title,status").eq("company_id",company).in("status",["Accepted","Sent","Approved"]).order("created_at",{ascending:false})
     ]);
@@ -113,14 +106,12 @@ export default function BGVPage() {
       const app=applications.find(a=>a.id===source.application_id);
       setCandidateId(app?.id ?? "");
       setJobId(app?.job_id ?? jobs.find(j=>j.title===source.job_title)?.id ?? "");
-      setPackageName(source.package_name); setMethod(source.verification_method); setDueDate(source.due_at?.slice(0,10)??"");
-      setJurisdiction(source.jurisdiction??"India"); setLegalBasis(source.legal_basis??"Contract / pre-contract"); setConsent(source.consent_status); setRetentionUntil(source.retention_until??""); setNote(source.overall_note??"");
+      setDueDate(source.due_at?.slice(0,10)??""); setNote(source.overall_note??"");
       setTimeout(()=>loadItems(source.id),0);
     } else {
       setCandidateId(demo ? "demo-candidate-1" : "");
       setJobId(demo ? (jobs[0]?.id??"") : "");
-      setPackageName("Standard"); setMethod("Manual"); setDueDate(""); setJurisdiction("India"); setLegalBasis("Contract / pre-contract"); setConsent("Not requested"); setRetentionUntil(""); setNote("");
-      setTypes(["Identity","Address","Employment","Education","Criminal"]);
+      setDueDate(""); setNote("");
       setSelectedItems([]);
     }
     setOpen(true);
@@ -147,20 +138,16 @@ export default function BGVPage() {
       name=p.full_name??"Candidate"; email=p.email; role=j?.title??"Role"; applicationId=a.id;
       const offer=offers.find(o=>o.application_id===a.id); offerId=offer?.id??null;
     }
-    if(!types.length){setMessage("Select at least one verification.");setSaving(false);return}
     const now=new Date().toISOString();
     const {data,error}=await supabase.from("background_checks").insert({
       company_id:companyId,application_id:applicationId,offer_id:offerId,candidate_name:name,candidate_email:email,job_title:role,
-      status:"Requested",package_name:packageName,verification_method:method,requested_at:now,due_at:dueDate?new Date(dueDate+"T23:59:59").toISOString():null,
-      consent_status:consent,jurisdiction:jurisdiction||null,legal_basis:legalBasis||null,retention_until:retentionUntil||null,overall_note:note||null
-    }).select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,package_name,verification_method,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").single();
-    if(error||!data){setMessage(error?.message??"Could not create the verification request.");setSaving(false);return}
-    const rows=types.map(t=>({background_check_id:data.id,company_id:companyId,check_type:t,status:consent==="Granted"?"Requested":"Pending",requested_at:consent==="Granted"?now:null}));
-    const ir=await supabase.from("background_check_items").insert(rows);
-    if(ir.error){await supabase.from("background_checks").update({status:"Cancelled",overall_note:"Could not create all verification items: "+ir.error.message}).eq("id",data.id);setMessage(ir.error.message);setSaving(false);return}
-    await supabase.from("background_check_events").insert({background_check_id:data.id,company_id:companyId,event_type:"verification_requested",metadata:{package:packageName,check_types:types,consent_status:consent}});
-    if(applicationId) await supabase.from("applications").update({next_step:"Complete pre-employment checks",updated_at:now}).eq("id",applicationId);
-    setChecks(x=>[data as Check,...x]); await load(); setSelected(data as Check); await loadItems(data.id); setOpen(true); setMessage("Background verification request created."); setSaving(false);
+      status:"In progress",requested_at:now,due_at:dueDate?new Date(dueDate+"T23:59:59").toISOString():null,
+      consent_status:"Not applicable",jurisdiction:null,legal_basis:null,retention_until:null,overall_note:note||null
+    }).select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").single();
+    if(error||!data){setMessage(error?.message??"Could not create the BGV case.");setSaving(false);return}
+    await supabase.from("background_check_events").insert({background_check_id:data.id,company_id:companyId,event_type:"bgv_case_created",metadata:{source:"employer",note:note||null}});
+    if(applicationId) await supabase.from("applications").update({next_step:"Background verification",updated_at:now}).eq("id",applicationId);
+    await load(); setSelected(data as Check); await loadItems(data.id); setOpen(true); setMessage("BGV case created. Add the provider's current status and report details as they become available."); setSaving(false);
   }
 
   async function updateCheck(patch:Partial<Check>) {
