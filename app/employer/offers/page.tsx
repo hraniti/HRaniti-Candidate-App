@@ -130,6 +130,7 @@ export default function OffersPage() {
   const [internalNotes, setInternalNotes] = useState("");
   const [approvalRequired, setApprovalRequired] = useState(true);
   const [responseNote, setResponseNote] = useState("");
+  const [sending, setSending] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -310,13 +311,24 @@ export default function OffersPage() {
     await load(); setOpen(false);
   }
 
-  async function recordSent(offer: Offer) {
+  async function sendOffer(offer: Offer, test = false) {
     if (offer.status !== "Approved") { setMessage("Approve the offer before sending."); return; }
-    const auth = await supabase.auth.getUser(); if (!auth.data.user) return;
-    const result = await supabase.from("offers").update({ status: "Sent", sent_at: new Date().toISOString(), updated_by: auth.data.user.id }).eq("id", offer.id).select("*").single();
-    if (result.error) { setMessage(result.error.message); return; }
-    await supabase.from("offer_events").insert({ offer_id: offer.id, company_id: companyId, event_type: "delivery_recorded", actor_id: auth.data.user.id, metadata: { note: "Recorded by recruiter; no email was sent by HRaniti." } });
-    await load();
+    const auth = await supabase.auth.getUser();
+    if (!auth.data.user) return;
+    if (test && !auth.data.user.email) { setMessage("Your account has no email address for the test."); return; }
+    setSending(true); setMessage("");
+    try {
+      const session = await supabase.auth.getSession();
+      const response = await fetch("/api/offers/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.data.session?.access_token ?? ""}` },
+        body: JSON.stringify({ offerId: offer.id, test }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) { setMessage(body.error || "We could not send the offer."); return; }
+      setMessage(test ? `Test email sent to ${body.recipient}. Open it and use the candidate link to test the full response flow.` : `Offer sent to ${body.recipient}.`);
+      await load();
+    } finally { setSending(false); }
   }
 
   async function respond(offer: Offer, response: "Accepted" | "Changes requested" | "Declined") {
@@ -355,7 +367,7 @@ export default function OffersPage() {
           </div>
         </div>
         <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-5">{counts.map(([label,count]) => <button key={label} onClick={() => setFilter(label)} className={"rounded-2xl border bg-white p-4 text-left " + (filter === label ? "border-[#A9D4CE]" : "border-[#DDE5EA]")}><p className="text-[10px] uppercase tracking-[0.12em] text-[#9AA8B3]">{label}</p><p className="mt-1 text-2xl font-semibold text-[#173454]">{count}</p></button>)}</div>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search size={15} className="absolute left-3 top-3 text-[#9AA8B3]"/><input value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 w-full rounded-xl border border-[#DDE5EA] bg-white pl-9 pr-3 text-xs outline-none focus:border-[#A9D4CE]" placeholder="Search candidate, role or offer number"/></div><select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-10 rounded-xl border border-[#DDE5EA] bg-white px-3 text-xs text-[#526A7D] outline-none"><option>All</option><option>Draft</option><option>Pending approval</option><option>Approved</option><option>Sent</option><option>Accepted</option><option>Declined</option><option>Withdrawn</option></select></div>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search size={15} className="absolute left-3 top-3 text-[#9AA8B3]"/><input value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 w-full rounded-xl border border-[#DDE5EA] bg-white pl-9 pr-3 text-xs outline-none focus:border-[#A9D4CE]" placeholder="Search candidate, role or offer number"/></div><select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-10 rounded-xl border border-[#DDE5EA] bg-white px-3 text-xs text-[#526A7D] outline-none"><option>All</option><option>Draft</option><option>Pending approval</option><option>Approved</option><option>Sent</option><option>Accepted</option><option>Changes requested</option><option>Declined</option><option>Withdrawn</option></select></div>
         {message && <div className="mt-4 rounded-xl border border-[#B9DDD7] bg-[#F3FAF8] px-4 py-3 text-xs text-[#167D73]">{message}</div>}
         <div className="mt-5 overflow-hidden rounded-2xl border border-[#DDE5EA] bg-white">
           {loading ? <div className="p-8 text-center text-sm text-[#71859A]">Loading offers…</div> :
@@ -409,10 +421,10 @@ export default function OffersPage() {
                 <button onClick={() => saveOffer("Draft")} disabled={saving} className="rounded-xl border border-[#DDE5EA] px-3 py-2.5 text-xs font-medium text-[#526A7D]">{saving ? "Saving…" : "Save draft"}</button>
                 {(!selectedOffer || selectedOffer.status === "Draft") && <button onClick={() => saveOffer(approvalRequired ? "Pending approval" : "Approved")} disabled={saving} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white">{approvalRequired ? "Submit for approval" : "Approve offer"}</button>}
                 {selectedOffer?.status === "Pending approval" && <button onClick={() => approve(selectedOffer)} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white"><Check size={14} className="mr-1 inline"/> Approve</button>}
-                {selectedOffer?.status === "Approved" && <button onClick={() => recordSent(selectedOffer)} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white"><Send size={14} className="mr-1 inline"/> Sent</button>}
+                {selectedOffer?.status === "Approved" && <div className="flex flex-wrap gap-2"><button disabled={sending} onClick={() => sendOffer(selectedOffer, true)} className="rounded-xl border border-[#B9DDD7] bg-white px-4 py-2.5 text-xs font-medium text-[#167D73]">{sending ? "Sending…" : "Send test to me"}</button><button disabled={sending} onClick={() => sendOffer(selectedOffer)} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white"><Send size={14} className="mr-1 inline"/>{sending ? "Sending…" : "Send offer"}</button></div>}
                 {selectedOffer?.status === "Accepted" && selectedOffer.application_id && <Link href={"/employer/applicants/" + selectedOffer.application_id} className="rounded-xl border border-[#B9DDD7] bg-[#E7F3F1] px-4 py-2.5 text-xs font-medium text-[#167D73]"><UserRound size={14} className="mr-1 inline"/> Continue checks</Link>}
               </div></div>
-              {selectedOffer?.status === "Approved" && <p className="mt-3 text-right text-[10px] text-[#9AA8B3]">“Sent” marks the offer as sent. Candidate delivery will be connected to the configured email service.</p>}
+              {selectedOffer?.status === "Approved" && <p className="mt-3 text-right text-[10px] text-[#9AA8B3]">Send offer emails the candidate through the configured provider. For the sample candidate, use “Send test to me” to receive the message in your own inbox.</p>}
             </section>
           </div>
         </div>
