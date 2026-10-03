@@ -59,6 +59,7 @@ export default function BGVPage() {
   const [note,setNote]=useState("");
   const [saving,setSaving]=useState(false);
   const [requestedApplication,setRequestedApplication]=useState<string | null>(null);
+  const [access,setAccess]=useState<"none"|"view"|"initiate">("none");
 
   async function load() {
     setLoading(true);
@@ -66,6 +67,15 @@ export default function BGVPage() {
     if(!user){setLoading(false);return}
     const company=await getOrCreateCompanyId(supabase,user);
     setCompanyId(company);
+    const [{data:tm},{data:ep}]=await Promise.all([
+      supabase.from("company_team_members").select("role,permissions").eq("company_id",company).eq("user_id",user.id).maybeSingle(),
+      supabase.from("employer_profiles").select("role").eq("id",user.id).maybeSingle()
+    ]);
+    const level=((tm?.permissions as any)?.bgv as string)|null;
+    const role=tm?.role||ep?.role||"";
+    const resolved: "none"|"view"|"initiate" = (role==="Owner"||role==="Admin") ? "initiate" : (level==="initiate"||level==="view" ? level : "none");
+    setAccess(resolved);
+    if(resolved==="none"){setLoading(false);return}
     const [{data:cd},{data:jd},{data:od}] = await Promise.all([
       supabase.from("background_checks").select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,provider_name,provider_case_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").eq("company_id",company).order("created_at",{ascending:false}),
       supabase.from("jobs").select("id,title,location").eq("company_id",company).order("created_at",{ascending:false}),
@@ -193,14 +203,14 @@ export default function BGVPage() {
 
       <div className="mt-5 overflow-hidden rounded-2xl border border-[#DDE5EA] bg-white">
         <div className="hidden grid-cols-[minmax(230px,1.4fr)_1fr_.8fr_.8fr_.8fr_30px] gap-3 border-b border-[#EEF2F4] px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A99A5] md:grid"><span>Candidate</span><span>Role</span><span>Status</span><span>Provider status</span><span>Due</span><span/></div>
-        {loading?<div className="px-5 py-16 text-center text-sm text-[#71859A]">Loading verification cases…</div>:rows.length===0?<div className="p-12 text-center"><ShieldCheck className="mx-auto text-[#9AA8B3]" size={26}/><p className="mt-3 text-sm font-medium text-[#173454]">No background checks yet</p><p className="mt-1 text-xs text-[#71859A]">Start from an accepted offer or create a sample verification to explore the workflow.</p><button onClick={()=>openNew(null,true)} className="mt-4 rounded-xl border border-[#B9DDD7] px-4 py-2 text-xs font-medium text-[#167D73]">Preview sample</button></div>:
+        {loading?<div className="px-5 py-16 text-center text-sm text-[#71859A]">Loading verification cases…</div>:rows.length===0?<div className="p-12 text-center"><ShieldCheck className="mx-auto text-[#9AA8B3]" size={26}/><p className="mt-3 text-sm font-medium text-[#173454]">No background checks yet</p><p className="mt-1 text-xs text-[#71859A]">Start from an accepted offer or create a sample verification to explore the workflow.</p>{access==="initiate"&&<button onClick={()=>openNew(null,true)} className="mt-4 rounded-xl border border-[#B9DDD7] px-4 py-2 text-xs font-medium text-[#167D73]">Preview sample</button>}</div>:
         rows.map(c=><button key={c.id} onClick={()=>openNew(c)} className="grid w-full gap-3 border-b border-[#EEF2F4] px-5 py-4 text-left hover:bg-[#FCFDFD] md:grid-cols-[minmax(230px,1.4fr)_1fr_.8fr_.8fr_.8fr_30px] md:items-center"><span><span className="block text-sm font-medium text-[#173454]">{c.candidate_name}</span><span className="mt-1 block truncate text-[11px] text-[#71859A]">{c.candidate_email||"Email not provided"}</span></span><span className="text-xs text-[#526A7D]">{c.job_title||"Role"}</span><span><span className={"rounded-full px-2.5 py-1 text-[10px] font-medium "+tone(c.status)}>{c.status}</span></span><span className="text-xs text-[#526A7D]">{c.provider_status||c.status}</span><span className="text-xs text-[#71859A]">{date(c.due_at)}</span><ArrowRight size={15} className="text-[#9AA8B3]"/></button>)}
       </div>
 
       <div className="mt-5 rounded-2xl border border-[#DDE5EA] bg-white p-5"><div className="flex gap-3"><ClipboardCheck size={18} className="mt-0.5 text-[#167D73]"/><div><p className="text-xs font-semibold text-[#173454]">Connected hiring flow</p><p className="mt-1 text-[11px] leading-5 text-[#71859A]">Accepted offer → BGV provider → provider report/status → recruiter review → Hires. HRANITI does not perform the verification.</p></div></div></div>
     </div>
 
-    {open&&<div className="fixed inset-0 z-50 overflow-y-auto bg-[#173454]/20 p-4 sm:p-7">
+    {open&&access==="initiate"&&<div className="fixed inset-0 z-50 overflow-y-auto bg-[#173454]/20 p-4 sm:p-7">
       <div className="mx-auto max-w-[1180px] rounded-2xl bg-white shadow-[0_24px_80px_rgba(23,52,84,0.2)]">
         <div className="flex items-center justify-between border-b border-[#E6ECEF] px-5 py-4 sm:px-7"><div><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#167D73]">{selected?"VERIFICATION CASE":"NEW VERIFICATION"}</p><h2 className="mt-1 text-lg font-semibold text-[#173454]">{selected?.candidate_name??(candidateId==="demo-candidate-1"?demoCandidate.name:"Create background verification")}</h2></div><button onClick={()=>setOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg text-[#71859A] hover:bg-[#F5F7F7]"><X size={18}/></button></div>
 
@@ -213,7 +223,7 @@ export default function BGVPage() {
             <div className="mt-5 grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-[#526A7D]">Expected by</label><input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] px-3 text-xs"/></div><div><label className="block text-xs font-medium text-[#526A7D]">Provider</label><input disabled value="External BGV provider" className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] bg-[#F7F9F9] px-3 text-xs text-[#71859A]"/></div></div>
             <label className="mt-4 block text-xs font-medium text-[#526A7D]">Internal note</label><textarea value={note} onChange={e=>setNote(e.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-[#DDE5EA] p-3 text-xs outline-none" placeholder="Private verification context…"/>
           </aside>
-          <section className="p-5 sm:p-7"><div className="rounded-2xl border border-[#DDE5EA] bg-[#F7F9F9] p-5"><div className="flex items-start gap-3"><ShieldCheck size={18} className="mt-0.5 text-[#167D73]"/><div><p className="text-sm font-semibold text-[#173454]">Provider-owned verification</p><p className="mt-1 text-xs leading-5 text-[#71859A]">The employer's BGV provider performs the checks, collects candidate information and issues the report. HRANITI only keeps the case reference and shows provider status/results.</p></div></div></div><div className="mt-5 rounded-2xl border border-[#DDE5EA] bg-white p-5"><p className="text-xs font-semibold text-[#173454]">HRANITI will show</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{["Provider status","Pending items","Completion date","Provider report / link"].map(x=><div key={x} className="rounded-xl bg-[#F7F9F9] px-3 py-2.5 text-xs text-[#526A7D]">{x}</div>)}</div></div><div className="mt-5 flex justify-end gap-2 border-t border-[#E6ECEF] pt-5"><button onClick={()=>setOpen(false)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Cancel</button><button onClick={createCheck} disabled={saving} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white">{saving?"Creating…":"Create BGV case"}</button></div>{message&&<p className="mt-3 text-right text-xs text-[#167D73]">{message}</p>}</section>
+          <section className="p-5 sm:p-7"><div className="rounded-2xl border border-[#DDE5EA] bg-[#F7F9F9] p-5"><div className="flex items-start gap-3"><ShieldCheck size={18} className="mt-0.5 text-[#167D73]"/><div><p className="text-sm font-semibold text-[#173454]">Provider-owned verification</p><p className="mt-1 text-xs leading-5 text-[#71859A]">The employer's BGV provider performs the checks, collects candidate information and issues the report. HRANITI only keeps the case reference and shows provider status/results.</p></div></div></div><div className="mt-5 rounded-2xl border border-[#DDE5EA] bg-white p-5"><p className="text-xs font-semibold text-[#173454]">HRANITI will show</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{["Provider status","Pending items","Completion date","Provider report / link"].map(x=><div key={x} className="rounded-xl bg-[#F7F9F9] px-3 py-2.5 text-xs text-[#526A7D]">{x}</div>)}</div></div><div className="mt-5 flex justify-end gap-2 border-t border-[#E6ECEF] pt-5"><button onClick={()=>setOpen(false)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Cancel</button><button onClick={createCheck} disabled={saving} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white">{saving?"Creating…":"Add BGV case"}</button></div>{message&&<p className="mt-3 text-right text-xs text-[#167D73]">{message}</p>}</section>
         </div>:
         <div className="grid lg:grid-cols-[360px_minmax(0,1fr)]">
           <aside className="border-b border-[#E6ECEF] p-5 lg:border-b-0 lg:border-r sm:p-7">
