@@ -56,6 +56,8 @@ export default function BGVPage() {
   const [candidateId,setCandidateId]=useState("");
   const [jobId,setJobId]=useState("");
   const [dueDate,setDueDate]=useState("");
+  const [providerName,setProviderName]=useState("");
+  const [providerCaseId,setProviderCaseId]=useState("");
   const [note,setNote]=useState("");
   const [saving,setSaving]=useState(false);
   const [requestedApplication,setRequestedApplication]=useState<string | null>(null);
@@ -121,7 +123,7 @@ export default function BGVPage() {
     } else {
       setCandidateId(demo ? "demo-candidate-1" : "");
       setJobId(demo ? (jobs[0]?.id??"") : "");
-      setDueDate(""); setNote("");
+      setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote("");
       setSelectedItems([]);
     }
     setOpen(true);
@@ -151,7 +153,7 @@ export default function BGVPage() {
     const now=new Date().toISOString();
     const {data,error}=await supabase.from("background_checks").insert({
       company_id:companyId,application_id:applicationId,offer_id:offerId,candidate_name:name,candidate_email:email,job_title:role,
-      status:"In progress",requested_at:now,due_at:dueDate?new Date(dueDate+"T23:59:59").toISOString():null,
+      status:"In progress",provider_name:providerName.trim()||null,provider_case_id:providerCaseId.trim()||null,requested_at:now,due_at:dueDate?new Date(dueDate+"T23:59:59").toISOString():null,
       consent_status:"Not applicable",jurisdiction:null,legal_basis:null,retention_until:null,overall_note:note||null
     }).select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").single();
     if(error||!data){setMessage(error?.message??"Could not create the BGV case.");setSaving(false);return}
@@ -209,7 +211,7 @@ export default function BGVPage() {
 
     {open&&access==="initiate"&&<div className="fixed inset-0 z-50 overflow-y-auto bg-[#173454]/20 p-4 sm:p-7">
       <div className="mx-auto max-w-[1180px] rounded-2xl bg-white shadow-[0_24px_80px_rgba(23,52,84,0.2)]">
-        <div className="flex items-center justify-between border-b border-[#E6ECEF] px-5 py-4 sm:px-7"><div><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#167D73]">{selected?"VERIFICATION CASE":"NEW VERIFICATION"}</p><h2 className="mt-1 text-lg font-semibold text-[#173454]">{selected?.candidate_name??(candidateId==="demo-candidate-1"?demoCandidate.name:"Create background verification")}</h2></div><button onClick={()=>setOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg text-[#71859A] hover:bg-[#F5F7F7]"><X size={18}/></button></div>
+        <div className="flex items-center justify-between border-b border-[#E6ECEF] px-5 py-4 sm:px-7"><div><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#167D73]">{selected?"BGV CASE":"LINK PROVIDER CASE"}</p><h2 className="mt-1 text-lg font-semibold text-[#173454]">{selected?.candidate_name??(candidateId==="demo-candidate-1"?demoCandidate.name:"Link provider case")}</h2></div><button onClick={()=>setOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg text-[#71859A] hover:bg-[#F5F7F7]"><X size={18}/></button></div>
 
         {!selected?<div className="grid lg:grid-cols-[420px_minmax(0,1fr)]">
           <aside className="border-b border-[#E6ECEF] p-5 lg:border-b-0 lg:border-r sm:p-7">
@@ -217,10 +219,10 @@ export default function BGVPage() {
             <select value={candidateId} onChange={e=>setCandidateId(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#DDE5EA] bg-white px-3 text-xs outline-none"><option value="">Select applicant</option><option value="demo-candidate-1">Aarav Mehta · Sample candidate</option>{applications.map(a=><option key={a.id} value={a.id}>{applicantLabel(a)}</option>)}</select>
             <p className="mt-2 text-[10px] leading-4 text-[#9AA8B3]">For a real case, use the applicant linked to the accepted offer. The sample candidate is stored without a personal account.</p>
             <div className="mt-5 rounded-xl border border-[#DDE5EA] bg-[#F7F9F9] p-4"><p className="text-xs font-semibold text-[#173454]">What HRANITI does</p><p className="mt-1 text-[11px] leading-5 text-[#71859A]">HRANITI records the BGV case and shows the provider's status and report. The employer and its BGV provider handle the actual verification outside this workflow.</p></div>
-            <div className="mt-5 grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-[#526A7D]">Expected by</label><input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] px-3 text-xs"/></div><div><label className="block text-xs font-medium text-[#526A7D]">Provider</label><input disabled value="External BGV provider" className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] bg-[#F7F9F9] px-3 text-xs text-[#71859A]"/></div></div>
+            <div className="mt-5 grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-[#526A7D]">Provider name</label><input value={providerName} onChange={e=>setProviderName(e.target.value)} className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] px-3 text-xs" placeholder="Provider name"/></div><div><label className="block text-xs font-medium text-[#526A7D]">Provider case ID</label><input value={providerCaseId} onChange={e=>setProviderCaseId(e.target.value)} className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] px-3 text-xs" placeholder="Case reference"/></div></div><div className="mt-3"><label className="block text-xs font-medium text-[#526A7D]">Expected by <span className="font-normal text-[#9AA8B3]">(optional)</span></label><input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] px-3 text-xs"/></div>
             <label className="mt-4 block text-xs font-medium text-[#526A7D]">Internal note</label><textarea value={note} onChange={e=>setNote(e.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-[#DDE5EA] p-3 text-xs outline-none" placeholder="Private verification context…"/>
           </aside>
-          <section className="p-5 sm:p-7"><div className="rounded-2xl border border-[#DDE5EA] bg-[#F7F9F9] p-5"><div className="flex items-start gap-3"><ShieldCheck size={18} className="mt-0.5 text-[#167D73]"/><div><p className="text-sm font-semibold text-[#173454]">Provider-owned verification</p><p className="mt-1 text-xs leading-5 text-[#71859A]">The employer's BGV provider performs the checks, collects candidate information and issues the report. HRANITI only keeps the case reference and shows provider status/results.</p></div></div></div><div className="mt-5 rounded-2xl border border-[#DDE5EA] bg-white p-5"><p className="text-xs font-semibold text-[#173454]">HRANITI will show</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{["Provider status","Pending items","Completion date","Provider report / link"].map(x=><div key={x} className="rounded-xl bg-[#F7F9F9] px-3 py-2.5 text-xs text-[#526A7D]">{x}</div>)}</div></div><div className="mt-5 flex justify-end gap-2 border-t border-[#E6ECEF] pt-5"><button onClick={()=>setOpen(false)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Cancel</button><button onClick={createCheck} disabled={saving} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white">{saving?"Creating…":"Add BGV case"}</button></div>{message&&<p className="mt-3 text-right text-xs text-[#167D73]">{message}</p>}</section>
+          <section className="p-5 sm:p-7"><div className="rounded-2xl border border-[#DDE5EA] bg-[#F7F9F9] p-5"><div className="flex items-start gap-3"><ShieldCheck size={18} className="mt-0.5 text-[#167D73]"/><div><p className="text-sm font-semibold text-[#173454]">Provider-owned verification</p><p className="mt-1 text-xs leading-5 text-[#71859A]">The employer's BGV provider performs the checks, collects candidate information and issues the report. HRANITI only keeps the case reference and shows provider status/results.</p></div></div></div><div className="mt-5 rounded-2xl border border-[#DDE5EA] bg-white p-5"><p className="text-xs font-semibold text-[#173454]">HRANITI will show</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{["Provider status","Pending items","Completion date","Provider report / link"].map(x=><div key={x} className="rounded-xl bg-[#F7F9F9] px-3 py-2.5 text-xs text-[#526A7D]">{x}</div>)}</div></div><div className="mt-5 flex justify-end gap-2 border-t border-[#E6ECEF] pt-5"><button onClick={()=>setOpen(false)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Cancel</button><button onClick={createCheck} disabled={saving} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white">{saving?"Saving…":"Link BGV case"}</button></div>{message&&<p className="mt-3 text-right text-xs text-[#167D73]">{message}</p>}</section>
         </div>:
         <div className="grid lg:grid-cols-[360px_minmax(0,1fr)]">
           <aside className="border-b border-[#E6ECEF] p-5 lg:border-b-0 lg:border-r sm:p-7">
