@@ -65,6 +65,14 @@ export default function BGVPage() {
   const [providerEmail,setProviderEmail]=useState("");
   const [providerContactName,setProviderContactName]=useState("");
   const [providerInviteUrl,setProviderInviteUrl]=useState("");
+  const [verificationMethod,setVerificationMethod]=useState<"Provider"|"Internal">("Provider");
+  const [customChecks,setCustomChecks]=useState("");
+  const [unableReason,setUnableReason]=useState("");
+  const [stopReason,setStopReason]=useState("");
+  const [emailTo,setEmailTo]=useState("");
+  const [emailSubject,setEmailSubject]=useState("");
+  const [emailMessage,setEmailMessage]=useState("");
+  const [sendingEmail,setSendingEmail]=useState(false);
   const [invitingProvider,setInvitingProvider]=useState(false);
 
   async function load() {
