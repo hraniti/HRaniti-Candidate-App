@@ -28,7 +28,9 @@ type Offer = {
   template_id: string | null; template_version_id: string | null; template_source: string | null;
 };
 
-const emptyTemplate: Template = { id: "", name: "", description: null, template_type: "hraniti", country_code: null, employment_type: null, is_default: false, status: "Active", versions: [] };\n\nconst fallbackTemplate =
+const emptyTemplate: Template = { id: "", name: "", description: null, template_type: "hraniti", country_code: null, employment_type: null, is_default: false, status: "Active", versions: [] };
+
+const fallbackTemplate =
   "<p>Dear {{candidate_name}},</p>" +
   "<p>We are pleased to offer you the position of <strong>{{job_title}}</strong> at {{company_name}}.</p>" +
   "<p>Your annual base salary will be <strong>{{base_salary}} {{currency}}</strong>, paid {{pay_frequency}}.</p>" +
