@@ -10,6 +10,7 @@ import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 type Candidate = { id: string; user_id: string; job_id: string; status: string | null; pipeline_stage: string | null; next_step: string | null; };
 type Job = { id: string; title: string; location: string | null; employment_type: string | null; work_mode: string | null; company_id: string; description: string | null; };
 type Profile = { id: string; full_name: string | null; email: string | null; current_location: string | null; notice_period: string | null; expected_salary: number | null; salary_currency: string | null; };
+type TeamMember = { user_id: string | null; full_name: string | null; email: string | null; role: string; status: string; };
 type Version = { id: string; template_id: string; version_number: number; content_html: string; variable_schema: { key: string; label: string }[]; source_file_name: string | null; };
 type Template = { id: string; name: string; description: string | null; template_type: string; country_code: string | null; employment_type: string | null; is_default: boolean; status: string; versions?: Version[]; };
 const DEMO_CANDIDATE_ID = "demo-candidate-1";
@@ -97,6 +98,8 @@ export default function OffersPage() {
   const [applications, setApplications] = useState<Candidate[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [approverIds, setApproverIds] = useState<string[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [companyId, setCompanyId] = useState("");
   const [companyName, setCompanyName] = useState("Your company");
@@ -141,13 +144,16 @@ export default function OffersPage() {
       supabase.from("offers").select("*").eq("company_id", company).order("created_at", { ascending: false }),
       supabase.from("jobs").select("id,title,location,employment_type,work_mode,company_id,description").eq("company_id", company).order("created_at", { ascending: false }),
       supabase.from("offer_templates").select("id,name,description,template_type,country_code,employment_type,is_default,status,versions:offer_template_versions(id,template_id,version_number,content_html,variable_schema,source_file_name)").eq("company_id", company).eq("status", "Active").order("is_default", { ascending: false }),
+      supabase.from("company_team_members").select("user_id,full_name,email,role,status").eq("company_id", company).eq("status", "Active").order("full_name"),
       supabase.from("company_team_members").select("role").eq("company_id", company).eq("user_id", user.id).eq("status", "Active").limit(1)
     ]);
     if (offersResult.error) setMessage(offersResult.error.message);
     setOffers((offersResult.data ?? []) as Offer[]);
     setJobs((jobsResult.data ?? []) as Job[]);
     setTemplates((templatesResult.data ?? []) as unknown as Template[]);
-    setUserRole(memberResult.data?.[0]?.role ?? "");
+    const members = (memberResult.data ?? []) as TeamMember[];
+    setTeamMembers(members);
+    setUserRole(members.find((m) => m.user_id === user.id)?.role ?? "");
     const jobIds = (jobsResult.data ?? []).map((j) => j.id);
     if (jobIds.length) {
       const appsResult = await supabase.from("applications").select("id,user_id,job_id,status,pipeline_stage,next_step").in("job_id", jobIds).order("applied_at", { ascending: false });
@@ -226,7 +232,7 @@ export default function OffersPage() {
     setPayFrequency("Annual"); setBonusTarget(""); setWorkLocation(row?.job?.location ?? row?.profile?.current_location ?? "");
     setWorkMode(row?.job?.work_mode ?? ""); setEmploymentType(row?.job?.employment_type ?? "Full-time"); setStartDate(""); setExpiryDate("");
     setReportingTo(""); setProbation(""); setNoticePeriod(row?.profile?.notice_period ?? ""); setCandidateMessage(""); setInternalNotes("");
-    setApprovalRequired(true); setResponseNote(""); setMessage(""); setOpen(true);
+    setApprovalRequired(true); setApproverIds([]); setResponseNote(""); setMessage(""); setOpen(true);
     setTimeout(() => { if (editorRef.current) editorRef.current.innerHTML = renderCurrentLetter(row, defaultTemplate, version); }, 0);
   }
 
@@ -242,7 +248,7 @@ export default function OffersPage() {
     setStartDate(offer.start_date ?? ""); setExpiryDate(offer.offer_expiry_date ?? ""); setReportingTo(offer.reporting_to ?? "");
     setProbation(offer.probation_period ?? ""); setNoticePeriod(offer.notice_period ?? app?.profile?.notice_period ?? "");
     setCandidateMessage(offer.candidate_message ?? ""); setInternalNotes(offer.internal_notes ?? ""); setApprovalRequired(offer.approval_required !== false);
-    setResponseNote(offer.response_note ?? ""); setMessage(""); setOpen(true);
+    setResponseNote(offer.response_note ?? ""); setApproverIds(offer.approver_ids ?? []); setMessage(""); setOpen(true);
     setTimeout(() => { if (editorRef.current) editorRef.current.innerHTML = offer.letter_html ?? renderCurrentLetter(app, template, version); }, 0);
   }
 
@@ -265,6 +271,7 @@ export default function OffersPage() {
     const row = applicationRows.find((x) => x.app.id === candidateId);
     if (!row?.profile || !row.job) { setMessage("Choose an applicant before saving the offer."); return; }
     if (!startDate) { setMessage("Add the proposed start date before saving the offer."); return; }
+    if (nextStatus === "Pending approval" && approverIds.length === 0) { setMessage("Select at least one approver before submitting."); return; }
     const template = templates.find((t) => t.id === templateId);
     const version = template?.versions?.find((v) => v.id === templateVersionId) ?? latest(template ?? emptyTemplate);
     const finalHtml = safeHtml(editorRef.current?.innerHTML ?? renderCurrentLetter(row, template, version));
@@ -282,7 +289,7 @@ export default function OffersPage() {
       letter_body: stripHtml(finalHtml).trim(), letter_html: finalHtml, template_id: template?.id ?? null, template_version_id: version?.id ?? null,
       template_source: template?.template_type ?? "hraniti",
       template_snapshot: { template_name: template?.name ?? "HRaniti standard", version: version?.version_number ?? 1, fields: { candidate_name: row.profile.full_name, job_title: row.job.title, base_salary: baseSalary, currency, start_date: startDate } },
-      version: selectedOffer?.version ?? 1, status: nextStatus, updated_at: new Date().toISOString()
+      version: selectedOffer?.version ?? 1, status: nextStatus, approver_ids: approverIds, updated_at: new Date().toISOString()
     };
     const result = selectedOffer
       ? await supabase.from("offers").update(payload).eq("id", selectedOffer.id).select("*").single()
@@ -377,6 +384,17 @@ export default function OffersPage() {
               <div className="mt-3 grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-[#526A7D]">Start date</label><input value={startDate} onChange={(e) => setStartDate(e.target.value)} type="date" className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] px-3 text-xs"/></div><div><label className="block text-xs font-medium text-[#526A7D]">Offer expiry</label><input value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} type="date" className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] px-3 text-xs"/></div></div>
               <div className="mt-3 grid grid-cols-2 gap-3"><input value={workLocation} onChange={(e) => setWorkLocation(e.target.value)} className="h-10 rounded-xl border border-[#DDE5EA] px-3 text-xs" placeholder="Work location"/><input value={reportingTo} onChange={(e) => setReportingTo(e.target.value)} className="h-10 rounded-xl border border-[#DDE5EA] px-3 text-xs" placeholder="Reporting manager"/><input value={probation} onChange={(e) => setProbation(e.target.value)} className="h-10 rounded-xl border border-[#DDE5EA] px-3 text-xs" placeholder="Probation"/><input value={noticePeriod} onChange={(e) => setNoticePeriod(e.target.value)} className="h-10 rounded-xl border border-[#DDE5EA] px-3 text-xs" placeholder="Notice period"/></div>
               <label className="mt-4 flex items-center gap-2 text-xs text-[#526A7D]"><input type="checkbox" checked={approvalRequired} onChange={(e) => setApprovalRequired(e.target.checked)} className="accent-[#167D73]"/> Require internal approval</label>
+              {approvalRequired && <div className="mt-3 rounded-xl border border-[#DDE5EA] bg-[#FCFCFA] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div><p className="text-xs font-medium text-[#526A7D]">Approver</p><p className="mt-0.5 text-[10px] text-[#9AA8B3]">Choose an active team member. Their email is used automatically.</p></div>
+                  <select value="" onChange={(e) => { const id=e.target.value; if (id && !approverIds.includes(id)) setApproverIds((v) => [...v, id]); }} className="h-9 rounded-lg border border-[#B9DDD7] bg-white px-2 text-[11px] font-medium text-[#167D73] outline-none">
+                    <option value="">＋ Add approver</option>
+                    {teamMembers.filter((m) => m.user_id && ["Owner","Admin","Recruiter"].includes(m.role) && !approverIds.includes(m.user_id)).map((m) => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email || "Team member"} · {m.role}</option>)}
+                  </select>
+                </div>
+                {approverIds.length === 0 ? <p className="mt-3 text-[10px] text-[#B34E3E]">Select at least one approver before submitting.</p> :
+                  <div className="mt-3 space-y-2">{approverIds.map((id) => { const m=teamMembers.find((x) => x.user_id === id); return <div key={id} className="flex items-center justify-between rounded-lg bg-white px-3 py-2"><div><p className="text-[11px] font-medium text-[#173454]">{m?.full_name || "Approver"}</p><p className="text-[10px] text-[#71859A]">{m?.email || "Email not available"} · {m?.role || "Team member"}</p></div><button type="button" onClick={() => setApproverIds((v) => v.filter((x) => x !== id))} className="text-[10px] text-[#B34E3E]">Remove</button></div>})}</div>}
+              </div>}
               <label className="mt-4 block text-xs font-medium text-[#526A7D]">Candidate message</label><textarea value={candidateMessage} onChange={(e) => setCandidateMessage(e.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-[#DDE5EA] p-3 text-xs outline-none" placeholder="A short message to accompany the offer…"/>
               <label className="mt-4 block text-xs font-medium text-[#526A7D]">Internal notes</label><textarea value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-[#DDE5EA] p-3 text-xs outline-none" placeholder="Private hiring context…"/>
             </aside>
