@@ -44,38 +44,14 @@ export async function POST(request: Request) {
     let orgId=check.provider_org_id as string|null;
     if(!orgId){
       const {data:existingOrg}=await admin.from("bgv_provider_organizations").select("id").ilike("name",providerName).limit(1).maybeSingle();
-      const newOrg=existingOrg;
-      const newOrgError=null;
-      if(!newOrg){
+      if(existingOrg){
+        orgId=existingOrg.id;
+      } else {
         const {data:createdOrg,error:createdOrgError}=await admin.from("bgv_provider_organizations").insert({name:providerName}).select("id").single();
         if(createdOrgError||!createdOrg) return NextResponse.json({error:createdOrgError?.message||"Could not create provider organization."},{status:500});
         orgId=createdOrg.id;
-      } else {
-        orgId=newOrg.id;
       }
-      if(newOrg) { orgId=newOrg.id; }
-      /* legacy variables retained for the shared error path */
-      if(newOrgError||false) return NextResponse.json({error:"Could not create provider organization."},{status:500});
-      if(!orgId) return NextResponse.json({error:"Could not resolve provider organization."},{status:500});
-    /*
-      const {data:newOrg,error:newOrgError}=await admin.from("bgv_provider_organizations").insert({name:providerName}).select("id").single(); */
-      if(newOrgError||!newOrg) return NextResponse.json({error:newOrgError?.message||"Could not create provider organization."},{status:500});
-      orgId=newOrg.id;
       await admin.from("background_checks").update({provider_org_id:orgId,provider_name:providerName,updated_at:new Date().toISOString()}).eq("id",check.id);
     } else {
       await admin.from("background_checks").update({provider_name:providerName,updated_at:new Date().toISOString()}).eq("id",check.id);
-    }
-
-    await admin.from("bgv_provider_cases").upsert({background_check_id:check.id,company_id:membership.company_id,provider_org_id:orgId,assigned_by:userData.user.id,status:"Active"},{onConflict:"background_check_id,provider_org_id"});
-
-    const token=randomBytes(32).toString("hex");
-    const expires=new Date(Date.now()+7*24*60*60*1000).toISOString();
-    await admin.from("bgv_provider_invites").insert({provider_org_id:orgId,company_id:membership.company_id,background_check_id:check.id,email,full_name:fullName||null,token_hash:hashToken(token),expires_at:expires,created_by:userData.user.id});
-    const appUrl=(process.env.NEXT_PUBLIC_APP_URL||"").replace(/\/$/,"");
-    if(!appUrl) return NextResponse.json({error:"NEXT_PUBLIC_APP_URL is not configured."},{status:500});
-    await admin.from("background_check_events").insert({background_check_id:check.id,company_id:membership.company_id,actor_id:userData.user.id,event_type:"provider_access_invited",metadata:{provider_name:providerName,email,expires_at:expires}});
-    return NextResponse.json({ok:true,inviteUrl:`${appUrl}/provider/accept?token=${token}`,expiresAt:expires,providerName,email});
-  } catch(e) {
-    return NextResponse.json({error:e instanceof Error?e.message:"Could not create provider access."},{status:500});
-  }
-}
+    }}
