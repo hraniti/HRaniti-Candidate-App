@@ -31,6 +31,6 @@ export async function PATCH(request:Request,{params}:{params:{id:string}}){
    await db.from("background_check_items").update({status:String(item.status||"Pending"),result_summary:String(item.resultSummary||"").trim()||null,reviewer_note:String(item.reviewerNote||"").trim()||null,completed_at:item.completedAt||null,updated_at:now}).eq("id",item.id).eq("background_check_id",check.id).eq("company_id",link.company_id);
   }
  }
- await db.from("background_check_events").insert({background_check_id:check.id,company_id:link.company_id,actor_id:user.id,event_type:"provider_case_updated",metadata:{provider_status:patch.provider_status||null,status:patch.status||null,report_url_changed:body.reportUrl!==undefined,items_updated:Array.isArray(body.items)?body.items.length:0}});
+ await db.from("background_check_events").insert({background_check_id:check.id,company_id:link.company_id,actor_id:user.id,event_type:"provider_case_updated",metadata:{provider_status:patch.provider_status||null,status:patch.status||null,report_url_changed:body.reportUrl!==undefined,items_updated:Array.isArray(body.items)?body.items.length:0,new_items:Array.isArray(body.newItems)?body.newItems.length:0}});
  return NextResponse.json({ok:true,check});
 }
