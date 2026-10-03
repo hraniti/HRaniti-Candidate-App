@@ -303,6 +303,8 @@ export default function OffersPage() {
   async function approve(offer: Offer) {
     if (!["Owner","Admin","Recruiter"].includes(userRole)) { setMessage("Only an Owner, Admin or Recruiter can approve an offer."); return; }
     const auth = await supabase.auth.getUser(); if (!auth.data.user) return;
+    const assignedApprovers = offer.approver_ids ?? [];
+    if (assignedApprovers.length > 0 && !assignedApprovers.includes(auth.data.user.id)) { setMessage("This offer is assigned to another approver."); return; }
     const result = await supabase.from("offers").update({ status: "Approved", approved_by: auth.data.user.id, approved_at: new Date().toISOString(), updated_by: auth.data.user.id }).eq("id", offer.id).select("*").single();
     if (result.error) { setMessage(result.error.message); return; }
     await supabase.from("offer_events").insert({ offer_id: offer.id, company_id: companyId, event_type: "approved", actor_id: auth.data.user.id, metadata: {} });
