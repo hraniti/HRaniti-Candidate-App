@@ -158,7 +158,7 @@ export default function OfferTemplateLibraryPage() {
     setConverting(true);
     setMessage("");
     try {
-      const mammoth = await import("mammoth");
+      const mammoth = await import("mammoth/mammoth.browser");
       const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
       const safe = sanitizeHtml(normalizePlaceholders(result.value));
       setHtml(safe);
