@@ -178,11 +178,11 @@ export default function BGVPage() {
     const now=new Date().toISOString();
     const {data,error}=await supabase.from("background_checks").insert({
       company_id:companyId,application_id:applicationId,offer_id:offerId,candidate_name:name,candidate_email:email,job_title:role,
-      status:"In progress",provider_name:providerName.trim()||null,provider_case_id:providerCaseId.trim()||null,requested_at:now,due_at:dueDate?new Date(dueDate+"T23:59:59").toISOString():null,
+      status:"Not started",verification_method:verificationMethod,provider_name:verificationMethod==="Provider"?(providerName.trim()||null):null,provider_case_id:verificationMethod==="Provider"?(providerCaseId.trim()||null):null,requested_at:now,due_at:dueDate?new Date(dueDate+"T23:59:59").toISOString():null,
       consent_status:"Not applicable",jurisdiction:null,legal_basis:null,retention_until:null,overall_note:note||null
     }).select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,provider_name,provider_case_id,provider_org_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").single();
     if(error||!data){setMessage(error?.message??"Could not create the BGV case.");setSaving(false);return}
-    await supabase.from("background_check_events").insert({background_check_id:data.id,company_id:companyId,event_type:"bgv_case_created",metadata:{source:"employer",note:note||null}});
+    if(customChecks.trim()){const names=customChecks.split(String.fromCharCode(10)).map(x=>x.trim()).filter(Boolean);if(names.length)await supabase.from("background_check_items").insert(names.map(check_type=>({background_check_id:data.id,company_id:companyId,check_type,status:"Pending",provider:verificationMethod==="Provider"?(providerName.trim()||null):"Internal"})));} await supabase.from("background_check_events").insert({background_check_id:data.id,company_id:companyId,event_type:"bgv_case_created",metadata:{source:"employer",verification_method:verificationMethod,note:note||null}});
     if(applicationId) await supabase.from("applications").update({next_step:"Background verification",updated_at:now}).eq("id",applicationId);
     await load(); setSelected(data as Check); await loadItems(data.id); setOpen(true); setMessage("BGV case created. Add the provider's current status and report details as they become available."); setSaving(false);
   }
