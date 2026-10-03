@@ -79,11 +79,11 @@ export default function BGVPage() {
   const [emailMessage,setEmailMessage]=useState("");
   const [sendingEmail,setSendingEmail]=useState(false);
   const [sourceOfferId,setSourceOfferId]=useState<string|null>(null);
-  c
+  const [tatDays,setTatDays]=useState("");
   const [tatStartBasis,setTatStartBasis]=useState<"Initiated"|"Offer accepted">("Initiated");
   const sourceOffer=useMemo(()=>sourceOfferId?offers.find(o=>o.id===sourceOfferId)||null:null,[sourceOfferId,offers]);
   const tatPreviewStart=tatStartBasis==="Offer accepted"?(sourceOffer?.responded_at||new Date().toISOString()):new Date().toISOString();
-  c
+  const tatPreviewDue=addWorkingDays(tatPreviewStart,Math.max(1,Number(tatDays)||14));
   const [invitingProvider,setInvitingProvider]=useState(false);
 
   async function load() {
@@ -136,7 +136,7 @@ export default function BGVPage() {
   const readyOffers=useMemo(()=>offers.filter(o=>o.status==="Accepted"&&!checks.some(c=>c.offer_id===o.id)),[offers,checks]);
   useEffect(()=>{ if(access==="initiate" && requestedApplication && applications.some(a=>a.id===requestedApplication)){ openNew(); setCandidateId(requestedApplication); setRequestedApplication(null); } },[applications,requestedApplication,access]);
 
-  function openFromOffer(o:Offer){ setSelected(null); setMessage(""); setCandidateId(o.application_id||"demo-candidate-1"); setJobId(o.application_id?(applications.find(a=>a.id===o.application_id)?.job_id||""):(jobs[0]?.id||"")); s setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(o.candidate_email||""); setEmailSubject("Background verification"); s setDueDate(""); setEmailMessage(""); setSelectedItems([]); setOpen(true); }
+  function openFromOffer(o:Offer){ setSelected(null); setMessage(""); setCandidateId(o.application_id||"demo-candidate-1"); setJobId(o.application_id?(applications.find(a=>a.id===o.application_id)?.job_id||""):(jobs[0]?.id||"")); setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote(""); setSourceOfferId(null); setVerificationMethod("Provider"); setTatDays(""); setTatStartBasis("Initiated"); setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(o.candidate_email||""); setEmailSubject("Background verification"); setSourceOfferId(o.id); setTatDays(""); setTatStartBasis("Offer accepted"); setDueDate(""); setEmailMessage(""); setSelectedItems([]); setOpen(true); }
 
   function openNew(source?:Check|null, demo=false) {
     setSelected(source??null);
@@ -146,12 +146,12 @@ export default function BGVPage() {
       const app=applications.find(a=>a.id===source.application_id);
       setCandidateId(app?.id ?? "");
       setJobId(app?.job_id ?? jobs.find(j=>j.title===source.job_title)?.id ?? "");
-      s
+      setDueDate(source.due_at?.slice(0,10)??""); setNote(source.overall_note??""); setTatDays(source.tat_days!=null?String(source.tat_days):""); setTatStartBasis((source.tat_start_basis as "Initiated"|"Offer accepted")||"Initiated");
       setTimeout(()=>loadItems(source.id),0);
     } else {
       setCandidateId(demo ? "demo-candidate-1" : "");
       setJobId(demo ? (jobs[0]?.id??"") : "");
-      s setUnableReason(""); setStopReason(""); setEmailTo(""); setEmailSubject(""); setEmailMessage("");
+      setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote(""); setVerificationMethod("Provider"); setTatDays("14"); setTatStartBasis("Initiated"); setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(""); setEmailSubject(""); setEmailMessage("");
       setSelectedItems([]);
     }
     setOpen(true);
@@ -193,11 +193,14 @@ export default function BGVPage() {
     const now=new Date().toISOString();
     const sourceOffer=offerId?offers.find(o=>o.id===offerId):null;
     const joiningDate=sourceOffer?.start_date||null;
-    c
+    const tatN=Math.floor(Number(tatDays));
+    if(!Number.isFinite(tatN)||tatN<1){setMessage("Enter a custom BGV turnaround time.");setSaving(false);return}
+    const tatStart=tatStartBasis==="Offer accepted" ? (sourceOffer?.responded_at||now) : now;
+    const tatDue=addWorkingDays(tatStart,tatN);
     const tatDueIso=new Date(tatDue.getFullYear(),tatDue.getMonth(),tatDue.getDate(),23,59,59).toISOString();
     const {data,error}=await supabase.from("background_checks").insert({
       company_id:companyId,application_id:applicationId,offer_id:offerId,candidate_name:name,candidate_email:email,job_title:role,
-      status:"Not started",verification_method:verificationMethod,provider_name:verificationMethod==="Provider"?(providerName.trim()||null):null,provider_case_id:verificationMethod==="Provider"?(providerCaseId.trim()||null):null,requested_at:now,due_at:tatDueIso,joining_date:joiningDate,ttat_start_at:tatStart,tat_due_at:tatDueIso,tat_working_calendar:"Mon-Fri",
+      status:"Not started",verification_method:verificationMethod,provider_name:verificationMethod==="Provider"?(providerName.trim()||null):null,provider_case_id:verificationMethod==="Provider"?(providerCaseId.trim()||null):null,requested_at:now,due_at:tatDueIso,joining_date:joiningDate,tat_days:tatN,tat_unit:"working_days",tat_start_basis:tatStartBasis,tat_start_at:tatStart,tat_due_at:tatDueIso,tat_working_calendar:"Mon-Fri",
       consent_status:"Not requested",jurisdiction:null,legal_basis:null,retention_until:null,overall_note:note||null
     }).select("*").single();
     if(error||!data){setMessage(error?.message??"Could not create the BGV case.");setSaving(false);return}
@@ -265,7 +268,7 @@ export default function BGVPage() {
             <select value={candidateId} onChange={e=>setCandidateId(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#DDE5EA] bg-white px-3 text-xs outline-none"><option value="">Select applicant</option><option value="demo-candidate-1">Aarav Mehta · Sample candidate</option>{applications.map(a=><option key={a.id} value={a.id}>{applicantLabel(a)}</option>)}</select>
             <p className="mt-2 text-[10px] leading-4 text-[#9AA8B3]">For a real case, use the applicant linked to the accepted offer. The sample candidate is stored without a personal account.</p>
             <div className="mt-5 rounded-xl border border-[#DDE5EA] bg-[#F7F9F9] p-4"><p className="text-xs font-semibold text-[#173454]">What HRANITI does</p><p className="mt-1 text-[11px] leading-5 text-[#71859A]">HRANITI records the BGV case and shows the provider's status and report. The employer and its BGV provider handle the actual verification outside this workflow.</p></div>
-            {verificationMethod==="Provider"&&<div className="mt-5 grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-[#526A7D]">Provider name</label><input value={providerName} onChange={e=>setProviderName(e.target.value)} className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] px-3 text-xs" placeholder="Provider name"/></div><div><label className="block text-xs font-medium text-[#526A7D]">Provider case ID</label><input value={providerCaseId} onChange={e=>setProviderCaseId(e.target.value)} className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] px-3 text-xs" placeholder="Case reference"/></div></div>}<
+            {verificationMethod==="Provider"&&<div className="mt-5 grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-[#526A7D]">Provider name</label><input value={providerName} onChange={e=>setProviderName(e.target.value)} className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] px-3 text-xs" placeholder="Provider name"/></div><div><label className="block text-xs font-medium text-[#526A7D]">Provider case ID</label><input value={providerCaseId} onChange={e=>setProviderCaseId(e.target.value)} className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] px-3 text-xs" placeholder="Case reference"/></div></div>}<div className="mt-5 rounded-xl border border-[#DDE5EA] bg-[#F7F9F9] p-4"><div className="grid grid-cols-[1fr_150px] gap-3"><div><label className="block text-xs font-medium text-[#526A7D]">BGV turnaround time</label><input type="number" min="1" max="365" value={tatDays} placeholder="Enter number" onChange={e=>setTatDays(e.target.value)} className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] bg-white px-3 text-xs"/></div><div><label className="block text-xs font-medium text-[#526A7D]">Starts from</label><select value={tatStartBasis} onChange={e=>setTatStartBasis(e.target.value as "Initiated"|"Offer accepted")} className="mt-2 h-10 w-full rounded-xl border border-[#DDE5EA] bg-white px-3 text-xs"><option value="Initiated">BGV initiated</option><option value="Offer accepted">Offer accepted</option></select></div></div><p className="mt-2 text-[10px] text-[#71859A]">Working days exclude weekends. Company holidays can be incorporated through the company working calendar.</p><p className="mt-3 text-[10px] font-medium text-[#167D73]">{tatDays ? `${tatDays} working days · target ${date(tatPreviewDue.toISOString())}` : "Enter a custom TAT to calculate the target date."}</p>{sourceOffer?.start_date&&<p className="mt-1 text-[10px] text-[#71859A]">Joining date: {date(sourceOffer.start_date)}</p>}</div>
             <label className="mt-4 block text-xs font-medium text-[#526A7D]">Internal note</label><textarea value={note} onChange={e=>setNote(e.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-[#DDE5EA] p-3 text-xs outline-none" placeholder="Private verification context…"/>
           </aside>
           <section className="p-5 sm:p-7"><div className="rounded-2xl border border-[#DDE5EA] bg-[#F7F9F9] p-5"><div className="flex items-start gap-3"><ShieldCheck size={18} className="mt-0.5 text-[#167D73]"/><div><p className="text-sm font-semibold text-[#173454]">Provider-owned verification</p><p className="mt-1 text-xs leading-5 text-[#71859A]">The employer's BGV provider performs the checks, collects candidate information and issues the report. HRANITI only keeps the case reference and shows provider status/results.</p></div></div></div><div className="mt-5 rounded-2xl border border-[#DDE5EA] bg-white p-5"><p className="text-xs font-semibold text-[#173454]">HRANITI will show</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{["Provider status","Pending items","Completion date","Provider report / link"].map(x=><div key={x} className="rounded-xl bg-[#F7F9F9] px-3 py-2.5 text-xs text-[#526A7D]">{x}</div>)}</div></div><div className="mt-5 rounded-2xl border border-[#DDE5EA] bg-white p-5"><p className="text-xs font-semibold text-[#173454]">Custom checks</p><p className="mt-1 text-[10px] text-[#71859A]">Checks differ by company. Add one per line; the provider or internal team can add more later.</p><textarea value={customChecks} onChange={e=>setCustomChecks(e.target.value)} rows={4} className="mt-3 w-full rounded-xl border border-[#DDE5EA] p-3 text-xs outline-none" placeholder={"Identity\nEmployment\nEducation\nReference"} /></div><div className="mt-5 flex justify-end gap-2 border-t border-[#E6ECEF] pt-5"><button onClick={()=>setOpen(false)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Cancel</button><button onClick={createCheck} disabled={saving} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white">{saving?"Saving…":"Link BGV case"}</button></div>{message&&<p className="mt-3 text-right text-xs text-[#167D73]">{message}</p>}</section>
