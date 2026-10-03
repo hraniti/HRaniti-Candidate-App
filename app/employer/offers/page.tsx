@@ -88,6 +88,7 @@ export default function OffersPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [companyId, setCompanyId] = useState("");
+  const [companyName, setCompanyName] = useState("Your company");
   const [userRole, setUserRole] = useState("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -123,6 +124,8 @@ export default function OffersPage() {
     const user = auth.data.user;
     const company = await getOrCreateCompanyId(supabase, user);
     setCompanyId(company);
+    const companyResult = await supabase.from("companies").select("name").eq("id", company).single();
+    setCompanyName(companyResult.data?.name ?? "Your company");
     const [offersResult, jobsResult, templatesResult, memberResult] = await Promise.all([
       supabase.from("offers").select("*").eq("company_id", company).order("created_at", { ascending: false }),
       supabase.from("jobs").select("id,title,location,employment_type,work_mode,company_id,description").eq("company_id", company).order("created_at", { ascending: false }),
@@ -169,7 +172,7 @@ export default function OffersPage() {
       candidate_name: r?.profile?.full_name ?? selectedOffer?.candidate_name ?? "",
       candidate_email: r?.profile?.email ?? selectedOffer?.candidate_email ?? "",
       job_title: r?.job?.title ?? selectedOffer?.job_title ?? "",
-      company_name: "Your company",
+      company_name: companyName,
       work_location: workLocation,
       work_mode: workMode,
       employment_type: employmentType,
