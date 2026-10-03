@@ -44,7 +44,7 @@ const fields = [
   ["probation_period", "Probation period"], ["notice_period", "Notice period"],
 ] as const;
 
-const emptyTemplate: Template = { id: "", name: "", description: null, template_type: "hraniti", country_code: null, employment_type: null, is_default: false, status: "Active", versions: [] };
+const emptyTemplate: Template = { id: "", name: "", description: null, template_type: "hraniti", country_code: null, employment_type: null, is_default: false, status: "Active", created_at: "", versions: [] };
 
 const starterHtml =
   "<p>Dear {{candidate_name}},</p>" +
