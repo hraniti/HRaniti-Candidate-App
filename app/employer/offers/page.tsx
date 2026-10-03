@@ -311,7 +311,7 @@ export default function OffersPage() {
   }
 
   async function recordSent(offer: Offer) {
-    if (offer.status !== "Approved") { setMessage("Approve the offer before recording delivery."); return; }
+    if (offer.status !== "Approved") { setMessage("Approve the offer before sending."); return; }
     const auth = await supabase.auth.getUser(); if (!auth.data.user) return;
     const result = await supabase.from("offers").update({ status: "Sent", sent_at: new Date().toISOString(), updated_by: auth.data.user.id }).eq("id", offer.id).select("*").single();
     if (result.error) { setMessage(result.error.message); return; }
@@ -409,10 +409,10 @@ export default function OffersPage() {
                 <button onClick={() => saveOffer("Draft")} disabled={saving} className="rounded-xl border border-[#DDE5EA] px-3 py-2.5 text-xs font-medium text-[#526A7D]">{saving ? "Saving…" : "Save draft"}</button>
                 {(!selectedOffer || selectedOffer.status === "Draft") && <button onClick={() => saveOffer(approvalRequired ? "Pending approval" : "Approved")} disabled={saving} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white">{approvalRequired ? "Submit for approval" : "Approve offer"}</button>}
                 {selectedOffer?.status === "Pending approval" && <button onClick={() => approve(selectedOffer)} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white"><Check size={14} className="mr-1 inline"/> Approve</button>}
-                {selectedOffer?.status === "Approved" && <button onClick={() => recordSent(selectedOffer)} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white"><Send size={14} className="mr-1 inline"/> Record delivered</button>}
+                {selectedOffer?.status === "Approved" && <button onClick={() => recordSent(selectedOffer)} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white"><Send size={14} className="mr-1 inline"/> Sent</button>}
                 {selectedOffer?.status === "Accepted" && selectedOffer.application_id && <Link href={"/employer/applicants/" + selectedOffer.application_id} className="rounded-xl border border-[#B9DDD7] bg-[#E7F3F1] px-4 py-2.5 text-xs font-medium text-[#167D73]"><UserRound size={14} className="mr-1 inline"/> Continue checks</Link>}
               </div></div>
-              {selectedOffer?.status === "Approved" && <p className="mt-3 text-right text-[10px] text-[#9AA8B3]">“Record delivered” updates the hiring record only; it does not send email.</p>}
+              {selectedOffer?.status === "Approved" && <p className="mt-3 text-right text-[10px] text-[#9AA8B3]">“Sent” marks the offer as sent. Candidate delivery will be connected to the configured email service.</p>}
             </section>
           </div>
         </div>
