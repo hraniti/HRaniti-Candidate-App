@@ -14,6 +14,11 @@ export async function POST(request:Request){
   const db=admin();
   const {data:invite,error}=await db.from("bgv_provider_invites").select("*").eq("token_hash",hashToken(token)).is("used_at",null).gt("expires_at",new Date().toISOString()).maybeSingle();
   if(error||!invite)return NextResponse.json({error:"This invitation is invalid, expired or already used."},{status:410});
+  const {data:existingMember}=await db.from("bgv_provider_members").select("id").eq("provider_org_id",invite.provider_org_id).eq("email",invite.email).maybeSingle();
+  if(existingMember){
+    await db.from("bgv_provider_invites").update({used_at:new Date().toISOString()}).eq("id",invite.id);
+    return NextResponse.json({ok:true,existing:true,email:invite.email});
+  }
   const {data:userData,error:userError}=await db.auth.admin.createUser({email:invite.email,password,email_confirm:true,user_metadata:{account_type:"bgv_provider"}});
   if(userError||!userData.user){
     return NextResponse.json({error:userError?.message?.toLowerCase().includes("already")?"An account already exists for this email. Please sign in at the provider portal.":userError?.message||"Could not create provider account."},{status:409});
