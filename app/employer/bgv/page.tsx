@@ -207,7 +207,7 @@ export default function BGVPage() {
   return <EmployerShell>
     <div className="mx-auto max-w-[1240px] px-5 py-8 sm:px-8 sm:py-10">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div><p className="text-[10px] font-semibold tracking-[0.18em] text-[#167D73]">HIRING</p><h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[#173454]">Background Verification</h1><p className="mt-2 max-w-2xl text-sm text-[#71859A]">Run pre-employment checks with clear consent, ownership and an auditable status for every candidate.</p></div>
+        <div><p className="text-[10px] font-semibold tracking-[0.18em] text-[#167D73]">HIRING</p><h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[#173454]">Background Verification</h1><p className="mt-2 max-w-2xl text-sm text-[#71859A]">Connect your BGV provider to each case and give authorized employer users a clear view of provider progress and results.</p></div>
         <div className="flex gap-2"><button onClick={()=>openNew()} className="inline-flex items-center gap-2 rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white"><Plus size={15}/> New verification</button><button onClick={()=>openNew(null,true)} className="rounded-xl border border-[#B9DDD7] bg-white px-4 py-2.5 text-xs font-medium text-[#167D73]">Preview sample</button></div>
       </div>
 
@@ -223,7 +223,7 @@ export default function BGVPage() {
         rows.map(c=><button key={c.id} onClick={()=>openNew(c)} className="grid w-full gap-3 border-b border-[#EEF2F4] px-5 py-4 text-left hover:bg-[#FCFDFD] md:grid-cols-[minmax(230px,1.4fr)_1fr_.8fr_.8fr_.8fr_30px] md:items-center"><span><span className="block text-sm font-medium text-[#173454]">{c.candidate_name}</span><span className="mt-1 block truncate text-[11px] text-[#71859A]">{c.candidate_email||"Email not provided"}</span></span><span className="text-xs text-[#526A7D]">{c.job_title||"Role"}</span><span><span className={"rounded-full px-2.5 py-1 text-[10px] font-medium "+tone(c.status)}>{c.status}</span></span><span className="text-xs text-[#526A7D]">{c.provider_status||c.status}</span><span className="text-xs text-[#71859A]">{date(c.due_at)}</span><ArrowRight size={15} className="text-[#9AA8B3]"/></button>)}
       </div>
 
-      <div className="mt-5 rounded-2xl border border-[#DDE5EA] bg-white p-5"><div className="flex gap-3"><ClipboardCheck size={18} className="mt-0.5 text-[#167D73]"/><div><p className="text-xs font-semibold text-[#173454]">Connected hiring flow</p><p className="mt-1 text-[11px] leading-5 text-[#71859A]">Accepted offer → BGV provider → provider report/status → recruiter review → Hires. HRANITI does not perform the verification.</p></div></div></div>
+      <div className="mt-5 rounded-2xl border border-[#DDE5EA] bg-white p-5"><div className="flex gap-3"><ClipboardCheck size={18} className="mt-0.5 text-[#167D73]"/><div><p className="text-xs font-semibold text-[#173454]">Connected hiring flow</p><p className="mt-1 text-[11px] leading-5 text-[#71859A]">Employer initiates → BGV provider works the case → provider updates HRANITI → authorized employer team reviews. HRANITI does not perform or adjudicate the verification.</p></div></div></div>
     </div>
 
     {open&&access==="initiate"&&<div className="fixed inset-0 z-50 overflow-y-auto bg-[#173454]/20 p-4 sm:p-7">
