@@ -62,7 +62,7 @@ export default function BGVPage() {
   const [consent,setConsent]=useState("Not requested");
   const [types,setTypes]=useState<string[]>(["Identity","Address","Employment","Education","Criminal"]);
   const [note,setNote]=useState("");
-  const [saving,setSaving]=useState(false);
+  const [saving,setSaving]=useState(false);\n  const [requestedApplication,setRequestedApplication]=useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -87,7 +87,7 @@ export default function BGVPage() {
     if(ids.length){const ir=await supabase.from("background_check_items").select("id,background_check_id,check_type,status,provider,result_summary,reviewer_note,completed_at").in("background_check_id",ids);setItems((ir.data??[]) as Item[])}
     setLoading(false);
   }
-  useEffect(()=>{load()},[]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{ const a=new URLSearchParams(window.location.search).get("application"); setRequestedApplication(a); load(); },[]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const rows=useMemo(()=>checks.filter(c=>{
     const q=query.trim().toLowerCase();
@@ -101,7 +101,7 @@ export default function BGVPage() {
     clear:checks.filter(c=>c.status==="Clear").length
   }),[checks]);
 
-  const demoCandidate={id:"demo-candidate-1",name:"Aarav Mehta",email:"aarav.mehta@example.com",job:jobs[0]??null};
+  const demoCandidate={id:"demo-candidate-1",name:"Aarav Mehta",email:"aarav.mehta@example.com",job:jobs[0]??null};\n  useEffect(()=>{ if(requestedApplication && applications.some(a=>a.id===requestedApplication)){ openNew(); setCandidateId(requestedApplication); setRequestedApplication(null); } },[applications,requestedApplication]);
 
   function openNew(source?:Check|null, demo=false) {
     setSelected(source??null);
@@ -154,7 +154,7 @@ export default function BGVPage() {
     if(error||!data){setMessage(error?.message??"Could not create the verification request.");setSaving(false);return}
     const rows=types.map(t=>({background_check_id:data.id,company_id:companyId,check_type:t,status:consent==="Granted"?"Requested":"Pending",requested_at:consent==="Granted"?now:null}));
     const ir=await supabase.from("background_check_items").insert(rows);
-    if(ir.error){await supabase.from("background_checks").delete().eq("id",data.id);setMessage(ir.error.message);setSaving(false);return}
+    if(ir.error){await supabase.from("background_checks").update({status:"Cancelled",overall_note:"Could not create all verification items: "+ir.error.message}).eq("id",data.id);setMessage(ir.error.message);setSaving(false);return}
     await supabase.from("background_check_events").insert({background_check_id:data.id,company_id:companyId,event_type:"verification_requested",metadata:{package:packageName,check_types:types,consent_status:consent}});
     if(applicationId) await supabase.from("applications").update({next_step:"Complete pre-employment checks",updated_at:now}).eq("id",applicationId);
     setChecks(x=>[data as Check,...x]); await load(); setSelected(data as Check); await loadItems(data.id); setOpen(true); setMessage("Background verification request created."); setSaving(false);
