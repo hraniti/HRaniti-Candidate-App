@@ -217,10 +217,19 @@ export default function OffersPage() {
     setTimeout(() => { if (editorRef.current) editorRef.current.innerHTML = offer.letter_html ?? renderCurrentLetter(app, template, version); }, 0);
   }
 
+  useEffect(() => {
+    if (!open || selectedOffer) return;
+    const template = templates.find((t) => t.id === templateId);
+    const version = template?.versions?.find((v) => v.id === templateVersionId) ?? latest(template ?? emptyTemplate);
+    if (!editorRef.current) return;
+    editorRef.current.innerHTML = renderCurrentLetter(undefined, template, version);
+  }, [open, templateId, templateVersionId, templates]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function templateChanged(id: string) {
-    const t = templates.find((x) => x.id === id); const v = latest(t ?? emptyTemplate);
-    setTemplateId(id); setTemplateVersionId(v?.id ?? "");
-    setTimeout(() => { if (editorRef.current) editorRef.current.innerHTML = renderCurrentLetter(undefined, t, v); }, 0);
+    const t = templates.find((x) => x.id === id);
+    const v = latest(t ?? emptyTemplate);
+    setTemplateId(id);
+    setTemplateVersionId(v?.id ?? "");
   }
 
   async function saveOffer(nextStatus: string) {
