@@ -13,7 +13,7 @@ type Profile = { id:string; full_name:string|null; email:string|null; current_lo
 type Offer = { id:string; application_id:string|null; candidate_name:string|null; candidate_email:string|null; job_title:string|null; status:string|null; start_date:string|null; responded_at:string|null; };
 type Check = {
   id:string; application_id:string|null; offer_id:string|null; candidate_name:string; candidate_email:string|null;
-  job_title:string|null; status:string; package_name?:string; verification_method?:string; provider_name:string|null; provider_case_id:string|null; provider_org_id:string|null; provider_status:string|null; report_url:string|null; report_received_at:string|null; last_provider_update_at:string|null; verification_method:string; unable_to_proceed_reason:string|null; stop_request_status:string; stop_requested_at:string|null; stop_reason:string|null; stopped_at:string|null;
+  job_title:string|null; status:string; package_name?:string; provider_name:string|null; provider_case_id:string|null; provider_org_id:string|null; provider_status:string|null; report_url:string|null; report_received_at:string|null; last_provider_update_at:string|null; verification_method:string; unable_to_proceed_reason:string|null; stop_request_status:string; stop_requested_at:string|null; stop_reason:string|null; stopped_at:string|null;
   requested_at:string|null; due_at:string|null; completed_at:string|null; joining_date:string|null; tat_days:number|null; tat_unit:string|null; tat_start_basis:string|null; tat_start_at:string|null; tat_due_at:string|null; tat_working_calendar:string|null; overall_note:string|null;
   consent_status:string; consent_at:string|null; jurisdiction:string|null; legal_basis:string|null; retention_until:string|null;
 };
