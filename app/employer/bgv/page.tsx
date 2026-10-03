@@ -130,6 +130,7 @@ export default function BGVPage() {
 
   function openNew(source?:Check|null, demo=false) {
     setSelected(source??null);
+    setSourceOfferId(source?.offer_id??null);
     setMessage("");
     if(source){
       const app=applications.find(a=>a.id===source.application_id);
