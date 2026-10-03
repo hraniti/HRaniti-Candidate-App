@@ -61,7 +61,11 @@ export default function BGVPage() {
   const [note,setNote]=useState("");
   const [saving,setSaving]=useState(false);
   const [requestedApplication,setRequestedApplication]=useState<string | null>(null);
-  const [access,setAccess]=useState<"none"|"view"|"initiate">("none");\n  const [providerEmail,setProviderEmail]=useState("");\n  const [providerContactName,setProviderContactName]=useState("");\n  const [providerInviteUrl,setProviderInviteUrl]=useState("");\n  const [invitingProvider,setInvitingProvider]=useState(false);
+  const [access,setAccess]=useState<"none"|"view"|"initiate">("none");
+  const [providerEmail,setProviderEmail]=useState("");
+  const [providerContactName,setProviderContactName]=useState("");
+  const [providerInviteUrl,setProviderInviteUrl]=useState("");
+  const [invitingProvider,setInvitingProvider]=useState(false);
 
   async function load() {
     setLoading(true);
@@ -109,7 +113,8 @@ export default function BGVPage() {
     clear:checks.filter(c=>c.status==="Clear").length
   }),[checks]);
 
-  const demoCandidate={id:"demo-candidate-1",name:"Aarav Mehta",email:"aarav.mehta@example.com",job:jobs[0]??null};\n  useEffect(()=>{ if(access==="initiate" && requestedApplication && applications.some(a=>a.id===requestedApplication)){ openNew(); setCandidateId(requestedApplication); setRequestedApplication(null); } },[applications,requestedApplication,access]);
+  const demoCandidate={id:"demo-candidate-1",name:"Aarav Mehta",email:"aarav.mehta@example.com",job:jobs[0]??null};
+  useEffect(()=>{ if(access==="initiate" && requestedApplication && applications.some(a=>a.id===requestedApplication)){ openNew(); setCandidateId(requestedApplication); setRequestedApplication(null); } },[applications,requestedApplication,access]);
 
   function openNew(source?:Check|null, demo=false) {
     setSelected(source??null);
