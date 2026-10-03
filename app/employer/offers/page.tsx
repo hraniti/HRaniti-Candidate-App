@@ -167,7 +167,7 @@ export default function OffersPage() {
 
   function renderCurrentLetter(row?: { app: Candidate; job?: Job; profile?: Profile }, template?: Template, version?: Version | null) {
     const r = row ?? applicationRows.find((x) => x.app.id === candidateId);
-    const html = version?.content_html ?? latest(template ?? ({ versions: [] } as Template))?.content_html ?? fallbackTemplate;
+    const html = version?.content_html ?? latest(template ?? emptyTemplate)?.content_html ?? fallbackTemplate;
     const values: Record<string,string> = {
       candidate_name: r?.profile?.full_name ?? selectedOffer?.candidate_name ?? "",
       candidate_email: r?.profile?.email ?? selectedOffer?.candidate_email ?? "",
@@ -205,7 +205,7 @@ export default function OffersPage() {
   function openExisting(offer: Offer) {
     const app = applicationRows.find((x) => x.app.id === offer.application_id);
     const template = templates.find((t) => t.id === offer.template_id);
-    const version = template?.versions?.find((v) => v.id === offer.template_version_id) ?? latest(template ?? ({ versions: [] } as Template));
+    const version = template?.versions?.find((v) => v.id === offer.template_version_id) ?? latest(template ?? emptyTemplate);
     setSelectedOffer(offer); setCandidateId(offer.application_id ?? ""); setTemplateId(offer.template_id ?? ""); setTemplateVersionId(offer.template_version_id ?? version?.id ?? "");
     setBaseSalary(offer.base_salary == null ? "" : String(offer.base_salary)); setCurrency(offer.salary_currency ?? "INR"); setPayFrequency(offer.pay_frequency ?? "Annual");
     setBonusTarget(offer.bonus_target == null ? "" : String(offer.bonus_target)); setWorkLocation(offer.work_location ?? app?.job?.location ?? "");
@@ -218,7 +218,7 @@ export default function OffersPage() {
   }
 
   function templateChanged(id: string) {
-    const t = templates.find((x) => x.id === id); const v = latest(t ?? ({ versions: [] } as Template));
+    const t = templates.find((x) => x.id === id); const v = latest(t ?? emptyTemplate);
     setTemplateId(id); setTemplateVersionId(v?.id ?? "");
     setTimeout(() => { if (editorRef.current) editorRef.current.innerHTML = renderCurrentLetter(undefined, t, v); }, 0);
   }
@@ -228,7 +228,7 @@ export default function OffersPage() {
     if (!row?.profile || !row.job) { setMessage("Choose an applicant before saving the offer."); return; }
     if (!startDate) { setMessage("Add the proposed start date before saving the offer."); return; }
     const template = templates.find((t) => t.id === templateId);
-    const version = template?.versions?.find((v) => v.id === templateVersionId) ?? latest(template ?? ({ versions: [] } as Template));
+    const version = template?.versions?.find((v) => v.id === templateVersionId) ?? latest(template ?? emptyTemplate);
     const finalHtml = safeHtml(editorRef.current?.innerHTML ?? renderCurrentLetter(row, template, version));
     setSaving(true); setMessage("");
     const auth = await supabase.auth.getUser(); if (!auth.data.user) { setSaving(false); return; }
@@ -296,7 +296,7 @@ export default function OffersPage() {
 
   const currentRow = applicationRows.find((x) => x.app.id === candidateId);
   const selectedTemplate = templates.find((t) => t.id === templateId);
-  const selectedVersion = selectedTemplate?.versions?.find((v) => v.id === templateVersionId) ?? latest(selectedTemplate ?? ({ versions: [] } as Template));
+  const selectedVersion = selectedTemplate?.versions?.find((v) => v.id === templateVersionId) ?? latest(selectedTemplate ?? emptyTemplate);
 
   return <EmployerShell>
     <div className="min-h-[calc(100vh-72px)] bg-[#FCFCFA]">
