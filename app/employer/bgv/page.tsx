@@ -59,10 +59,13 @@ export default function BGVPage() {
   const [method,setMethod]=useState("Manual");
   const [dueDate,setDueDate]=useState("");
   const [jurisdiction,setJurisdiction]=useState("India");
+  const [legalBasis,setLegalBasis]=useState("Contract / pre-contract");
   const [consent,setConsent]=useState("Not requested");
+  const [retentionUntil,setRetentionUntil]=useState("");
   const [types,setTypes]=useState<string[]>(["Identity","Address","Employment","Education","Criminal"]);
   const [note,setNote]=useState("");
-  const [saving,setSaving]=useState(false);\n  const [requestedApplication,setRequestedApplication]=useState<string | null>(null);
+  const [saving,setSaving]=useState(false);
+  const [requestedApplication,setRequestedApplication]=useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -149,8 +152,8 @@ export default function BGVPage() {
     const {data,error}=await supabase.from("background_checks").insert({
       company_id:companyId,application_id:applicationId,offer_id:offerId,candidate_name:name,candidate_email:email,job_title:role,
       status:"Requested",package_name:packageName,verification_method:method,requested_at:now,due_at:dueDate?new Date(dueDate+"T23:59:59").toISOString():null,
-      consent_status:consent,jurisdiction:jurisdiction||null,overall_note:note||null
-    }).select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,package_name,verification_method,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction").single();
+      consent_status:consent,jurisdiction:jurisdiction||null,legal_basis:legalBasis||null,retention_until:retentionUntil||null,overall_note:note||null
+    }).select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,package_name,verification_method,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").single();
     if(error||!data){setMessage(error?.message??"Could not create the verification request.");setSaving(false);return}
     const rows=types.map(t=>({background_check_id:data.id,company_id:companyId,check_type:t,status:consent==="Granted"?"Requested":"Pending",requested_at:consent==="Granted"?now:null}));
     const ir=await supabase.from("background_check_items").insert(rows);
