@@ -26,7 +26,7 @@ function tone(s:string) {
   if (s==="Clear") return "bg-[#E7F3F1] text-[#167D73]";
   if (s==="In progress" || s==="Requested") return "bg-[#EDF5FF] text-[#3D6F9E]";
   if (s==="Needs attention" || s==="Consider") return "bg-[#FFF7E6] text-[#8A641E]";
-  if (s==="Failed" || s==="Cancelled") return "bg-[#FFF1EE] text-[#B34E3E]";
+  if (s==="Failed" || s==="Cancelled" || s==="Unable to proceed") return "bg-[#FFF1EE] text-[#B34E3E]";
   return "bg-[#F5F7F7] text-[#71859A]";
 }
 function itemTone(s:string) {
@@ -38,6 +38,7 @@ function itemTone(s:string) {
 function date(v:string|null) { return v ? new Date(v).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "—"; }
 function addWorkingDays(start:string,days:number){const d=new Date(start);let left=Math.max(0,Math.floor(days));while(left>0){d.setDate(d.getDate()+1);const day=d.getDay();if(day!==0&&day!==6)left--;}return d;}
 function tatLabel(c:Check){if(!c.tat_days||!c.tat_due_at)return "No TAT";return `${c.tat_days} working day${c.tat_days===1?"":"s"}`;}
+function tatState(c:Check){if(!c.tat_due_at)return "No TAT";const due=new Date(c.tat_due_at);const end=c.completed_at?new Date(c.completed_at):new Date();const days=Math.ceil((due.getTime()-end.getTime())/86400000);if(c.completed_at)return days>=0?`Completed ${days}d early`:`Completed ${Math.abs(days)}d late`;return days>=0?`Due in ${days}d`:`Overdue by ${Math.abs(days)}d`;}
 function joiningGap(c:Check){if(!c.joining_date)return null;const join=new Date(c.joining_date+"T23:59:59");const end=c.completed_at?new Date(c.completed_at):new Date();return Math.round((join.getTime()-end.getTime())/86400000);}
 
 export default function BGVPage() {
@@ -249,7 +250,7 @@ export default function BGVPage() {
       <div className="mt-5 overflow-hidden rounded-2xl border border-[#DDE5EA] bg-white">
         <div className="hidden grid-cols-[minmax(230px,1.4fr)_1fr_.8fr_.8fr_.8fr_30px] gap-3 border-b border-[#EEF2F4] px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A99A5] md:grid"><span>Candidate</span><span>Role</span><span>Status</span><span>Provider status</span><span>Due</span><span/></div>
         {loading?<div className="px-5 py-16 text-center text-sm text-[#71859A]">Loading verification cases…</div>:rows.length===0?<div className="p-12 text-center"><ShieldCheck className="mx-auto text-[#9AA8B3]" size={26}/><p className="mt-3 text-sm font-medium text-[#173454]">No background checks yet</p><p className="mt-1 text-xs text-[#71859A]">Start from an accepted offer or create a sample verification to explore the workflow.</p>{access==="initiate"&&<button onClick={()=>openNew(null,true)} className="mt-4 rounded-xl border border-[#B9DDD7] px-4 py-2 text-xs font-medium text-[#167D73]">Preview sample</button>}</div>:
-        rows.map(c=><button key={c.id} onClick={()=>openNew(c)} className="grid w-full gap-3 border-b border-[#EEF2F4] px-5 py-4 text-left hover:bg-[#FCFDFD] md:grid-cols-[minmax(230px,1.4fr)_1fr_.8fr_.8fr_.8fr_30px] md:items-center"><span><span className="block text-sm font-medium text-[#173454]">{c.candidate_name}</span><span className="mt-1 block truncate text-[11px] text-[#71859A]">{c.candidate_email||"Email not provided"}</span></span><span className="text-xs text-[#526A7D]">{c.job_title||"Role"}</span><span><span className={"rounded-full px-2.5 py-1 text-[10px] font-medium "+tone(c.status)}>{c.status}</span></span><span className="text-xs text-[#526A7D]">{c.provider_status||c.status}</span><span className="text-xs text-[#71859A]">{date(c.due_at)}</span><ArrowRight size={15} className="text-[#9AA8B3]"/></button>)}
+        rows.map(c=><button key={c.id} onClick={()=>openNew(c)} className="grid w-full gap-3 border-b border-[#EEF2F4] px-5 py-4 text-left hover:bg-[#FCFDFD] md:grid-cols-[minmax(230px,1.4fr)_1fr_.8fr_.8fr_.8fr_30px] md:items-center"><span><span className="block text-sm font-medium text-[#173454]">{c.candidate_name}</span><span className="mt-1 block truncate text-[11px] text-[#71859A]">{c.candidate_email||"Email not provided"}</span></span><span className="text-xs text-[#526A7D]">{c.job_title||"Role"}</span><span><span className={"rounded-full px-2.5 py-1 text-[10px] font-medium "+tone(c.status)}>{c.status}</span></span><span className="text-xs text-[#526A7D]">{c.provider_status||c.status}</span><span className="text-xs text-[#71859A]"><span className="block">{date(c.tat_due_at||c.due_at)}</span><span className="mt-1 block text-[10px]">{tatState(c)}</span></span><ArrowRight size={15} className="text-[#9AA8B3]"/></button>)}
       </div>
 
       <div className="mt-5 rounded-2xl border border-[#DDE5EA] bg-white p-5"><div className="flex gap-3"><ClipboardCheck size={18} className="mt-0.5 text-[#167D73]"/><div><p className="text-xs font-semibold text-[#173454]">Connected hiring flow</p><p className="mt-1 text-[11px] leading-5 text-[#71859A]">Employer initiates → BGV provider works the case → provider updates HRANITI → authorized employer team reviews. HRANITI does not perform or adjudicate the verification.</p></div></div></div>
