@@ -1,0 +1,10 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+export default function ProviderLogin(){
+ const supabase=createClient();const router=useRouter();const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [error,setError]=useState("");const [busy,setBusy]=useState(false);
+ async function login(){setBusy(true);setError("");const {error}=await supabase.auth.signInWithPassword({email,password});if(error)setError(error.message);else router.push("/provider/bgv");setBusy(false)}
+ return <main className="min-h-screen bg-[#FCFCFA] px-5 py-12"><div className="mx-auto max-w-md"><div className="rounded-2xl border border-[#DDE5EA] bg-white p-7 shadow-sm"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#167D73]">BGV PROVIDER PORTAL</p><h1 className="mt-2 text-2xl font-semibold text-[#173454]">Sign in</h1><p className="mt-2 text-sm text-[#71859A]">Access only the background verification cases assigned to your provider organization.</p><div className="mt-7 space-y-4"><label className="block text-xs font-medium text-[#526A7D]">Work email<input className="input mt-1.5" type="email" value={email} onChange={e=>setEmail(e.target.value)} /></label><label className="block text-xs font-medium text-[#526A7D]">Password<input className="input mt-1.5" type="password" value={password} onChange={e=>setPassword(e.target.value)} /></label>{error&&<p className="text-xs text-[#B34E3E]">{error}</p>}<button onClick={login} disabled={busy||!email||!password} className="w-full rounded-xl bg-[#167D73] px-4 py-3 text-sm font-medium text-white disabled:opacity-50">{busy?"Signing in…":"Sign in"}</button></div></div><p className="mt-4 text-center text-[11px] text-[#9AA8B3]">Provider access is restricted to assigned BGV cases.</p></div></main>;
+}
