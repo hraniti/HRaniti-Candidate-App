@@ -140,7 +140,7 @@ export default function OffersPage() {
     const [offersResult, jobsResult, templatesResult, memberResult] = await Promise.all([
       supabase.from("offers").select("*").eq("company_id", company).order("created_at", { ascending: false }),
       supabase.from("jobs").select("id,title,location,employment_type,work_mode,company_id,description").eq("company_id", company).order("created_at", { ascending: false }),
-      supabase.from("offer_templates").select("id,name,description,template_type,country_code,employment_type,is_default,status,offer_template_versions(id,template_id,version_number,content_html,variable_schema,source_file_name)").eq("company_id", company).eq("status", "Active").order("is_default", { ascending: false }),
+      supabase.from("offer_templates").select("id,name,description,template_type,country_code,employment_type,is_default,status,versions:offer_template_versions(id,template_id,version_number,content_html,variable_schema,source_file_name)").eq("company_id", company).eq("status", "Active").order("is_default", { ascending: false }),
       supabase.from("company_team_members").select("role").eq("company_id", company).eq("user_id", user.id).eq("status", "Active").limit(1)
     ]);
     if (offersResult.error) setMessage(offersResult.error.message);
