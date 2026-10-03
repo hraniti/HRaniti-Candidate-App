@@ -81,8 +81,8 @@ export default function BGVPage() {
     const cs=(cd??[]) as Check[]; setChecks(cs);
     setJobs((jd??[]) as Job[]);
     setOffers((od??[]) as Offer[]);
-    const appsIds=[...new Set(cs.map(c=>c.application_id).filter(Boolean) as string[]),...(od??[]).map(o=>o.application_id).filter(Boolean) as string[]];
-    const appsResult=appsIds.length ? await supabase.from("applications").select("id,user_id,job_id,status,pipeline_stage").in("id",appsIds) : {data:[]};
+    const jobIds=(jd??[]).map((j:any)=>j.id);
+    const appsResult=jobIds.length ? await supabase.from("applications").select("id,user_id,job_id,status,pipeline_stage").in("job_id",jobIds).order("applied_at",{ascending:false}) : {data:[]};
     const apps=(appsResult.data??[]) as Application[]; setApplications(apps);
     const userIds=[...new Set(apps.map(a=>a.user_id).filter(Boolean))];
     if(userIds.length){const p=await supabase.from("profiles").select("id,full_name,email,current_location").in("id",userIds);const m:Record<string,Profile>={};for(const x of (p.data??[]) as Profile[])m[x.id]=x;setProfiles(m)}
