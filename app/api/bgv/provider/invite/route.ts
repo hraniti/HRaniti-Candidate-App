@@ -39,6 +39,21 @@ export async function POST(request: Request) {
     const role=String(membership.role||""); const bgvLevel=membership.permissions?.bgv;
     if(!["Owner","Admin"].includes(role) && bgvLevel!=="initiate") return NextResponse.json({error:"You do not have permission to assign BGV provider access."},{status:403});
 
+    if(action==="email"){
+      const to=String(body.to||"").trim().toLowerCase(), subject=String(body.subject||"Background verification update").trim(), message=String(body.message||"").trim();
+      if(!to||!message)return NextResponse.json({error:"Recipient and message are required."},{status:400});
+      const {data:emailCheck,error:emailCheckError}=await admin.from("background_checks").select("id,company_id,candidate_name,verification_method").eq("id",backgroundCheckId).eq("company_id",membership.company_id).single();
+      if(emailCheckError||!emailCheck)return NextResponse.json({error:"BGV case not found."},{status:404});
+      if(emailCheck.verification_method!=="Internal")return NextResponse.json({error:"Candidate email is available from internal verification cases."},{status:400});
+      if(!process.env.RESEND_API_KEY||!process.env.RESEND_FROM_EMAIL)return NextResponse.json({error:"Email sending is not configured yet."},{status:503});
+      const safe=message.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br/>");
+      const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({from:process.env.RESEND_FROM_EMAIL,to:[to],subject,html:`<p>Hello ${esc(emailCheck.candidate_name)},</p><p>${safe}</p><p>Regards,<br/>HRANITI</p>`})});
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok)return NextResponse.json({error:result?.message||"Email provider rejected the message."},{status:502});
+      await admin.from("background_check_events").insert({background_check_id:emailCheck.id,company_id:membership.company_id,actor_id:userData.user.id,event_type:"internal_bgv_email_sent",metadata:{to,subject,email_id:result?.id||null}});
+      return NextResponse.json({ok:true,emailId:result?.id||null});
+    }
+
     const {data:check,error:checkError}=await admin.from("background_checks").select("id,company_id,candidate_name,provider_org_id").eq("id",backgroundCheckId).eq("company_id",membership.company_id).single();
     if(action==="stop"){
       const {data:stopCheck,error:stopError}=await admin.from("background_checks").select("id,company_id,candidate_name,status,verification_method,provider_org_id,stop_request_status").eq("id",backgroundCheckId).eq("company_id",membership.company_id).single();
