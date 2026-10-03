@@ -91,7 +91,7 @@ export default function BGVPage() {
     setAccess(resolved);
     if(resolved==="none"){setLoading(false);return}
     const [{data:cd},{data:jd},{data:od}] = await Promise.all([
-      supabase.from("background_checks").select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,provider_name,provider_case_id,provider_org_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").eq("company_id",company).order("created_at",{ascending:false}),
+      supabase.from("background_checks").select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,verification_method,unable_to_proceed_reason,stop_request_status,stop_requested_at,stop_reason,stopped_at,provider_name,provider_case_id,provider_org_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").eq("company_id",company).order("created_at",{ascending:false}),
       supabase.from("jobs").select("id,title,location").eq("company_id",company).order("created_at",{ascending:false}),
       supabase.from("offers").select("id,application_id,candidate_name,candidate_email,job_title,status").eq("company_id",company).in("status",["Accepted","Sent","Approved"]).order("created_at",{ascending:false})
     ]);
@@ -136,7 +136,7 @@ export default function BGVPage() {
     } else {
       setCandidateId(demo ? "demo-candidate-1" : "");
       setJobId(demo ? (jobs[0]?.id??"") : "");
-      setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote("");
+      setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote(""); setVerificationMethod("Provider"); setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(""); setEmailSubject(""); setEmailMessage("");
       setSelectedItems([]);
     }
     setOpen(true);
