@@ -10,11 +10,11 @@ import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 type Job = { id:string; title:string; location:string|null; };
 type Application = { id:string; user_id:string; job_id:string; status:string|null; pipeline_stage:string|null; };
 type Profile = { id:string; full_name:string|null; email:string|null; current_location:string|null; };
-type Offer = { id:string; application_id:string|null; candidate_name:string|null; candidate_email:string|null; job_title:string|null; status:string|null; };
+type Offer = { id:string; application_id:string|null; candidate_name:string|null; candidate_email:string|null; job_title:string|null; status:string|null; start_date:string|null; };
 type Check = {
   id:string; application_id:string|null; offer_id:string|null; candidate_name:string; candidate_email:string|null;
   job_title:string|null; status:string; package_name?:string; verification_method?:string; provider_name:string|null; provider_case_id:string|null; provider_org_id:string|null; provider_status:string|null; report_url:string|null; report_received_at:string|null; last_provider_update_at:string|null; verification_method:string; unable_to_proceed_reason:string|null; stop_request_status:string; stop_requested_at:string|null; stop_reason:string|null; stopped_at:string|null;
-  requested_at:string|null; due_at:string|null; completed_at:string|null; overall_note:string|null;
+  requested_at:string|null; due_at:string|null; completed_at:string|null; joining_date:string|null; tat_days:number|null; tat_unit:string|null; tat_start_basis:string|null; tat_start_at:string|null; tat_due_at:string|null; tat_working_calendar:string|null; overall_note:string|null;
   consent_status:string; consent_at:string|null; jurisdiction:string|null; legal_basis:string|null; retention_until:string|null;
 };
 type Item = { id:string; background_check_id:string; check_type:string; status:string; provider:string|null; result_summary:string|null; reviewer_note:string|null; completed_at:string|null; };
@@ -36,6 +36,9 @@ function itemTone(s:string) {
   return "bg-[#F5F7F7] text-[#71859A]";
 }
 function date(v:string|null) { return v ? new Date(v).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "—"; }
+function addWorkingDays(start:string,days:number){const d=new Date(start);let left=Math.max(0,Math.floor(days));while(left>0){d.setDate(d.getDate()+1);const day=d.getDay();if(day!==0&&day!==6)left--;}return d;}
+function tatLabel(c:Check){if(!c.tat_days||!c.tat_due_at)return "No TAT";return `${c.tat_days} working day${c.tat_days===1?"":"s"}`;}
+function joiningGap(c:Check){if(!c.joining_date)return null;const join=new Date(c.joining_date+"T23:59:59");const end=c.completed_at?new Date(c.completed_at):new Date();return Math.round((join.getTime()-end.getTime())/86400000);}
 
 export default function BGVPage() {
   const supabase=createClient();
@@ -74,6 +77,8 @@ export default function BGVPage() {
   const [emailMessage,setEmailMessage]=useState("");
   const [sendingEmail,setSendingEmail]=useState(false);
   const [sourceOfferId,setSourceOfferId]=useState<string|null>(null);
+  const [tatDays,setTatDays]=useState("14");
+  const [tatStartBasis,setTatStartBasis]=useState<"Initiated"|"Offer accepted">("Initiated");
   const [invitingProvider,setInvitingProvider]=useState(false);
 
   async function load() {
@@ -92,9 +97,9 @@ export default function BGVPage() {
     setAccess(resolved);
     if(resolved==="none"){setLoading(false);return}
     const [{data:cd},{data:jd},{data:od}] = await Promise.all([
-      supabase.from("background_checks").select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,verification_method,unable_to_proceed_reason,stop_request_status,stop_requested_at,stop_reason,stopped_at,provider_name,provider_case_id,provider_org_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").eq("company_id",company).order("created_at",{ascending:false}),
+      supabase.from("background_checks").select("id,application_id,offer_id,candidate_name,candidate_email,job_title,status,verification_method,unable_to_proceed_reason,stop_request_status,stop_requested_at,stop_reason,stopped_at,provider_name,provider_case_id,provider_org_id,provider_status,report_url,report_received_at,last_provider_update_at,requested_at,due_at,completed_at,joining_date,tat_days,tat_unit,tat_start_basis,tat_start_at,tat_due_at,tat_working_calendar,overall_note,consent_status,consent_at,jurisdiction,legal_basis,retention_until").eq("company_id",company).order("created_at",{ascending:false}),
       supabase.from("jobs").select("id,title,location").eq("company_id",company).order("created_at",{ascending:false}),
-      supabase.from("offers").select("id,application_id,candidate_name,candidate_email,job_title,status").eq("company_id",company).in("status",["Accepted","Sent","Approved"]).order("created_at",{ascending:false})
+      supabase.from("offers").select("id,application_id,candidate_name,candidate_email,job_title,status,start_date").eq("company_id",company).in("status",["Accepted","Sent","Approved"]).order("created_at",{ascending:false})
     ]);
     const cs=(cd??[]) as Check[]; setChecks(cs);
     setJobs((jd??[]) as Job[]);
@@ -126,7 +131,7 @@ export default function BGVPage() {
   const readyOffers=useMemo(()=>offers.filter(o=>o.status==="Accepted"&&!checks.some(c=>c.offer_id===o.id)),[offers,checks]);
   useEffect(()=>{ if(access==="initiate" && requestedApplication && applications.some(a=>a.id===requestedApplication)){ openNew(); setCandidateId(requestedApplication); setRequestedApplication(null); } },[applications,requestedApplication,access]);
 
-  function openFromOffer(o:Offer){ setSelected(null); setMessage(""); setCandidateId(o.application_id||"demo-candidate-1"); setJobId(o.application_id?(applications.find(a=>a.id===o.application_id)?.job_id||""):(jobs[0]?.id||"")); setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote(""); setSourceOfferId(null); setVerificationMethod("Provider"); setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(o.candidate_email||""); setEmailSubject("Background verification"); setSourceOfferId(o.id); setEmailMessage(""); setSelectedItems([]); setOpen(true); }
+  function openFromOffer(o:Offer){ setSelected(null); setMessage(""); setCandidateId(o.application_id||"demo-candidate-1"); setJobId(o.application_id?(applications.find(a=>a.id===o.application_id)?.job_id||""):(jobs[0]?.id||"")); setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote(""); setSourceOfferId(null); setVerificationMethod("Provider"); setTatDays("14"); setTatStartBasis("Initiated"); setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(o.candidate_email||""); setEmailSubject("Background verification"); setSourceOfferId(o.id); setTatDays("14"); setTatStartBasis("Initiated"); if(o.start_date) setDueDate(o.start_date); setEmailMessage(""); setSelectedItems([]); setOpen(true); }
 
   function openNew(source?:Check|null, demo=false) {
     setSelected(source??null);
@@ -136,12 +141,12 @@ export default function BGVPage() {
       const app=applications.find(a=>a.id===source.application_id);
       setCandidateId(app?.id ?? "");
       setJobId(app?.job_id ?? jobs.find(j=>j.title===source.job_title)?.id ?? "");
-      setDueDate(source.due_at?.slice(0,10)??""); setNote(source.overall_note??"");
+      setDueDate(source.due_at?.slice(0,10)??""); setNote(source.overall_note??""); setTatDays(String(source.tat_days??14)); setTatStartBasis((source.tat_start_basis as "Initiated"|"Offer accepted")||"Initiated");
       setTimeout(()=>loadItems(source.id),0);
     } else {
       setCandidateId(demo ? "demo-candidate-1" : "");
       setJobId(demo ? (jobs[0]?.id??"") : "");
-      setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote(""); setVerificationMethod("Provider"); setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(""); setEmailSubject(""); setEmailMessage("");
+      setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote(""); setVerificationMethod("Provider"); setTatDays("14"); setTatStartBasis("Initiated"); setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(""); setEmailSubject(""); setEmailMessage("");
       setSelectedItems([]);
     }
     setOpen(true);
@@ -181,9 +186,15 @@ export default function BGVPage() {
       const offer=offers.find(o=>o.application_id===a.id); offerId=offer?.id??null;
     }
     const now=new Date().toISOString();
+    const sourceOffer=offerId?offers.find(o=>o.id===offerId):null;
+    const joiningDate=sourceOffer?.start_date||null;
+    const tatN=Math.max(1,Math.floor(Number(tatDays)||14));
+    const tatStart=tatStartBasis==="Offer accepted" ? now : now;
+    const tatDue=addWorkingDays(tatStart,tatN);
+    const tatDueIso=new Date(tatDue.getFullYear(),tatDue.getMonth(),tatDue.getDate(),23,59,59).toISOString();
     const {data,error}=await supabase.from("background_checks").insert({
       company_id:companyId,application_id:applicationId,offer_id:offerId,candidate_name:name,candidate_email:email,job_title:role,
-      status:"Not started",verification_method:verificationMethod,provider_name:verificationMethod==="Provider"?(providerName.trim()||null):null,provider_case_id:verificationMethod==="Provider"?(providerCaseId.trim()||null):null,requested_at:now,due_at:dueDate?new Date(dueDate+"T23:59:59").toISOString():null,
+      status:"Not started",verification_method:verificationMethod,provider_name:verificationMethod==="Provider"?(providerName.trim()||null):null,provider_case_id:verificationMethod==="Provider"?(providerCaseId.trim()||null):null,requested_at:now,due_at:dueDate?new Date(dueDate+"T23:59:59").toISOString():tatDueIso,joining_date:joiningDate,tat_days:tatN,tat_unit:"working_days",tat_start_basis:tatStartBasis,tat_start_at:tatStart,tat_due_at:tatDueIso,tat_working_calendar:"Mon-Fri",
       consent_status:"Not requested",jurisdiction:null,legal_basis:null,retention_until:null,overall_note:note||null
     }).select("*").single();
     if(error||!data){setMessage(error?.message??"Could not create the BGV case.");setSaving(false);return}
