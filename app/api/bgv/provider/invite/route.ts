@@ -43,7 +43,22 @@ export async function POST(request: Request) {
 
     let orgId=check.provider_org_id as string|null;
     if(!orgId){
-      const {data:newOrg,error:newOrgError}=await admin.from("bgv_provider_organizations").insert({name:providerName}).select("id").single();
+      const {data:existingOrg}=await admin.from("bgv_provider_organizations").select("id").ilike("name",providerName).limit(1).maybeSingle();
+      const newOrg=existingOrg;
+      const newOrgError=null;
+      if(!newOrg){
+        const {data:createdOrg,error:createdOrgError}=await admin.from("bgv_provider_organizations").insert({name:providerName}).select("id").single();
+        if(createdOrgError||!createdOrg) return NextResponse.json({error:createdOrgError?.message||"Could not create provider organization."},{status:500});
+        orgId=createdOrg.id;
+      } else {
+        orgId=newOrg.id;
+      }
+      if(newOrg) { orgId=newOrg.id; }
+      /* legacy variables retained for the shared error path */
+      if(newOrgError||false) return NextResponse.json({error:"Could not create provider organization."},{status:500});
+      if(!orgId) return NextResponse.json({error:"Could not resolve provider organization."},{status:500});
+    /*
+      const {data:newOrg,error:newOrgError}=await admin.from("bgv_provider_organizations").insert({name:providerName}).select("id").single(); */
       if(newOrgError||!newOrg) return NextResponse.json({error:newOrgError?.message||"Could not create provider organization."},{status:500});
       orgId=newOrg.id;
       await admin.from("background_checks").update({provider_org_id:orgId,provider_name:providerName,updated_at:new Date().toISOString()}).eq("id",check.id);
