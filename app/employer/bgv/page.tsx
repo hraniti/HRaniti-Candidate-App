@@ -182,7 +182,7 @@ export default function BGVPage() {
     const {data,error}=await supabase.from("background_checks").insert({
       company_id:companyId,application_id:applicationId,offer_id:offerId,candidate_name:name,candidate_email:email,job_title:role,
       status:"Not started",verification_method:verificationMethod,provider_name:verificationMethod==="Provider"?(providerName.trim()||null):null,provider_case_id:verificationMethod==="Provider"?(providerCaseId.trim()||null):null,requested_at:now,due_at:dueDate?new Date(dueDate+"T23:59:59").toISOString():null,
-      consent_status:"Not applicable",jurisdiction:null,legal_basis:null,retention_until:null,overall_note:note||null
+      consent_status:"Not requested",jurisdiction:null,legal_basis:null,retention_until:null,overall_note:note||null
     }).select("*").single();
     if(error||!data){setMessage(error?.message??"Could not create the BGV case.");setSaving(false);return}
     if(customChecks.trim()){const names=customChecks.split(String.fromCharCode(10)).map(x=>x.trim()).filter(Boolean);if(names.length)await supabase.from("background_check_items").insert(names.map(check_type=>({background_check_id:data.id,company_id:companyId,check_type,status:"Pending",provider:verificationMethod==="Provider"?(providerName.trim()||null):"Internal"})));} await supabase.from("background_check_events").insert({background_check_id:data.id,company_id:companyId,event_type:"bgv_case_created",metadata:{source:"employer",verification_method:verificationMethod,note:note||null}});
