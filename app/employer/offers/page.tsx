@@ -390,7 +390,7 @@ export default function OffersPage() {
                   <div><p className="text-xs font-medium text-[#526A7D]">Approver</p><p className="mt-0.5 text-[10px] text-[#9AA8B3]">Choose an active team member. Their email is used automatically.</p></div>
                   <select value="" onChange={(e) => { const id=e.target.value; if (id && !approverIds.includes(id)) setApproverIds((v) => [...v, id]); }} className="h-9 rounded-lg border border-[#B9DDD7] bg-white px-2 text-[11px] font-medium text-[#167D73] outline-none">
                     <option value="">＋ Add approver</option>
-                    {teamMembers.filter((m) => m.user_id && ["Owner","Admin","Recruiter"].includes(m.role) && !approverIds.includes(m.user_id)).map((m) => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email || "Team member"} · {m.role}</option>)}
+                    {teamMembers.filter((m): m is TeamMember & { user_id: string } => !!m.user_id && ["Owner","Admin","Recruiter"].includes(m.role) && !approverIds.includes(m.user_id)).map((m) => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email || "Team member"} · {m.role}</option>)}
                   </select>
                 </div>
                 {approverIds.length === 0 ? <p className="mt-3 text-[10px] text-[#B34E3E]">Select at least one approver before submitting.</p> :
