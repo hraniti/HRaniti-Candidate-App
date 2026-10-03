@@ -73,6 +73,7 @@ export default function BGVPage() {
   const [emailSubject,setEmailSubject]=useState("");
   const [emailMessage,setEmailMessage]=useState("");
   const [sendingEmail,setSendingEmail]=useState(false);
+  const [sourceOfferId,setSourceOfferId]=useState<string|null>(null);
   const [invitingProvider,setInvitingProvider]=useState(false);
 
   async function load() {
@@ -125,7 +126,7 @@ export default function BGVPage() {
   const readyOffers=useMemo(()=>offers.filter(o=>o.status==="Accepted"&&!checks.some(c=>c.offer_id===o.id)),[offers,checks]);
   useEffect(()=>{ if(access==="initiate" && requestedApplication && applications.some(a=>a.id===requestedApplication)){ openNew(); setCandidateId(requestedApplication); setRequestedApplication(null); } },[applications,requestedApplication,access]);
 
-  function openFromOffer(o:Offer){ setSelected(null); setMessage(""); setCandidateId(o.application_id||"demo-candidate-1"); setJobId(o.application_id?(applications.find(a=>a.id===o.application_id)?.job_id||""):(jobs[0]?.id||"")); setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote(""); setVerificationMethod("Provider"); setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(o.candidate_email||""); setEmailSubject("Background verification"); setEmailMessage(""); setSelectedItems([]); setOpen(true); }
+  function openFromOffer(o:Offer){ setSelected(null); setMessage(""); setCandidateId(o.application_id||"demo-candidate-1"); setJobId(o.application_id?(applications.find(a=>a.id===o.application_id)?.job_id||""):(jobs[0]?.id||"")); setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote(""); setSourceOfferId(null); setVerificationMethod("Provider"); setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(o.candidate_email||""); setEmailSubject("Background verification"); setSourceOfferId(o.id); setEmailMessage(""); setSelectedItems([]); setOpen(true); }
 
   function openNew(source?:Check|null, demo=false) {
     setSelected(source??null);
@@ -171,7 +172,7 @@ export default function BGVPage() {
     setSaving(true); setMessage("");
     let name="",email:string|null=null,role="";
     let applicationId:string|null=null,offerId:string|null=null;
-    if(candidateId==="demo-candidate-1"){name=demoCandidate.name;email=demoCandidate.email;role=demoCandidate.job?.title??"Sample role";}
+    if(candidateId==="demo-candidate-1"){name=demoCandidate.name;email=demoCandidate.email;role=demoCandidate.job?.title??"Sample role";offerId=sourceOfferId;}
     else {
       const a=applications.find(x=>x.id===candidateId); const p=a?profiles[a.user_id]:undefined; const j=a?jobs.find(x=>x.id===a.job_id):undefined;
       if(!a||!p){setMessage("Choose an applicant.");setSaving(false);return}
