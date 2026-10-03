@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, FileText, History, Plus, Search, Send, ShieldCheck, UserRound, X } from "lucide-react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import EmployerShell from "@/components/employer/EmployerShell";
 import { createClient } from "@/lib/supabase/client";
@@ -79,8 +78,7 @@ function statusTone(status: string | null) {
 
 export default function OffersPage() {
   const supabase = createClient();
-  const searchParams = useSearchParams();
-  const requestedApplication = searchParams.get("application");
+  const [requestedApplication, setRequestedApplication] = useState<string | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [applications, setApplications] = useState<Candidate[]>([]);
@@ -151,7 +149,7 @@ export default function OffersPage() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (typeof window !== "undefined") setRequestedApplication(new URLSearchParams(window.location.search).get("application")); load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applicationRows = useMemo(() => applications.map((a) => ({
     app: a, job: jobs.find((j) => j.id === a.job_id), profile: profiles.find((p) => p.id === a.user_id)
