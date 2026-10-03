@@ -12,6 +12,17 @@ type Job = { id: string; title: string; location: string | null; employment_type
 type Profile = { id: string; full_name: string | null; email: string | null; current_location: string | null; notice_period: string | null; expected_salary: number | null; salary_currency: string | null; };
 type Version = { id: string; template_id: string; version_number: number; content_html: string; variable_schema: { key: string; label: string }[]; source_file_name: string | null; };
 type Template = { id: string; name: string; description: string | null; template_type: string; country_code: string | null; employment_type: string | null; is_default: boolean; status: string; versions?: Version[]; };
+const DEMO_CANDIDATE_ID = "demo-candidate-1";
+const DEMO_CANDIDATE = {
+  id: DEMO_CANDIDATE_ID,
+  full_name: "Aarav Mehta",
+  email: "aarav.mehta@example.com",
+  current_location: "Bengaluru, India",
+  notice_period: "30 days",
+  expected_salary: 2400000,
+  salary_currency: "INR",
+};
+
 type Offer = {
   id: string; application_id: string | null; company_id: string | null; offer_number: string | null;
   candidate_name: string | null; candidate_email: string | null; job_title: string | null;
@@ -153,9 +164,26 @@ export default function OffersPage() {
 
   useEffect(() => { if (typeof window !== "undefined") setRequestedApplication(new URLSearchParams(window.location.search).get("application")); load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const applicationRows = useMemo(() => applications.map((a) => ({
-    app: a, job: jobs.find((j) => j.id === a.job_id), profile: profiles.find((p) => p.id === a.user_id)
-  })).filter((x) => x.job && x.profile), [applications, jobs, profiles]);
+  const applicationRows = useMemo(() => {
+    const rows = applications.map((a) => ({
+      app: a, job: jobs.find((j) => j.id === a.job_id), profile: profiles.find((p) => p.id === a.user_id)
+    })).filter((x) => x.job && x.profile) as { app: Candidate; job: Job; profile: Profile }[];
+    if (jobs[0]) {
+      rows.push({
+        app: {
+          id: DEMO_CANDIDATE_ID,
+          user_id: DEMO_CANDIDATE_ID,
+          job_id: jobs[0].id,
+          status: "Active",
+          pipeline_stage: "Hiring Manager Review",
+          next_step: "Create offer"
+        },
+        job: jobs[0],
+        profile: DEMO_CANDIDATE
+      });
+    }
+    return rows;
+  }, [applications, jobs, profiles]);
 
   const visibleOffers = offers.filter((o) => {
     const q = search.trim().toLowerCase();
@@ -203,10 +231,11 @@ export default function OffersPage() {
   }
 
   function openExisting(offer: Offer) {
-    const app = applicationRows.find((x) => x.app.id === offer.application_id);
+    const app = applicationRows.find((x) => x.app.id === offer.application_id)
+      ?? (offer.candidate_email === DEMO_CANDIDATE.email ? applicationRows.find((x) => x.app.id === DEMO_CANDIDATE_ID) : undefined);
     const template = templates.find((t) => t.id === offer.template_id);
     const version = template?.versions?.find((v) => v.id === offer.template_version_id) ?? latest(template ?? emptyTemplate);
-    setSelectedOffer(offer); setCandidateId(offer.application_id ?? ""); setTemplateId(offer.template_id ?? ""); setTemplateVersionId(offer.template_version_id ?? version?.id ?? "");
+    setSelectedOffer(offer); setCandidateId(offer.application_id ?? (offer.candidate_email === DEMO_CANDIDATE.email ? DEMO_CANDIDATE_ID : "")); setTemplateId(offer.template_id ?? ""); setTemplateVersionId(offer.template_version_id ?? version?.id ?? "");
     setBaseSalary(offer.base_salary == null ? "" : String(offer.base_salary)); setCurrency(offer.salary_currency ?? "INR"); setPayFrequency(offer.pay_frequency ?? "Annual");
     setBonusTarget(offer.bonus_target == null ? "" : String(offer.bonus_target)); setWorkLocation(offer.work_location ?? app?.job?.location ?? "");
     setWorkMode(offer.work_mode ?? app?.job?.work_mode ?? ""); setEmploymentType(offer.employment_type ?? app?.job?.employment_type ?? "Full-time");
@@ -243,7 +272,7 @@ export default function OffersPage() {
     const auth = await supabase.auth.getUser(); if (!auth.data.user) { setSaving(false); return; }
     const user = auth.data.user;
     const payload = {
-      application_id: row.app.id, company_id: companyId, created_by: user.id, updated_by: user.id,
+      application_id: row.app.id === DEMO_CANDIDATE_ID ? null : row.app.id, company_id: companyId, created_by: user.id, updated_by: user.id,
       candidate_name: row.profile.full_name, candidate_email: row.profile.email, job_title: row.job.title,
       work_location: workLocation, work_mode: workMode, employment_type: employmentType,
       salary_currency: currency, pay_frequency: payFrequency, base_salary: baseSalary ? Number(baseSalary) : null,
@@ -312,7 +341,10 @@ export default function OffersPage() {
       <div className="mx-auto max-w-[1180px] px-5 py-8 sm:px-8 sm:py-10">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#167D73]">HIRING</p><h1 className="mt-2 font-display text-3xl text-[#173454]">Offers</h1><p className="mt-1 max-w-2xl text-sm text-[#71859A]">Prepare, approve and track offers without losing the candidate context.</p></div>
-          <button onClick={() => openNew()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white"><Plus size={15}/> New offer</button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => openNew(DEMO_CANDIDATE_ID)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#B9DDD7] bg-white px-4 py-2.5 text-xs font-medium text-[#167D73]"><UserRound size={15}/> Try sample candidate</button>
+            <button onClick={() => openNew()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white"><Plus size={15}/> New offer</button>
+          </div>
         </div>
         <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-5">{counts.map(([label,count]) => <button key={label} onClick={() => setFilter(label)} className={"rounded-2xl border bg-white p-4 text-left " + (filter === label ? "border-[#A9D4CE]" : "border-[#DDE5EA]")}><p className="text-[10px] uppercase tracking-[0.12em] text-[#9AA8B3]">{label}</p><p className="mt-1 text-2xl font-semibold text-[#173454]">{count}</p></button>)}</div>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search size={15} className="absolute left-3 top-3 text-[#9AA8B3]"/><input value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 w-full rounded-xl border border-[#DDE5EA] bg-white pl-9 pr-3 text-xs outline-none focus:border-[#A9D4CE]" placeholder="Search candidate, role or offer number"/></div><select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-10 rounded-xl border border-[#DDE5EA] bg-white px-3 text-xs text-[#526A7D] outline-none"><option>All</option><option>Draft</option><option>Pending approval</option><option>Approved</option><option>Sent</option><option>Accepted</option><option>Declined</option><option>Withdrawn</option></select></div>
@@ -331,8 +363,8 @@ export default function OffersPage() {
           <div className="grid lg:grid-cols-[430px_minmax(0,1fr)]">
             <aside className="border-b border-[#E6ECEF] p-5 lg:border-b-0 lg:border-r sm:p-7">
               <label className="block text-xs font-medium text-[#526A7D]">Applicant</label>
-              <select value={candidateId} disabled={!!selectedOffer} onChange={(e) => { setCandidateId(e.target.value); const row = applicationRows.find((x) => x.app.id === e.target.value); if (row) { setWorkLocation(row.job?.location ?? row.profile?.current_location ?? ""); setEmploymentType(row.job?.employment_type ?? "Full-time"); setNoticePeriod(row.profile?.notice_period ?? ""); setBaseSalary(row.profile?.expected_salary ? String(row.profile.expected_salary) : ""); setCurrency(row.profile?.salary_currency ?? "INR"); } }} className="mt-2 h-11 w-full rounded-xl border border-[#DDE5EA] bg-white px-3 text-xs outline-none"><option value="">Select applicant</option>{applicationRows.map((x) => <option key={x.app.id} value={x.app.id}>{x.profile?.full_name || "Candidate"} · {x.job?.title || "Role"}</option>)}</select>
-              {currentRow?.profile && <div className="mt-3 rounded-xl bg-[#F7F9F9] p-4"><p className="text-sm font-medium text-[#173454]">{currentRow.profile.full_name}</p><p className="mt-1 text-xs text-[#71859A]">{currentRow.profile.email}</p><p className="mt-1 text-xs text-[#71859A]">{currentRow.job?.title} · {currentRow.job?.location}</p><Link href={"/employer/applicants/" + currentRow.app.id} className="mt-3 inline-flex text-xs text-[#167D73]">Open applicant →</Link></div>}
+              <select value={candidateId} disabled={!!selectedOffer} onChange={(e) => { setCandidateId(e.target.value); const row = applicationRows.find((x) => x.app.id === e.target.value); if (row) { setWorkLocation(row.job?.location ?? row.profile?.current_location ?? ""); setEmploymentType(row.job?.employment_type ?? "Full-time"); setNoticePeriod(row.profile?.notice_period ?? ""); setBaseSalary(row.profile?.expected_salary ? String(row.profile.expected_salary) : ""); setCurrency(row.profile?.salary_currency ?? "INR"); } }} className="mt-2 h-11 w-full rounded-xl border border-[#DDE5EA] bg-white px-3 text-xs outline-none"><option value="">Select applicant</option>{applicationRows.map((x) => <option key={x.app.id} value={x.app.id}>{x.profile?.full_name || "Candidate"}{x.app.id === DEMO_CANDIDATE_ID ? " · Demo candidate" : ""} · {x.job?.title || "Role"}</option>)}</select>
+              {currentRow?.profile && <div className="mt-3 rounded-xl bg-[#F7F9F9] p-4"><p className="text-sm font-medium text-[#173454]">{currentRow.profile.full_name}</p><p className="mt-1 text-xs text-[#71859A]">{currentRow.profile.email}</p><p className="mt-1 text-xs text-[#71859A]">{currentRow.job?.title} · {currentRow.job?.location}</p>{currentRow.app.id === DEMO_CANDIDATE_ID && <p className="mt-2 text-[10px] font-medium text-[#167D73]">Demo candidate · no candidate login or personal account is created.</p>}<Link href={"/employer/applicants/" + currentRow.app.id} className="mt-3 inline-flex text-xs text-[#167D73]">Open applicant →</Link></div>}
               <label className="mt-5 block text-xs font-medium text-[#526A7D]">Offer template</label>
               <select value={templateId} onChange={(e) => templateChanged(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#DDE5EA] bg-white px-3 text-xs outline-none"><option value="">HRaniti standard</option>{templates.map((t) => <option key={t.id} value={t.id}>{t.name}{t.is_default ? " · Default" : ""}</option>)}</select>
               <div className="mt-2 text-[11px] text-[#71859A]">{selectedVersion ? "Version " + selectedVersion.version_number + (selectedVersion.source_file_name ? " · " + selectedVersion.source_file_name : "") : "No company template selected"}</div><Link href="/employer/settings/hiring/templates" className="mt-2 inline-flex text-[11px] text-[#167D73]">Manage templates →</Link>
