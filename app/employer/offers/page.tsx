@@ -31,7 +31,7 @@ type Offer = {
   salary_currency: string | null; pay_frequency: string | null; base_salary: number | null;
   bonus_target: number | null; bonus_type: string | null; equity: string | null;
   reporting_to: string | null; probation_period: string | null; notice_period: string | null;
-  start_date: string | null; offer_expiry_date: string | null; approval_required: boolean | null;
+  start_date: string | null; offer_expiry_date: string | null; approval_required: boolean | null; approver_ids: string[] | null;
   approval_note: string | null; approved_at: string | null; sent_at: string | null;
   viewed_at: string | null; responded_at: string | null; candidate_response: string | null;
   response_note: string | null; candidate_message: string | null; internal_notes: string | null;
@@ -145,7 +145,6 @@ export default function OffersPage() {
       supabase.from("jobs").select("id,title,location,employment_type,work_mode,company_id,description").eq("company_id", company).order("created_at", { ascending: false }),
       supabase.from("offer_templates").select("id,name,description,template_type,country_code,employment_type,is_default,status,versions:offer_template_versions(id,template_id,version_number,content_html,variable_schema,source_file_name)").eq("company_id", company).eq("status", "Active").order("is_default", { ascending: false }),
       supabase.from("company_team_members").select("user_id,full_name,email,role,status").eq("company_id", company).eq("status", "Active").order("full_name"),
-      supabase.from("company_team_members").select("role").eq("company_id", company).eq("user_id", user.id).eq("status", "Active").limit(1)
     ]);
     if (offersResult.error) setMessage(offersResult.error.message);
     setOffers((offersResult.data ?? []) as Offer[]);
