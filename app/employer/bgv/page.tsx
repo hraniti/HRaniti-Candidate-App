@@ -151,7 +151,7 @@ export default function BGVPage() {
     } else {
       setCandidateId(demo ? "demo-candidate-1" : "");
       setJobId(demo ? (jobs[0]?.id??"") : "");
-      setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote(""); setVerificationMethod("Provider"); setTatDays("14"); setTatStartBasis("Initiated"); setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(""); setEmailSubject(""); setEmailMessage("");
+      setDueDate(""); setProviderName(""); setProviderCaseId(""); setNote(""); setVerificationMethod("Provider"); setTatDays(""); setTatStartBasis("Initiated"); setCustomChecks(""); setUnableReason(""); setStopReason(""); setEmailTo(""); setEmailSubject(""); setEmailMessage("");
       setSelectedItems([]);
     }
     setOpen(true);
