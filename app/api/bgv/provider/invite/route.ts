@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       const {data:pm}=await admin.from("bgv_provider_members").select("email,full_name").eq("provider_org_id",followCheck.provider_org_id).eq("status","Active").not("email","is",null).limit(1).maybeSingle();
       if(!pm?.email)return NextResponse.json({error:"No active provider contact is available for this case."},{status:400});
       if(!process.env.RESEND_API_KEY||!process.env.RESEND_FROM_EMAIL)return NextResponse.json({error:"Email sending is not configured yet."},{status:503});
-      const appUrl=(process.env.NEXT_PUBLIC_APP_URL||"").replace(/\\/$/,"");
+      const appUrl=(process.env.NEXT_PUBLIC_APP_URL||"").replace(/\/$/,"");
       const html=`<p>Hello ${esc(pm.full_name||"")},</p><p>This is a follow-up on the background verification for <strong>${esc(followCheck.candidate_name)}</strong>.${followCheck.job_title?` The role is <strong>${esc(followCheck.job_title)}</strong>.`:""}</p><p>Please update the provider status, pending checks and expected completion date in the HRANITI provider portal.</p><p><a href="${appUrl}/provider/bgv">Open provider portal</a></p><p>Regards,<br/>HRANITI</p>`;
       const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({from:process.env.RESEND_FROM_EMAIL,to:[pm.email],subject:`BGV follow-up — ${followCheck.candidate_name}`,html})});
       const result=await response.json().catch(()=>({}));
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       if(stopCheck.provider_org_id){const {data:pm}=await admin.from("bgv_provider_members").select("email").eq("provider_org_id",stopCheck.provider_org_id).eq("status","Active").not("email","is",null).limit(1).maybeSingle();providerEmail=pm?.email||null;}
       let emailSent=false;
       if(providerEmail&&process.env.RESEND_API_KEY&&process.env.RESEND_FROM_EMAIL){
-        const appUrl=(process.env.NEXT_PUBLIC_APP_URL||"").replace(/\\/$/,"");
+        const appUrl=(process.env.NEXT_PUBLIC_APP_URL||"").replace(/\/$/,"");
         const html=`<p>Hello,</p><p>The employer has requested that the BGV provider stop verification for <strong>${esc(stopCheck.candidate_name)}</strong>.</p><p><strong>Reason:</strong> ${esc(reason)}</p><p>Please open the HRANITI provider portal and acknowledge the stop request.</p><p><a href="${appUrl}/provider/bgv">Open provider portal</a></p>`;
         const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({from:process.env.RESEND_FROM_EMAIL,to:[providerEmail],subject:"Stop BGV verification — action required",html})});
         emailSent=response.ok;
