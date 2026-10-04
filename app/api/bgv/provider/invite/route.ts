@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     const {data:check,error:checkError}=await admin.from("background_checks").select("id,company_id,candidate_name,provider_org_id").eq("id",backgroundCheckId).eq("company_id",membership.company_id).single();
     if(action==="followup"){
-      const {data:followCheck,error:followError}=await admin.from("background_checks").select("id,company_id,candidate_name,job_title,status,provider_name,provider_org_id,stop_request_status").eq("id",backgroundCheckId).eq("company_id",membership.company_id).single();
+      const {data:followCheck,error:followError}=await admin.from("background_checks").select("id,company_id,candidate_name,job_title,status,verification_method,provider_name,provider_org_id,stop_request_status").eq("id",backgroundCheckId).eq("company_id",membership.company_id).single();
       if(followError||!followCheck)return NextResponse.json({error:"BGV case not found."},{status:404});
       if(followCheck.verification_method==="Internal")return NextResponse.json({error:"Provider follow-up is only available for external provider cases."},{status:400});
       if(["Clear","Completed","Cancelled"].includes(String(followCheck.status||"")))return NextResponse.json({error:"This verification is no longer active."},{status:400});
