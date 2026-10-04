@@ -55,6 +55,23 @@ export async function POST(request: Request) {
     }
 
     const {data:check,error:checkError}=await admin.from("background_checks").select("id,company_id,candidate_name,provider_org_id").eq("id",backgroundCheckId).eq("company_id",membership.company_id).single();
+    if(action==="followup"){
+      const {data:followCheck,error:followError}=await admin.from("background_checks").select("id,company_id,candidate_name,job_title,status,provider_name,provider_org_id,stop_request_status").eq("id",backgroundCheckId).eq("company_id",membership.company_id).single();
+      if(followError||!followCheck)return NextResponse.json({error:"BGV case not found."},{status:404});
+      if(followCheck.verification_method==="Internal")return NextResponse.json({error:"Provider follow-up is only available for external provider cases."},{status:400});
+      if(["Clear","Completed","Cancelled"].includes(String(followCheck.status||"")))return NextResponse.json({error:"This verification is no longer active."},{status:400});
+      if(!followCheck.provider_org_id)return NextResponse.json({error:"Connect the provider to this case before sending a follow-up."},{status:400});
+      const {data:pm}=await admin.from("bgv_provider_members").select("email,full_name").eq("provider_org_id",followCheck.provider_org_id).eq("status","Active").not("email","is",null).limit(1).maybeSingle();
+      if(!pm?.email)return NextResponse.json({error:"No active provider contact is available for this case."},{status:400});
+      if(!process.env.RESEND_API_KEY||!process.env.RESEND_FROM_EMAIL)return NextResponse.json({error:"Email sending is not configured yet."},{status:503});
+      const appUrl=(process.env.NEXT_PUBLIC_APP_URL||"").replace(/\\/$/,"");
+      const html=`<p>Hello ${esc(pm.full_name||"")},</p><p>This is a follow-up on the background verification for <strong>${esc(followCheck.candidate_name)}</strong>.${followCheck.job_title?` The role is <strong>${esc(followCheck.job_title)}</strong>.`:""}</p><p>Please update the provider status, pending checks and expected completion date in the HRANITI provider portal.</p><p><a href="${appUrl}/provider/bgv">Open provider portal</a></p><p>Regards,<br/>HRANITI</p>`;
+      const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({from:process.env.RESEND_FROM_EMAIL,to:[pm.email],subject:`BGV follow-up — ${followCheck.candidate_name}`,html})});
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok)return NextResponse.json({error:result?.message||"Email provider rejected the follow-up."},{status:502});
+      await admin.from("background_check_events").insert({background_check_id:followCheck.id,company_id:membership.company_id,actor_id:userData.user.id,event_type:"provider_followup_sent",metadata:{to:pm.email,email_id:result?.id||null}});
+      return NextResponse.json({ok:true,emailSent:true,emailId:result?.id||null});
+    }
     if(action==="stop"){
       const {data:stopCheck,error:stopError}=await admin.from("background_checks").select("id,company_id,candidate_name,status,verification_method,provider_org_id,stop_request_status").eq("id",backgroundCheckId).eq("company_id",membership.company_id).single();
       if(stopError||!stopCheck)return NextResponse.json({error:"BGV case not found."},{status:404});
