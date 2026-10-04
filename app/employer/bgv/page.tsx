@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, ChevronDown, ClipboardCheck, FileCheck2, Filter, Search, ShieldCheck, UserRound, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ClipboardCheck, Filter, Search, ShieldCheck, UserRound, X } from "lucide-react";
 import EmployerShell from "@/components/employer/EmployerShell";
 import { createClient } from "@/lib/supabase/client";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
