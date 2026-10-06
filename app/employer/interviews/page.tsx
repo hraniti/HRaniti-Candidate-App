@@ -221,7 +221,7 @@ export default function InterviewsPage(){
     setSaving(true);setNotice("");
     const {data:{user}}=await supabase.auth.getUser(); if(!user){setNotice("Please sign in again.");setSaving(false);return;}
     const proposed=new Date(dateValue+"T"+timeValue);
-    const {error}=await supabase.from("interview_requests").insert({
+    const {data:createdInterview,error}=await supabase.from("interview_requests").insert({
       application_id:applicationId,status:"Requested",proposed_times:[proposed.toISOString()],requested_by:user.id,
       interview_type:interviewType,interview_mode:mode,duration_minutes:Number(duration),timezone,
       meeting_link:meetingLink||null,meeting_provider:mode==="Online"?meetingProvider:null,
@@ -229,7 +229,7 @@ export default function InterviewsPage(){
       scorecard_criteria:scorecardId ? (scorecards.find(x=>x.id===scorecardId)?.criteria ?? null) : null,
       reminder_minutes:reminders,notes:notes||null
     });
-    if(error)setNotice(error.message);else{const created=await supabase.from("interview_requests").select("id").eq("application_id",applicationId).order("created_at",{ascending:false}).limit(1).maybeSingle();setShowNew(false);resetForm();await load();if(created.data?.id){const {data:{session}}=await supabase.auth.getSession();if(session?.access_token){const inv=await fetch("/api/interviews/invite",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({interviewId:created.data.id})});const result=await inv.json().catch(()=>({}));setNotice(inv.ok?"Interview created and invitation sent.":`Interview created, but invitation was not sent: ${result.error||"Email service unavailable."}`);}}}
+    if(error)setNotice(error.message);else{setShowNew(false);resetForm();await load();if(createdInterview?.id){const {data:{session}}=await supabase.auth.getSession();if(session?.access_token){const inv=await fetch("/api/interviews/invite",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({interviewId:createdInterview.id})});const result=await inv.json().catch(()=>({}));setNotice(inv.ok?"Interview created and invitation sent.":`Interview created, but invitation was not sent: ${result.error||"Email service unavailable."}`);}}}
     setSaving(false);
   }
   async function sendInvitation(row:Row){setSaving(true);setNotice("");const {data:{session}}=await supabase.auth.getSession();if(!session?.access_token){setNotice("Please sign in again.");setSaving(false);return;}const r=await fetch("/api/interviews/invite",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({interviewId:row.id})});const data=await r.json().catch(()=>({}));setNotice(r.ok?"Interview invitation sent.":(data.error||"Unable to send the invitation."));setSaving(false);if(r.ok)await load();}
@@ -282,7 +282,7 @@ export default function InterviewsPage(){
     <div className="mx-auto max-w-[1220px] px-5 py-8 sm:px-8 sm:py-10">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="text-[10px] font-semibold tracking-[0.18em] text-[#167D73] uppercase">HIRING</p><h1 className="mt-2 font-display text-3xl text-[#173454]">Interviews</h1><p className="mt-1 max-w-2xl text-sm text-[#71859A]">Schedule, coordinate and capture structured interview decisions in one place.</p></div>
-        <button onClick={()=>{resetForm();setShowNew(true)}} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white hover:bg-[#126A62]"><Plus size={15}/> Schedule interview</button>
+        {notice&&<div className="mt-5 rounded-xl border border-[#B9DDD7] bg-[#E7F3F1] px-4 py-3 text-xs text-[#167D73]">{notice}</div>}<button onClick={()=>{resetForm();setShowNew(true)}} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white hover:bg-[#126A62]"><Plus size={15}/> Schedule interview</button>
       </div>
       <div className="mt-7 grid gap-3 sm:grid-cols-3">
         {[["Upcoming",counts.upcoming,"Confirmed interviews and open scheduling requests"],["Requests",counts.requests,"Interviews waiting for confirmation"],["Completed",counts.completed,"Interviews with feedback history"]].map(([label,value,desc])=><button key={String(label)} onClick={()=>setFilter(label as Filter)} className={"rounded-2xl border bg-white p-5 text-left transition "+(filter===label?"border-[#B9DDD7] shadow-[0_5px_18px_rgba(23,52,84,0.05)]":"border-[#DDE5EA] hover:border-[#C9D8DE]")}><p className="text-[10px] font-semibold tracking-[0.12em] text-[#8A99A5] uppercase">{label}</p><p className="mt-2 text-2xl font-semibold text-[#173454]">{value}</p><p className="mt-1 text-[11px] leading-5 text-[#71859A]">{desc}</p></button>)}
