@@ -225,10 +225,10 @@ export default function InterviewsPage(){
       application_id:applicationId,status:"Requested",proposed_times:[proposed.toISOString()],requested_by:user.id,
       interview_type:interviewType,interview_mode:mode,duration_minutes:Number(duration),timezone,
       meeting_link:meetingLink||null,meeting_provider:mode==="Online"?meetingProvider:null,
-      interviewer_ids:selectedInterviewers,scorecard_id:scorecardId||null,
+      interviewer_ids:selectedInterviewers,external_interviewers:externalInterviewer.email.trim()?[{name:externalInterviewer.name.trim(),email:externalInterviewer.email.trim(),role:externalInterviewer.role.trim()}]:[],scorecard_id:scorecardId||null,
       scorecard_criteria:scorecardId ? (scorecards.find(x=>x.id===scorecardId)?.criteria ?? null) : null,
       reminder_minutes:reminders,notes:notes||null
-    });
+    }).select("id").single();
     if(error)setNotice(error.message);else{setShowNew(false);resetForm();await load();if(createdInterview?.id){const {data:{session}}=await supabase.auth.getSession();if(session?.access_token){const inv=await fetch("/api/interviews/invite",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({interviewId:createdInterview.id})});const result=await inv.json().catch(()=>({}));setNotice(inv.ok?"Interview created and invitation sent.":`Interview created, but invitation was not sent: ${result.error||"Email service unavailable."}`);}}}
     setSaving(false);
   }
