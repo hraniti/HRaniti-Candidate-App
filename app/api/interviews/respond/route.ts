@@ -21,7 +21,7 @@ export async function POST(request:Request){
   if(["Completed","Cancelled","Declined"].includes(String(interview.status)))return NextResponse.json({error:"This interview is no longer awaiting a candidate response."},{status:409});
   const now=new Date().toISOString();
   const nextStatus=response==="Confirmed"?"Confirmed":response;
-  await admin.from("interview_requests").update({status:nextStatus,candidate_response:response,candidate_confirmed_at:response==="Confirmed"?now:null,notes:note?(interview.notes?interview.notes+"\n\n":"")+"Candidate: "+note:interview.notes}).eq("id",interviewId);
+  await admin.from("interview_requests").update({status:nextStatus,confirmed_time:response==="Confirmed"?(interview.confirmed_time||interview.proposed_times?.[0]):interview.confirmed_time,candidate_response:response,candidate_confirmed_at:response==="Confirmed"?now:null,notes:note?(interview.notes?interview.notes+"\n\n":"")+"Candidate: "+note:interview.notes}).eq("id",interviewId);
   await admin.from("interview_invitations").update({status:response==="Confirmed"?"Accepted":response==="Declined"?"Declined":"Reschedule requested",submitted_at:now,updated_at:now}).eq("id",invite.id);
   if(response==="Confirmed"&&process.env.RESEND_API_KEY&&process.env.RESEND_FROM_EMAIL){
     const {data:app}=await admin.from("applications").select("user_id,job_id").eq("id",interview.application_id).single();
