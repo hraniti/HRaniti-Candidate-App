@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createHash, timingSafeEqual } from "crypto";
 export const runtime="nodejs";
-function valid(hashValue:string,token:string){try{const expected=createHash("sha256").update(token).digest("hex");return timingSafeEqual(Buffer.from(expected),Buffer.from(token?expected:""));}catch{return false;}}
 function esc(v:unknown){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]??c));}
 export async function POST(request:Request){
  try{
