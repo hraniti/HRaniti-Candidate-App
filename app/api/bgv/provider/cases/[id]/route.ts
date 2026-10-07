@@ -46,6 +46,8 @@ export async function PATCH(request:Request,{params}:{params:{id:string}}){
 
  if(Array.isArray(body.items)){
   for(const item of body.items){
+   if(String(item.status||"") === "Unable to verify" && !String(item.unableToProceedReason||"").trim())
+     return NextResponse.json({error:"Enter the reason this check cannot be verified."},{status:400});
    if(item.id){
     await db.from("background_check_items").update({
       status:String(item.status||"Pending"),result_summary:String(item.resultSummary||"").trim()||null,
