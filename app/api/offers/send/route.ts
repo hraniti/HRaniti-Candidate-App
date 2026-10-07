@@ -34,6 +34,11 @@ export async function POST(request: Request) {
     const { data: offer, error: offerError } = await admin.from("offers").select("*").eq("id", offerId).eq("company_id", membership.company_id).single();
     if (offerError || !offer) return NextResponse.json({ error: "Offer not found." }, { status: 404 });
     if (offer.status !== "Approved") return NextResponse.json({ error: "Only approved offers can be sent." }, { status: 400 });
+    if (offer.offer_expiry_date && new Date(offer.offer_expiry_date + "T23:59:59").getTime() < Date.now()) {
+      await admin.from("offers").update({ status: "Expired", expired_at: new Date().toISOString(), updated_by: userData.user.id }).eq("id", offer.id);
+      await admin.from("offer_events").insert({ offer_id: offer.id, company_id: offer.company_id, event_type: "offer_expired", actor_id: userData.user.id, metadata: { source: "send_attempt" } });
+      return NextResponse.json({ error: "This offer has expired. Update the expiry date and submit it for approval again." }, { status: 409 });
+    }
     const recipient = test ? userData.user.email : offer.candidate_email;
     if (!recipient) return NextResponse.json({ error: "The candidate has no email address." }, { status: 400 });
     const reviewUrl = `${appUrl.replace(/\/$/, "")}/offer-review/${encodeURIComponent(offer.id)}?token=${tokenFor(offer.id)}`;
