@@ -22,6 +22,11 @@ export async function POST(request: Request) {
     const admin = createClient(url, service, { auth: { autoRefreshToken: false, persistSession: false } });
     const { data: offer, error } = await admin.from("offers").select("*").eq("id", offerId).single();
     if (error || !offer) return NextResponse.json({ error: "Offer not found." }, { status: 404 });
+    if (offer.offer_expiry_date && new Date(offer.offer_expiry_date + "T23:59:59").getTime() < Date.now()) {
+      await admin.from("offers").update({ status: "Expired", expired_at: new Date().toISOString() }).eq("id", offerId);
+      await admin.from("offer_events").insert({ offer_id: offerId, company_id: offer.company_id, event_type: "offer_expired", actor_id: null, metadata: { source: "candidate_response" } });
+      return NextResponse.json({ error: "This offer has expired and cannot receive a response." }, { status: 409 });
+    }
     if (!["Sent","Viewed"].includes(offer.status)) return NextResponse.json({ error: "This offer is no longer awaiting a response." }, { status: 409 });
     const nextStatus = response;
     const { error: updateError } = await admin.from("offers").update({
