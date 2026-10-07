@@ -192,6 +192,47 @@ export async function POST(request: Request) {
       throw new Error(updateError.message);
     }
 
+    // Keep the Applicant pipeline in sync with the candidate's interview response.
+    // Interview decisions should remain employer-controlled; we only move the
+    // applicant to an interview stage and set the operational next step here.
+    if (interview.application_id) {
+      const { data: application } = await admin
+        .from("applications")
+        .select("id,pipeline_stage,next_step")
+        .eq("id", interview.application_id)
+        .maybeSingle();
+
+      if (application) {
+        if (response === "Confirmed") {
+          await admin
+            .from("applications")
+            .update({
+              confirmed_interview_time: confirmedTime,
+              pipeline_stage: application.pipeline_stage || "Technical Interview",
+              next_step: "Complete interview and submit feedback",
+              updated_at: now,
+            })
+            .eq("id", application.id);
+        } else if (response === "Reschedule requested") {
+          await admin
+            .from("applications")
+            .update({
+              next_step: "Arrange a new interview time",
+              updated_at: now,
+            })
+            .eq("id", application.id);
+        } else if (response === "Declined") {
+          await admin
+            .from("applications")
+            .update({
+              next_step: "Review candidate interview decline",
+              updated_at: now,
+            })
+            .eq("id", application.id);
+        }
+      }
+    }
+
     const invitationStatus =
       response === "Confirmed"
         ? "Accepted"
