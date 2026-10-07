@@ -220,7 +220,11 @@ export default function BGVPage() {
   }
 
   async function updateItem(id:string,patch:Partial<Item>) {
-    const {data,error}=await supabase.from("background_check_items").update({...patch,updated_at:new Date().toISOString()}).eq("id",id).select("id,background_check_id,check_type,status,provider,result_summary,reviewer_note,completed_at").single();
+    const current=selectedItems.find(i=>i.id===id);
+    const nextStatus=patch.status ?? current?.status;
+    const nextReason=patch.unable_to_proceed_reason ?? current?.unable_to_proceed_reason;
+    if(nextStatus==="Unable to verify" && !String(nextReason||"").trim()){setMessage("Enter why this check cannot be verified.");return}
+    const {data,error}=await supabase.from("background_check_items").update({...patch,updated_at:new Date().toISOString()}).eq("id",id).select("id,background_check_id,check_type,status,provider,result_summary,reviewer_note,completed_at,unable_to_proceed_reason").single();
     if(error||!data){setMessage(error?.message??"Could not update verification.");return}
     setSelectedItems(x=>x.map(i=>i.id===id?data as Item:i));
     const next=[...selectedItems.map(i=>i.id===id?data as Item:i)];
