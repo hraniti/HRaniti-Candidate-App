@@ -131,6 +131,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (invitation.status !== "Invited") {
+      return NextResponse.json(
+        { error: "This interview invitation has already been responded to." },
+        { status: 409 }
+      );
+    }
+
     if (hashToken(token) !== invitation.token_hash) {
       return NextResponse.json(
         { error: "This interview link is invalid or expired." },
@@ -204,11 +211,23 @@ export async function POST(request: Request) {
 
       if (application) {
         if (response === "Confirmed") {
+          const interviewType = String(interview.interview_type || "").toLowerCase();
+          const interviewStage =
+            interviewType.includes("recruiter") || interviewType.includes("screen")
+              ? "Recruiter Screen"
+              : interviewType.includes("hiring manager")
+                ? "Hiring Manager Review"
+                : interviewType.includes("executive")
+                  ? "Executive Review"
+                  : interviewType.includes("technical") || interviewType.includes("panel") || interviewType.includes("structured")
+                    ? "Technical Interview"
+                    : application.pipeline_stage || "Technical Interview";
+
           await admin
             .from("applications")
             .update({
               confirmed_interview_time: confirmedTime,
-              pipeline_stage: application.pipeline_stage || "Technical Interview",
+              pipeline_stage: interviewStage,
               next_step: "Complete interview and submit feedback",
               updated_at: now,
             })
