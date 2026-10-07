@@ -11,6 +11,7 @@ export async function POST(request:Request){
   const admin=createClient(url,service,{auth:{autoRefreshToken:false,persistSession:false}});
   const {data:invite}=await admin.from("interview_invitations").select("*").eq("interview_id",interviewId).eq("invite_type","External").maybeSingle();
   if(!invite||new Date(invite.expires_at).getTime()<Date.now()||hash(String(token||""))!==invite.token_hash)return NextResponse.json({error:"This feedback link is invalid or expired."},{status:401});
+  if(invite.status!=="Invited")return NextResponse.json({error:"This feedback invitation has already been submitted."},{status:409});
   const {data:interview}=await admin.from("interview_requests").select("id,status").eq("id",interviewId).single();
   if(!interview)return NextResponse.json({error:"Interview not found."},{status:404});
   const {error}=await admin.from("interview_feedback").insert({interview_id:interview.id,company_id:invite.company_id,interviewer_id:null,ratings:ratings||{},overall_recommendation:recommendation||null,strengths:strengths||null,concerns:concerns||null,notes:("External interviewer: "+String(invite.name||"Interviewer")+" <"+String(invite.email||"")+">\n"+String(notes||"")).trim()});
