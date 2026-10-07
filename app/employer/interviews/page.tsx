@@ -300,9 +300,35 @@ export default function InterviewsPage(){
     const company=await getOrCreateCompanyId(supabase,user);
     const interviewerId=members.find(m=>m.user_id===user.id)?.id??members.find(m=>m.id===user.id)?.id??null;
     const {error}=await supabase.from("interview_feedback").insert({interview_id:feedback.id,company_id:company,interviewer_id:interviewerId,ratings:feedbackRatings,overall_recommendation:recommendation||null,strengths:strengths||null,concerns:concerns||null,notes:feedbackNotes||null});
-    if(!error){await supabase.from("interview_requests").update({status:"Completed"}).eq("id",feedback.id);setFeedback(null);await load();}else setNotice(error.message);
+    if(!error){
+      if(feedback.application_id){
+        await supabase.from("applications").update({
+          next_step:"Interview feedback submitted — complete the hiring review",
+          updated_at:new Date().toISOString()
+        }).eq("id",feedback.application_id);
+      }
+      setFeedback(null);
+      await load();
+    }else setNotice(error.message);
     setSaving(false);
   }
+
+  async function markInterviewCompleted(row:Row){
+    setSaving(true);
+    setNotice("");
+    const {error}=await supabase.from("interview_requests").update({status:"Completed"}).eq("id",row.id);
+    if(error){setNotice(error.message);setSaving(false);return;}
+    if(row.application_id){
+      await supabase.from("applications").update({
+        next_step:"Review interview feedback and decide next stage",
+        updated_at:new Date().toISOString()
+      }).eq("id",row.application_id);
+    }
+    await load();
+    setNotice("Interview marked completed. Review the feedback before moving the applicant to the next stage.");
+    setSaving(false);
+  }
+
   const selectedCard=feedback
     ? ((feedback as Row & {scorecard_criteria?:any[]}).scorecard_criteria?.length
         ? {...(scorecards.find(x=>x.id===feedback.scorecard_id)||feedback.scorecard||scorecards[0]),criteria:(feedback as Row & {scorecard_criteria?:any[]}).scorecard_criteria}
@@ -327,6 +353,7 @@ export default function InterviewsPage(){
           <div className="flex flex-wrap items-center gap-2 xl:justify-end">
             {(row.status==="Requested"||row.status==="Reschedule requested")&&row.proposed_times?.[0]&&<button onClick={()=>sendInvitation(row)} className="inline-flex items-center gap-1.5 rounded-xl bg-[#167D73] px-3 py-2 text-[11px] font-medium text-white"><CheckCircle2 size={13}/> Send invitation</button>}
             {row.status==="Confirmed"&&<button onClick={()=>openFeedback(row)} className="inline-flex items-center gap-1.5 rounded-xl border border-[#B9DDD7] bg-[#E7F3F1] px-3 py-2 text-[11px] font-medium text-[#167D73]"><FileCheck2 size={13}/> Interview feedback</button>}
+            {row.status==="Confirmed"&&<button onClick={()=>markInterviewCompleted(row)} className="inline-flex items-center gap-1.5 rounded-xl border border-[#DDE5EA] bg-white px-3 py-2 text-[11px] text-[#526A7D]">Mark completed</button>}
             {row.status==="Confirmed"&&<button onClick={()=>addToCalendar(row)} className="rounded-xl border border-[#DDE5EA] bg-white px-3 py-2 text-[11px] text-[#526A7D]">Google Calendar</button>}
             {row.status==="Confirmed"&&<button onClick={()=>downloadIcs(row)} className="rounded-xl border border-[#DDE5EA] bg-white px-3 py-2 text-[11px] text-[#526A7D]">.ics</button>}
             {!["Completed","Cancelled"].includes(row.status??"")&&<button onClick={()=>setStatus(row,"Cancelled")} className="inline-flex items-center gap-1.5 rounded-xl border border-[#F0D5CF] bg-white px-3 py-2 text-[11px] text-[#B34E3E]"><XCircle size={13}/> Cancel</button>}
