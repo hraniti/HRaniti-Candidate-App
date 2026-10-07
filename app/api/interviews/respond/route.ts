@@ -34,8 +34,8 @@ export async function POST(request:Request){
       let display = whenDate.toLocaleString("en-GB");
       try {
         display = new Intl.DateTimeFormat("en-GB", { dateStyle: "full", timeStyle: "short", timeZone: tz }).format(whenDate);
-      } catch {
-        // Fall back to the locale string when the stored timezone is invalid.
+      } catch (formatError) {
+        display = whenDate.toLocaleString("en-GB");
       }
       const html="<div style=\"max-width:620px;margin:32px auto;background:#fff;border:1px solid #e1e8e7;border-radius:18px;padding:36px;font-family:Arial,sans-serif;color:#173454\"><div style=\"font-weight:700;font-size:22px\">"+esc(company?.name||"HRaniti")+"</div><p>Thank you, "+esc(candidate.full_name||"Candidate")+". Your interview is confirmed.</p><p><strong>"+esc(job?.title||"Interview")+"</strong><br/>"+esc(display)+" · "+esc(tz)+"<br/>"+esc(String(interview.duration_minutes||60))+" minutes</p>"+(interview.meeting_link?"<p><a href=\""+esc(interview.meeting_link)+"\">Join "+esc(interview.meeting_provider||"meeting")+"</a></p>":"")+"<p>We look forward to speaking with you.</p></div>";
       await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json","Idempotency-Key":"interview-confirmed#"+interviewId+"#"+invite.id},body:JSON.stringify({from:process.env.RESEND_FROM_EMAIL,to:[candidate.email],subject:"Interview confirmed — "+(job?.title||"your interview"),html}));
