@@ -7,7 +7,7 @@ import EmployerShell from "@/components/employer/EmployerShell";
 import { createClient } from "@/lib/supabase/client";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 
-type App={id:string;user_id:string;job_id:string;status:string|null;applied_at:string;pipeline_stage:string|null;match_score:number|null;skill_score:number|null;experience_score:number|null;location_score:number|null;next_step:string|null;employer_feedback:string|null;expected_timeline:string|null;updated_at:string|null};
+type App={id:string;user_id:string;job_id:string;status:string|null;applied_at:string;pipeline_stage:string|null;match_score:number|null;skill_score:number|null;experience_score:number|null;location_score:number|null;next_step:string|null;employer_feedback:string|null;expected_timeline:string|null;updated_at:string|null;custom_fields?:any};
 type Job={id:string;title:string;location:string|null;employment_type:string|null;description:string|null;career_track:string|null};
 type HiringPipeline={id:string;name:string;stages:any;is_default:boolean|null};
 type Profile={id:string;full_name:string|null;email:string|null;phone:string|null;linkedin_url:string|null;professional_summary:string|null;current_company:string|null;current_designation:string|null;years_experience:string|null;current_location:string|null;experience:any;education:any;skills:any;certifications:any;notice_period:string|null;availability_status:string|null;work_preference:string[]|null;expected_salary:number|null;salary_currency:string|null;resume_uploaded:boolean|null};
@@ -37,14 +37,17 @@ export default function ApplicantDetail({params}:{params:{id:string}}){
    setLoading(false);return;
   } const {data:{user}}=await supabase.auth.getUser(); if(!user){setLoading(false);return}
   const company=await getOrCreateCompanyId(supabase,user);
-  const {data:a}=await supabase.from("applications").select("id,user_id,job_id,status,applied_at,pipeline_stage,match_score,skill_score,experience_score,location_score,next_step,employer_feedback,expected_timeline,updated_at").eq("id",params.id).single();
+  const {data:a}=await supabase.from("applications").select("id,user_id,job_id,status,applied_at,pipeline_stage,match_score,skill_score,experience_score,location_score,next_step,employer_feedback,expected_timeline,updated_at,custom_fields").eq("id",params.id).single();
   if(!a){setLoading(false);return}
   setApp(a as App);
   const [{data:j},{data:pr}]=await Promise.all([
    supabase.from("jobs").select("id,title,location,employment_type,description,career_track").eq("id",a.job_id).eq("company_id",company).single(),
    supabase.from("hiring_pipelines").select("id,name,stages,is_default").eq("company_id",company).order("created_at")
   ]); setJob(j as Job); setPipelines((pr??[]) as HiringPipeline[]);
-  const {data:p}=await supabase.from("profiles").select("id,full_name,email,phone,linkedin_url,professional_summary,current_company,current_designation,years_experience,current_location,experience,education,skills,certifications,notice_period,availability_status,work_preference,expected_salary,salary_currency,resume_uploaded").eq("id",a.user_id).single(); setProfile(p as Profile);
+  const {data:p}=await supabase.from("profiles").select("id,full_name,email,phone,linkedin_url,professional_summary,current_company,current_designation,years_experience,current_location,experience,education,skills,certifications,notice_period,availability_status,work_preference,expected_salary,salary_currency,resume_uploaded").eq("id",a.user_id).single();
+  const demo=a.custom_fields?.demo_candidate?a.custom_fields:null;
+  const displayProfile=demo?{...(p as Profile),full_name:String(demo.demo_name||p?.full_name||"Ruby"),email:String(demo.demo_email||p?.email||"rubysathiyan091@gmail.com"),current_designation:String(demo.demo_role||p?.current_designation||"Senior Software Engineer"),current_location:String(demo.demo_location||p?.current_location||"Bengaluru, India")}:p;
+  setProfile(displayProfile as Profile);
   const [{data:ar},{data:ir},{data:o},{data:r}]=await Promise.all([
    supabase.from("assessment_results").select("*").eq("user_id",a.user_id).order("completed_at",{ascending:false}),
    supabase.from("interview_requests").select("*").eq("application_id",a.id).order("created_at",{ascending:false}),
