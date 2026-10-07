@@ -180,7 +180,7 @@ export default function InterviewsPage(){
     if(!scorecardId&&cardsData[0])setScorecardId(cardsData[0].id);
     const jobIds=(jobs??[]).map(x=>x.id);
     if(!jobIds.length){setRows([]);setLoading(false);return;}
-    const {data:apps}=await supabase.from("applications").select("id,user_id,job_id,status,pipeline_stage,applied_at").in("job_id",jobIds).order("applied_at",{ascending:false});
+    const {data:apps}=await supabase.from("applications").select("id,user_id,job_id,status,pipeline_stage,applied_at,custom_fields").in("job_id",jobIds).order("applied_at",{ascending:false});
     const appIds=(apps??[]).map(x=>x.id);
     if(!appIds.length){setRows([]);setLoading(false);return;}
     const [{data:interviews},{data:profiles}]=await Promise.all([
@@ -192,10 +192,17 @@ export default function InterviewsPage(){
     const profileMap=new Map((profiles??[]).map(x=>[x.id,x as Candidate]));
     const memberMap=new Map((team??[]).map(x=>[x.id,x as TeamMember]));
     const cardMap=new Map(cardsData.map(x=>[x.id,x]));
-    setApplicationChoices((apps??[]).map(x=>({...x as Application,candidate:profileMap.get(x.user_id),job:jobMap.get(x.job_id)})));
+    const candidateForApplication=(app:any)=>{
+      const base=profileMap.get(app?.user_id);
+      const demo=app?.custom_fields?.demo_candidate?app.custom_fields:null;
+      return demo
+        ? {...base,id:app.user_id,full_name:String(demo.demo_name||"Ruby"),email:String(demo.demo_email||"rubysathiyan091@gmail.com"),current_designation:String(demo.demo_role||"Senior Software Engineer"),current_location:String(demo.demo_location||"Bengaluru, India")}
+        : base;
+    };
+    setApplicationChoices((apps??[]).map(x=>({...x as Application,candidate:candidateForApplication(x),job:jobMap.get(x.job_id)})));
     setRows((interviews??[]).map(x=>{
       const interview=x as Interview; const app=appMap.get(x.application_id??"");
-      return {...interview,application:app,job:jobMap.get(app?.job_id??""),candidate:profileMap.get(app?.user_id??""),interviewers:(interview.interviewer_ids??[]).map(id=>memberMap.get(id)).filter(Boolean) as TeamMember[],scorecard:cardMap.get(interview.scorecard_id??"")};
+      return {...interview,application:app,job:jobMap.get(app?.job_id??""),candidate:candidateForApplication(app),interviewers:(interview.interviewer_ids??[]).map(id=>memberMap.get(id)).filter(Boolean) as TeamMember[],scorecard:cardMap.get(interview.scorecard_id??"")};
     }));
     setLoading(false);
   }
