@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createHash, timingSafeEqual } from "crypto";
+import { createHash } from "crypto";
 export const runtime="nodejs";
 function esc(v:unknown){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]??c));}
 export async function POST(request:Request){
@@ -29,12 +29,12 @@ export async function POST(request:Request){
     const {data:company}=job?await admin.from("companies").select("name").eq("id",job.company_id).single():{data:null};
     const whenValue=interview.confirmed_time||interview.proposed_times?.[0];
     if(whenValue&&candidate?.email){
-      const when=new Date(whenValue),tz=interview.timezone||"UTC";
-      let display=when.toLocaleString("en-GB"); try{display=new Intl.DateTimeFormat("en-GB",{dateStyle:"full",timeStyle:"short",timeZone:tz}).format(when);}catch{}
+      const whenDate=new Date(whenValue); const tz=interview.timezone||"UTC";
+      let display=whenDate.toLocaleString("en-GB"); try{display=new Intl.DateTimeFormat("en-GB",{dateStyle:"full",timeStyle:"short",timeZone:tz}).format(whenDate);}catch{}
       const html="<div style=\"max-width:620px;margin:32px auto;background:#fff;border:1px solid #e1e8e7;border-radius:18px;padding:36px;font-family:Arial,sans-serif;color:#173454\"><div style=\"font-weight:700;font-size:22px\">"+esc(company?.name||"HRaniti")+"</div><p>Thank you, "+esc(candidate.full_name||"Candidate")+". Your interview is confirmed.</p><p><strong>"+esc(job?.title||"Interview")+"</strong><br/>"+esc(display)+" · "+esc(tz)+"<br/>"+esc(String(interview.duration_minutes||60))+" minutes</p>"+(interview.meeting_link?"<p><a href=\""+esc(interview.meeting_link)+"\">Join "+esc(interview.meeting_provider||"meeting")+"</a></p>":"")+"<p>We look forward to speaking with you.</p></div>";
       await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json","Idempotency-Key":"interview-confirmed#"+interviewId+"#"+invite.id},body:JSON.stringify({from:process.env.RESEND_FROM_EMAIL,to:[candidate.email],subject:"Interview confirmed — "+(job?.title||"your interview"),html}));
       for(const mins of (interview.reminder_minutes||[])){
-        const scheduled=new Date(when.getTime()-Number(mins)*60000);
+        const scheduled=new Date(whenDate.getTime()-Number(mins)*60000);
         if(scheduled.getTime()>Date.now()&&scheduled.getTime()<Date.now()+30*86400000){
           const label=Number(mins)>=1440?String(Math.round(Number(mins)/1440))+" day":Number(mins)>=60?String(Math.round(Number(mins)/60))+" hour":String(Number(mins))+" minutes";
           const reminderHtml="<p>Hello "+esc(candidate.full_name||"Candidate")+",</p><p>This is a reminder for your interview at "+esc(display)+".</p>"+(interview.meeting_link?"<p><a href=\""+esc(interview.meeting_link)+"\">Join meeting</a></p>":"");
