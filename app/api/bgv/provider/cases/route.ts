@@ -15,6 +15,6 @@ export async function GET(){
  const {data:cases,error}=await db.from("bgv_provider_cases").select("id,background_check_id,company_id,status,background_checks(*)").eq("provider_org_id",member.provider_org_id).eq("status","Active").order("assigned_at",{ascending:false});
  if(error)return NextResponse.json({error:error.message},{status:500});
  const checkIds=(cases||[]).map((x:any)=>x.background_check_id);
- const {data:items}=checkIds.length?await db.from("background_check_items").select("id,background_check_id,check_type,status,provider,result_summary,reviewer_note,completed_at").in("background_check_id",checkIds):{data:[]};
+ const {data:items}=checkIds.length?await db.from("background_check_items").select("id,background_check_id,check_type,status,provider,result_summary,reviewer_note,completed_at,unable_to_proceed_reason").in("background_check_id",checkIds):{data:[]};
  return NextResponse.json({member,cases:cases||[],items:items||[]});
 }
