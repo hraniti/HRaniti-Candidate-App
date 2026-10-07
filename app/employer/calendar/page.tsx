@@ -59,6 +59,61 @@ const addMonths = (d: Date, n: number) => {
 const formatTime = (d: Date) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 const formatDate = (d: Date) => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
+function icsEscape(value: string) {
+  return value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+}
+function icsStamp(d: Date) {
+  return d.toISOString().replace(/[-:]/g, "").replace(/\\.\d{3}/, "");
+}
+function downloadCalendarFile(event: CalendarEvent) {
+  const end = new Date(event.date.getTime() + (event.interview.duration_minutes ?? 60) * 60000);
+  const body = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//HRANITI//Hiring Calendar//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    "UID:" + icsEscape(event.id) + "@hraniti",
+    "DTSTAMP:" + icsStamp(new Date()),
+    "DTSTART:" + icsStamp(event.date),
+    "DTEND:" + icsStamp(end),
+    "SUMMARY:" + icsEscape(event.title + " · " + event.subtitle),
+    "DESCRIPTION:" + icsEscape("HRANITI interview" + (event.interview.meeting_link ? "\\nMeeting: " + event.interview.meeting_link : "")),
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+  const url = URL.createObjectURL(new Blob([body], { type: "text/calendar;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "hraniti-interview-" + event.id + ".ics";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function googleCalendarUrl(event: CalendarEvent) {
+  const end = new Date(event.date.getTime() + (event.interview.duration_minutes ?? 60) * 60000);
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: event.title + " · " + event.subtitle,
+    dates: icsStamp(event.date) + "/" + icsStamp(end),
+    details: "HRANITI interview" + (event.interview.meeting_link ? "\\nMeeting: " + event.interview.meeting_link : ""),
+    location: event.interview.job?.location ?? "",
+  });
+  return "https://calendar.google.com/calendar/render?" + params.toString();
+}
+function outlookCalendarUrl(event: CalendarEvent) {
+  const end = new Date(event.date.getTime() + (event.interview.duration_minutes ?? 60) * 60000);
+  const params = new URLSearchParams({
+    rru: "addevent",
+    subject: event.title + " · " + event.subtitle,
+    startdt: event.date.toISOString(),
+    enddt: end.toISOString(),
+    body: "HRANITI interview" + (event.interview.meeting_link ? "\\nMeeting: " + event.interview.meeting_link : ""),
+    location: event.interview.job?.location ?? "",
+  });
+  return "https://outlook.live.com/calendar/0/deeplink/compose?" + params.toString();
+}
+
 function monthDays(cursor: Date) {
   const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   return Array.from({ length: 42 }, (_, i) => addDays(startOfWeek(first), i));
@@ -342,6 +397,14 @@ export default function CalendarPage() {
             <div className="mt-6 flex flex-wrap gap-2">
               <Link href={`/employer/interviews?application=${selected.interview.application_id ?? ""}`} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs font-medium text-[#526A7D]">Open interview</Link>
               {selected.interview.application_id && <Link href={`/employer/applicants/${selected.interview.application_id}`} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs font-medium text-[#526A7D]">Open applicant</Link>}
+            </div>
+            <div className="mt-3 border-t border-[#EEF2F4] pt-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[.12em] text-[#9AA8B3]">Add to calendar</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <a href={googleCalendarUrl(selected)} target="_blank" rel="noreferrer" className="rounded-xl border border-[#DDE5EA] px-3 py-2 text-[11px] font-medium text-[#526A7D]">Google Calendar</a>
+                <a href={outlookCalendarUrl(selected)} target="_blank" rel="noreferrer" className="rounded-xl border border-[#DDE5EA] px-3 py-2 text-[11px] font-medium text-[#526A7D]">Outlook</a>
+                <button onClick={() => downloadCalendarFile(selected)} className="rounded-xl border border-[#DDE5EA] px-3 py-2 text-[11px] font-medium text-[#526A7D]">Download .ics</button>
+              </div>
             </div>
           </div>
         </div>
