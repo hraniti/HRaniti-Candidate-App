@@ -10,7 +10,7 @@ import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 type View = "month" | "week" | "day";
 type Candidate = { id: string; full_name: string | null; email: string | null };
 type Job = { id: string; title: string; location: string | null };
-type Application = { id: string; user_id: string; job_id: string };
+type Application = { id: string; user_id: string; job_id: string; custom_fields?: Record<string, any> | null };
 type TeamMember = { id: string; full_name: string | null; email: string | null; role: string | null };
 type Interview = {
   id: string;
@@ -159,7 +159,7 @@ export default function CalendarPage() {
       return;
     }
 
-    const { data: applications } = await supabase.from("applications").select("id,user_id,job_id").in("job_id", jobIds);
+    const { data: applications } = await supabase.from("applications").select("id,user_id,job_id,custom_fields").in("job_id", jobIds);
     const appRows = (applications ?? []) as Application[];
     const appIds = appRows.map((row) => row.id);
 
@@ -183,9 +183,15 @@ export default function CalendarPage() {
       .filter((row) => !!row.confirmed_time)
       .map((row) => {
         const app = applicationMap.get(row.application_id ?? "");
+        const profile = candidateMap.get(app?.user_id ?? "");
+        const demo = app?.custom_fields?.demo_candidate ? app.custom_fields : null;
         return {
           ...row,
-          candidate: candidateMap.get(app?.user_id ?? ""),
+          candidate: profile ? {
+            ...profile,
+            full_name: demo?.demo_name ?? profile.full_name,
+            email: demo?.demo_email ?? profile.email,
+          } : undefined,
           job: jobMap.get(app?.job_id ?? ""),
         };
       });
