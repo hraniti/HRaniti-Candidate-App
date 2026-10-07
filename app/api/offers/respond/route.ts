@@ -48,7 +48,7 @@ export async function POST(request: Request) {
           if (bgv.provider_org_id && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
             const {data:pm}=await admin.from("bgv_provider_members").select("email").eq("provider_org_id",bgv.provider_org_id).eq("status","Active").not("email","is",null).limit(1).maybeSingle();
             if(pm?.email){
-              const appUrl=(process.env.NEXT_PUBLIC_APP_URL||"").replace(/\\/$/,"");
+              const appUrl=(process.env.NEXT_PUBLIC_APP_URL||"").replace(/\/$/,"");
               await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({from:process.env.RESEND_FROM_EMAIL,to:[pm.email],subject:"Stop BGV verification — candidate declined offer",html:`<p>Hello,</p><p>The candidate <strong>${String(bgv.candidate_name||"Candidate").replace(/</g,"&lt;")}</strong> has declined the offer. Please stop the active background verification and acknowledge the request in the HRANITI provider portal.</p><p><a href="${appUrl}/provider/bgv">Open provider portal</a></p>`})});
             }
           }
