@@ -56,8 +56,8 @@ const addMonths = (d: Date, n: number) => {
   x.setMonth(x.getMonth() + n);
   return x;
 };
-const formatTime = (d: Date) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-const formatDate = (d: Date) => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const formatTime = (d: Date, timeZone?: string | null) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: timeZone || undefined });
+const formatDate = (d: Date, timeZone?: string | null) => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: timeZone || undefined });
 
 function icsEscape(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
@@ -317,7 +317,7 @@ export default function CalendarPage() {
                       <button key={dayKey(date)} onClick={() => { setSelectedDate(date); setView("day"); }} className={`min-h-[112px] border-b border-r border-[#EEF2F4] p-2 text-left align-top hover:bg-[#FCFDFD] ${outside ? "bg-[#FAFBFB]" : ""}`}>
                         <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs ${sameDay(date, now) ? "bg-[#173454] font-semibold text-white" : "text-[#526A7D]"}`}>{date.getDate()}</span>
                         <div className="mt-1 space-y-1">
-                          {dayEvents.slice(0, 3).map((event) => <span key={event.id} onClick={(e) => { e.stopPropagation(); setSelected(event); }} className="block truncate rounded-md bg-[#E7F3F1] px-1.5 py-1 text-[10px] font-medium text-[#167D73]">{formatTime(event.date)} · {event.title}</span>)}
+                          {dayEvents.slice(0, 3).map((event) => <span key={event.id} onClick={(e) => { e.stopPropagation(); setSelected(event); }} className="block truncate rounded-md bg-[#E7F3F1] px-1.5 py-1 text-[10px] font-medium text-[#167D73]">{formatTime(event.date, event.interview.timezone)} · {event.title}</span>)}
                           {dayEvents.length > 3 && <span className="block text-[10px] text-[#9AA8B3]">+{dayEvents.length - 3} more</span>}
                         </div>
                       </button>
@@ -366,7 +366,7 @@ export default function CalendarPage() {
                         <div className="min-w-0">
                           <p className="truncate text-xs font-medium text-[#173454]">{event.title}</p>
                           <p className="mt-1 text-[10px] text-[#71859A]">{event.subtitle}</p>
-                          <p className="mt-1 text-[10px] text-[#9AA8B3]">{event.date.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · {formatTime(event.date)}</p>
+                          <p className="mt-1 text-[10px] text-[#9AA8B3]">{event.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: event.interview.timezone || undefined })} · {formatTime(event.date, event.interview.timezone)}</p>
                         </div>
                       </div>
                     </button>
@@ -395,7 +395,7 @@ export default function CalendarPage() {
               <button onClick={() => setSelected(null)} aria-label="Close"><X size={18} className="text-[#8A99A5]" /></button>
             </div>
             <div className="mt-5 space-y-3 text-xs text-[#526A7D]">
-              <p>{formatDate(selected.date)} · {formatTime(selected.date)} · {selected.interview.duration_minutes ?? 60} min</p>
+              <p>{formatDate(selected.date, selected.interview.timezone)} · {formatTime(selected.date, selected.interview.timezone)} · {selected.interview.duration_minutes ?? 60} min</p>
               <p>{selected.interview.interview_mode ?? "Online"}{selected.interview.meeting_provider ? " · " + selected.interview.meeting_provider : ""}</p>
               {selected.interview.job?.location && <p>Location: {selected.interview.job.location}</p>}
               {selected.interview.meeting_link && <a href={selected.interview.meeting_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-[#167D73] px-4 py-2.5 text-white">Join meeting <ExternalLink size={13} /></a>}
