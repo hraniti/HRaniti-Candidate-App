@@ -51,6 +51,7 @@ type Item = {
   result_summary: string | null;
   reviewer_note: string | null;
   completed_at: string | null;
+  unable_to_proceed_reason: string | null;
 };
 
 function tone(status: string) {
@@ -198,6 +199,7 @@ export default function ProviderBGV() {
         resultSummary: item.result_summary,
         reviewerNote: item.reviewer_note,
         completedAt: item.completed_at,
+        unableToProceedReason: item.unable_to_proceed_reason,
       })),
     };
 
@@ -552,6 +554,20 @@ export default function ProviderBGV() {
                             }
                             placeholder="Provider note (optional)"
                           />
+                          {item.status === "Unable to verify" && (
+                            <textarea
+                              className="mt-2 w-full rounded-lg border border-[#E9D9B5] bg-[#FFF9ED] p-2.5 text-[11px]"
+                              value={item.unable_to_proceed_reason || ""}
+                              onChange={(event) =>
+                                patchItem(
+                                  item.id,
+                                  "unable_to_proceed_reason",
+                                  event.target.value
+                                )
+                              }
+                              placeholder="Why this check cannot be verified…"
+                            />
+                          )}
                         </div>
                       ))
                     )}
