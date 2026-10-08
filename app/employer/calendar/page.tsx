@@ -22,6 +22,7 @@ type Interview = {
   interview_mode: string | null;
   meeting_link: string | null;
   meeting_provider: string | null;
+  timezone: string | null;
   interviewer_ids: string[] | null;
   candidate?: Candidate;
   job?: Job;
@@ -170,7 +171,7 @@ export default function CalendarPage() {
     }
 
     const [{ data: interviewRows }, { data: profiles }, { data: jobs }] = await Promise.all([
-      supabase.from("interview_requests").select("id,application_id,status,confirmed_time,duration_minutes,interview_type,interview_mode,meeting_link,meeting_provider,interviewer_ids").in("application_id", appIds).order("confirmed_time"),
+      supabase.from("interview_requests").select("id,application_id,status,confirmed_time,duration_minutes,interview_type,interview_mode,meeting_link,meeting_provider,timezone,interviewer_ids").in("application_id", appIds).order("confirmed_time"),
       supabase.from("profiles").select("id,full_name,email").in("id", appRows.map((row) => row.user_id)),
       supabase.from("jobs").select("id,title,location").in("id", jobIds),
     ]);
