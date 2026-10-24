@@ -69,6 +69,31 @@ async function sendResendEmail(
   });
 }
 
+export async function GET(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const interviewId = url.searchParams.get("interviewId") || "";
+    const token = url.searchParams.get("token") || "";
+    if (!interviewId || !token) return NextResponse.json({ error: "This interview link is invalid or expired." }, { status: 401 });
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) return NextResponse.json({ error: "Server configuration is incomplete." }, { status: 500 });
+    const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
+    const { data: invitation } = await admin.from("interview_invitations").select("*").eq("interview_id", interviewId).eq("invite_type", "Candidate").maybeSingle();
+    if (!invitation || new Date(invitation.expires_at).getTime() < Date.now() || hashToken(token) !== invitation.token_hash) return NextResponse.json({ error: "This interview link is invalid or expired." }, { status: 401 });
+    const { data: interview } = await admin.from("interview_requests").select("id,application_id,proposed_times,confirmed_time,duration_minutes,timezone,meeting_link,meeting_provider,status").eq("id", interviewId).maybeSingle();
+    if (!interview) return NextResponse.json({ error: "Interview not found." }, { status: 404 });
+    const { data: app } = await admin.from("applications").select("user_id,job_id,custom_fields").eq("id", interview.application_id).maybeSingle();
+    const { data: job } = app ? await admin.from("jobs").select("title,company_id").eq("id", app.job_id).maybeSingle() : { data: null };
+    const { data: company } = job ? await admin.from("companies").select("name").eq("id", job.company_id).maybeSingle() : { data: null };
+    const { data: profile } = app ? await admin.from("profiles").select("full_name").eq("id", app.user_id).maybeSingle() : { data: null };
+    const custom = app?.custom_fields?.demo_candidate ? app.custom_fields : null;
+    return NextResponse.json({ candidateName: custom?.demo_name || profile?.full_name || invitation.name || "Candidate", companyName: company?.name || "Hiring team", jobTitle: job?.title || "Interview", proposedTime: interview.confirmed_time || interview.proposed_times?.[0] || null, timezone: interview.timezone || "UTC", duration: interview.duration_minutes || 60, meetingLink: interview.meeting_link, meetingProvider: interview.meeting_provider, status: invitation.status });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to load interview invitation." }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
