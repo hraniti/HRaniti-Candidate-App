@@ -17,6 +17,7 @@ type Interview = {
   application_id: string | null;
   status: string | null;
   confirmed_time: string | null;
+  proposed_times: string[] | null;
   duration_minutes: number | null;
   interview_type: string | null;
   interview_mode: string | null;
@@ -171,7 +172,7 @@ export default function CalendarPage() {
     }
 
     const [{ data: interviewRows }, { data: profiles }, { data: jobs }] = await Promise.all([
-      supabase.from("interview_requests").select("id,application_id,status,confirmed_time,duration_minutes,interview_type,interview_mode,meeting_link,meeting_provider,timezone,interviewer_ids").in("application_id", appIds).order("confirmed_time"),
+      supabase.from("interview_requests").select("id,application_id,status,confirmed_time,proposed_times,duration_minutes,interview_type,interview_mode,meeting_link,meeting_provider,timezone,interviewer_ids").in("application_id", appIds).order("confirmed_time"),
       supabase.from("profiles").select("id,full_name,email").in("id", appRows.map((row) => row.user_id)),
       supabase.from("jobs").select("id,title,location").in("id", jobIds),
     ]);
@@ -181,7 +182,7 @@ export default function CalendarPage() {
     const jobMap = new Map(((jobs ?? []) as Job[]).map((row) => [row.id, row]));
 
     const result = ((interviewRows ?? []) as Interview[])
-      .filter((row) => !!row.confirmed_time)
+      .filter((row) => !!(row.confirmed_time ?? row.proposed_times?.[0]) && !["cancelled", "declined"].includes((row.status ?? "").toLowerCase()))
       .map((row) => {
         const app = applicationMap.get(row.application_id ?? "");
         const profile = candidateMap.get(app?.user_id ?? "");
@@ -207,7 +208,7 @@ export default function CalendarPage() {
 
   const events = useMemo<CalendarEvent[]>(() => interviews.map((interview) => ({
     id: interview.id,
-    date: new Date(interview.confirmed_time as string),
+    date: new Date((interview.confirmed_time ?? interview.proposed_times?.[0]) as string),
     kind: "Interview" as const,
     title: interview.candidate?.full_name ?? "Candidate",
     subtitle: interview.job?.title ?? interview.interview_type ?? "Interview",
