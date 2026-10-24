@@ -44,6 +44,20 @@ type Row = Interview & { application?:Application; candidate?:Candidate; job?:Jo
 type ApplicationChoice = Application & { candidate?:Candidate; job?:Job };
 type Filter = "Upcoming"|"Requests"|"Completed"|"All";
 
+function localTimeInZoneToIso(dateValue:string,timeValue:string,timeZone:string){
+  // Convert a wall-clock date/time in the selected IANA timezone to a UTC instant.
+  const [year,month,day]=dateValue.split("-").map(Number);
+  const [hour,minute]=timeValue.split(":").map(Number);
+  const target=Date.UTC(year,month-1,day,hour,minute,0);
+  let guess=target;
+  for(let i=0;i<3;i++){
+    const parts=new Intl.DateTimeFormat("en-GB",{timeZone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(new Date(guess));
+    const get=(type:string)=>Number(parts.find(p=>p.type===type)?.value??0);
+    const represented=Date.UTC(get("year"),get("month")-1,get("day"),get("hour"),get("minute"),get("second"));
+    guess+=target-represented;
+  }
+  return new Date(guess);
+}
 const formatDateTime=(value?:string|null)=>{
   if(!value)return "Time to be arranged";
   const d=new Date(value); if(Number.isNaN(d.getTime()))return value;
@@ -257,9 +271,46 @@ export default function InterviewsPage(){
 
   async function createInterview(){
     if(!applicationId||!dateValue||!timeValue){setNotice("Choose a candidate, date and time.");return;}
+    if(!Number.isFinite(Number(duration))||Number(duration)<15){setNotice("Choose a valid interview duration.");return;}
+    if(mode==="Online"&&meetingLink.trim()){
+      try{const parsed=new URL(meetingLink.trim());if(!["http:","https:"].includes(parsed.protocol))throw new Error();}
+      catch{setNotice("Enter a valid meeting link starting with https://.");return;}
+    }
+    if(externalInterviewer.email.trim()&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(externalInterviewer.email.trim())){setNotice("Enter a valid external interviewer email address.");return;}
+    if((externalInterviewer.name.trim()||externalInterviewer.role.trim())&&!externalInterviewer.email.trim()){setNotice("Add an email address for the external interviewer, or clear their name and role.");return;}
+    let proposed:Date;
+    try{proposed=localTimeInZoneToIso(dateValue,timeValue,timezone);}catch{setNotice("Choose a valid timezone, date and time.");return;}
+    if(Number.isNaN(proposed.getTime())){setNotice("Choose a valid date and time.");return;}
+    if(proposed.getTime()<Date.now()-60000){setNotice("The interview must be scheduled in the future.");return;}
     setSaving(true);setNotice("");
     const {data:{user}}=await supabase.auth.getUser(); if(!user){setNotice("Please sign in again.");setSaving(false);return;}
-    const proposed=new Date(dateValue+"T"+timeValue);
+    // Check for overlapping bookings for any selected internal interviewer before saving.
+    if(selectedInterviewers.length){
+      const company=await getOrCreateCompanyId(supabase,user);
+      const {data:companyJobs}=await supabase.from("jobs").select("id").eq("company_id",company);
+      const companyJobIds=(companyJobs??[]).map((j:any)=>j.id);
+      if(companyJobIds.length){
+        const {data:companyApps}=await supabase.from("applications").select("id").in("job_id",companyJobIds);
+        const companyAppIds=(companyApps??[]).map((a:any)=>a.id);
+        if(companyAppIds.length){
+          const {data:existing,error:conflictQueryError}=await supabase.from("interview_requests")
+            .select("id,status,confirmed_time,proposed_times,duration_minutes,interviewer_ids")
+            .in("application_id",companyAppIds)
+            .in("status",["Confirmed","Requested","Reschedule requested"]);
+          if(conflictQueryError){setNotice("Could not verify interviewer availability. Please refresh and try again.");setSaving(false);return;}
+          const start=proposed.getTime(),end=start+Number(duration)*60000;
+          const conflict=(existing??[]).some((item:any)=>{
+            if(!(item.interviewer_ids??[]).some((id:string)=>selectedInterviewers.includes(id)))return false;
+            const candidateTime=item.confirmed_time??item.proposed_times?.[0];
+            if(!candidateTime)return false;
+            const otherStart=new Date(candidateTime).getTime();
+            const otherEnd=otherStart+(Number(item.duration_minutes)||60)*60000;
+            return Number.isFinite(otherStart)&&start<otherEnd&&end>otherStart;
+          });
+          if(conflict){setNotice("An assigned interviewer already has an overlapping interview. Choose another time or interviewer.");setSaving(false);return;}
+        }
+      }
+    }
     const {data:createdInterview,error}=await supabase.from("interview_requests").insert({
       application_id:applicationId,status:"Requested",proposed_times:[proposed.toISOString()],requested_by:user.id,
       interview_type:interviewType,interview_mode:mode,duration_minutes:Number(duration),timezone,
@@ -274,9 +325,14 @@ export default function InterviewsPage(){
   async function sendInvitation(_row:Row){setNotice("Email invitations are temporarily on hold while the HRANITI sending domain is verified. Your interview details are saved; use Details and calendar tools to continue.");}
   async function confirmInterview(row:Row,time:string){
     const {error}=await supabase.from("interview_requests").update({status:"Confirmed",confirmed_time:time}).eq("id",row.id);
-    if(!error)await load();
+    if(error){setNotice("Could not confirm interview: "+error.message);return;}
+    await load();setNotice("Interview confirmed.");
   }
-  async function setStatus(row:Row,status:string){const {error}=await supabase.from("interview_requests").update({status}).eq("id",row.id);if(!error)await load();}
+  async function setStatus(row:Row,status:string){
+    const {error}=await supabase.from("interview_requests").update({status}).eq("id",row.id);
+    if(error){setNotice("Could not update interview status: "+error.message);return;}
+    await load();setNotice(status==="Cancelled"?"Interview cancelled.":"Interview status updated.");
+  }
   function addToCalendar(row:Row){
     const start=row.confirmed_time?new Date(row.confirmed_time):null;if(!start)return;
     const end=new Date(start.getTime()+(row.duration_minutes??60)*60000);
@@ -402,7 +458,7 @@ export default function InterviewsPage(){
         <label className="sm:col-span-2"><span className="label">Candidate application</span><select value={applicationId} onChange={e=>setApplicationId(e.target.value)} className="input"><option value="">Select candidate…</option>{applicationOptions.map(a=><option key={a.id} value={a.id}>{a.candidate?.full_name??"Candidate"} · {a.job?.title??"Job"}</option>)}</select></label>
         <label><span className="label">Interview type</span><select value={interviewType} onChange={e=>setInterviewType(e.target.value)} className="input"><option>Structured interview</option><option>Recruiter screen</option><option>Technical interview</option><option>Hiring manager interview</option><option>Panel interview</option><option>Executive interview</option><option>Case study</option><option>Other</option></select></label>
         <label><span className="label">Mode</span><select value={mode} onChange={e=>setMode(e.target.value)} className="input"><option>Online</option><option>In person</option><option>Phone</option></select></label>
-        <label><span className="label">Date</span><input type="date" value={dateValue} onChange={e=>setDateValue(e.target.value)} className="input"/></label>
+        <label><span className="label">Date</span><input type="date" min={new Date().toLocaleDateString("en-CA")} value={dateValue} onChange={e=>setDateValue(e.target.value)} className="input"/></label>
         <label><span className="label">Time</span><input type="time" value={timeValue} onChange={e=>setTimeValue(e.target.value)} className="input"/></label>
         <label><span className="label">Duration</span><select value={duration} onChange={e=>setDuration(e.target.value)} className="input"><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">2 hours</option></select></label>
         <label><span className="label">Timezone</span><select value={timezone} onChange={e=>setTimezone(e.target.value)} className="input"><option>Asia/Kolkata</option><option>Asia/Dubai</option><option>Asia/Singapore</option><option>Europe/London</option><option>Europe/Stockholm</option><option>Europe/Berlin</option><option>America/New_York</option><option>America/Los_Angeles</option><option>UTC</option></select></label>
@@ -414,7 +470,7 @@ export default function InterviewsPage(){
         <label className="sm:col-span-2"><span className="label">Internal notes</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} className="input min-h-[90px]" placeholder="Anything the interview team should know…"/></label>
       </div>
       {notice&&<p role="status" aria-live="polite" className={"mt-4 rounded-xl px-3 py-2.5 text-xs "+(/could not|error|failed|unable|please |expired|not be updated|not updated/i.test(notice)?"bg-[#FFF4F1] text-[#A44436]":"bg-[#FFF8E8] text-[#9A6A19]")}>{notice}</p>}
-      <div className="mt-6 flex justify-end gap-2"><button onClick={()=>setShowNew(false)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Cancel</button><button disabled={saving} onClick={createInterview} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white disabled:opacity-50">{saving?"Saving…":"Create & invite"}</button></div>
+      <div className="mt-6 flex justify-end gap-2"><button onClick={()=>setShowNew(false)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Cancel</button><button disabled={saving} onClick={createInterview} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white disabled:opacity-50">{saving?"Saving…":"Save interview"}</button></div>
     </div></div>}
 
 
