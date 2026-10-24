@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const offsets = Array.isArray(interview.reminder_minutes) ? interview.reminder_minutes : [];
     for (const offset of offsets) {
       const dueAt = start.getTime() - Number(offset) * 60000;
-      if (!Number.isFinite(Number(offset)) || Number(offset) < 0 || dueAt > now || dueAt <= now - 15 * 60000) continue;
+      if (!Number.isFinite(Number(offset)) || Number(offset) < 0 || dueAt > now || dueAt <= now - 30 * 60000) continue;
       const { data: existing } = await admin.from("interview_reminder_logs").select("id")
         .eq("interview_id", interview.id).eq("scheduled_start", start.toISOString()).eq("reminder_minutes", Number(offset)).maybeSingle();
       if (existing) continue;
