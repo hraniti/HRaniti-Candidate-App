@@ -339,7 +339,7 @@ export default function CalendarPage() {
                         <div className="space-y-2">
                           {dayEvents.length ? dayEvents.map((event) => (
                             <button key={event.id} onClick={() => setSelected(event)} className="w-full rounded-xl border border-[#DDE5EA] bg-white p-3 text-left hover:border-[#B9DDD7]">
-                              <p className="text-[10px] font-semibold text-[#167D73]">{formatTime(event.date)}</p>
+                              <p className="text-[10px] font-semibold text-[#167D73]">{formatTime(event.date, event.interview.timezone)}</p>
                               <p className="mt-1 text-xs font-medium text-[#173454]">{event.title}</p>
                               <p className="mt-1 text-[11px] text-[#71859A]">{event.subtitle}</p>
                             </button>
