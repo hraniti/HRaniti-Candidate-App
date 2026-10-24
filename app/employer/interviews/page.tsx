@@ -322,7 +322,16 @@ export default function InterviewsPage(){
     if(error)setNotice(error.message);else{setShowNew(false);resetForm();await load();setNotice("Interview saved. Email invitations are temporarily on hold while the HRANITI sending domain is verified. You can continue with scheduling, scorecards and calendar.");}
     setSaving(false);
   }
-  async function sendInvitation(_row:Row){setNotice("Email invitations are temporarily on hold while the HRANITI sending domain is verified. Your interview details are saved; use Details and calendar tools to continue.");}
+  async function sendInvitation(row:Row){
+    setSaving(true);setNotice("");
+    try{
+      const response=await fetch("/api/interviews/send-invitation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({interviewId:row.id})});
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(result.error||"Invitation could not be sent.");
+      setNotice("Interview invitation sent to "+result.sentTo+".");
+    }catch(error:any){setNotice(error?.message||"Invitation could not be sent. Please try again.");}
+    finally{setSaving(false);}
+  }
   async function confirmInterview(row:Row,time:string){
     const {error}=await supabase.from("interview_requests").update({status:"Confirmed",confirmed_time:time}).eq("id",row.id);
     if(error){setNotice("Could not confirm interview: "+error.message);return;}
@@ -441,7 +450,7 @@ export default function InterviewsPage(){
           <div className="min-w-[220px]"><p className="text-[10px] font-semibold tracking-[0.1em] text-[#8A99A5] uppercase">Interview time</p><p className="mt-1 flex items-center gap-2 text-xs text-[#526A7D]"><Clock3 size={13}/>{formatDateTime(row.confirmed_time??row.proposed_times?.[0])}</p><p className="mt-1 text-[10px] text-[#9AA8B3]">{row.duration_minutes??60} min · {row.timezone??"Local time"}</p></div>
           <div className="min-w-[190px]"><p className="text-[10px] font-semibold tracking-[0.1em] text-[#8A99A5] uppercase">Interviewers</p><p className="mt-1 text-xs text-[#526A7D]">{row.interviewers?.length?row.interviewers.map(x=>x.full_name||x.email).filter(Boolean).join(", "):"Not assigned"}</p><p className="mt-1 text-[10px] text-[#9AA8B3]">{row.scorecard?.name??"No scorecard"}</p></div>
           <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-            {(row.status==="Requested"||row.status==="Reschedule requested")&&row.proposed_times?.[0]&&<button onClick={()=>sendInvitation(row)} className="inline-flex items-center gap-1.5 rounded-xl border border-[#DDE5EA] bg-white px-3 py-2 text-[11px] font-medium text-[#71859A]"><CheckCircle2 size={13}/> Email on hold</button>}
+            {(row.status==="Requested"||row.status==="Reschedule requested")&&row.proposed_times?.[0]&&<button onClick={()=>sendInvitation(row)} className="inline-flex items-center gap-1.5 rounded-xl border border-[#DDE5EA] bg-white px-3 py-2 text-[11px] font-medium text-[#71859A]"><CheckCircle2 size={13}/> Send invitation</button>}
             {![ "Cancelled", "Declined" ].includes(row.status??"")&&<button onClick={()=>openFeedback(row)} className="inline-flex items-center gap-1.5 rounded-xl border border-[#B9DDD7] bg-[#E7F3F1] px-3 py-2 text-[11px] font-medium text-[#167D73]"><FileCheck2 size={13}/> Evaluate</button>}
             {row.status==="Confirmed"&&<button onClick={()=>markInterviewCompleted(row)} className="inline-flex items-center gap-1.5 rounded-xl border border-[#DDE5EA] bg-white px-3 py-2 text-[11px] text-[#526A7D]">Mark completed</button>}
             {row.status==="Confirmed"&&<button onClick={()=>addToCalendar(row)} className="rounded-xl border border-[#DDE5EA] bg-white px-3 py-2 text-[11px] text-[#526A7D]">Google Calendar</button>}
