@@ -128,6 +128,7 @@ export default function InterviewsPage(){
   const [showNew,setShowNew]=useState(false);
   const [detail,setDetail]=useState<Row|null>(null);
   const [feedback,setFeedback]=useState<Row|null>(null);
+  const [feedbackRecordId,setFeedbackRecordId]=useState<string|null>(null);
   const [applicationId,setApplicationId]=useState("");
   const [dateValue,setDateValue]=useState("");
   const [timeValue,setTimeValue]=useState("");
@@ -292,31 +293,51 @@ export default function InterviewsPage(){
     const body=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//HRaniti//Interview//EN","BEGIN:VEVENT","UID:"+row.id+"@hraniti.com","DTSTAMP:"+utc(new Date()),"DTSTART:"+utc(start),"DTEND:"+utc(end),"SUMMARY:"+((row.interview_type??"Interview")+" — "+(row.candidate?.full_name??"Candidate")).replace(/[,;]/g,"\\$&"),"DESCRIPTION:"+((row.meeting_link??"")+" "+(row.notes??"")).replace(/[\r\n]/g," ").replace(/[,;]/g,"\\$&"),"END:VEVENT","END:VCALENDAR"].join("\r\n");
     const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([body],{type:"text/calendar"}));a.download="hraniti-interview-"+row.id+".ics";a.click();URL.revokeObjectURL(a.href);
   }
-  function openFeedback(row:Row){
-    setFeedback(row);
+  async function openFeedback(row:Row){
+    setFeedback(row);setFeedbackRecordId(null);setNotice("");
     const snapshot=(row as Row & {scorecard_criteria?:any[]}).scorecard_criteria;
-    const first=snapshot?.length
+    const card=snapshot?.length
       ? {...(scorecards.find(x=>x.id===row.scorecard_id)||row.scorecard||scorecards[0]),criteria:snapshot}
       : (scorecards.find(x=>x.id===row.scorecard_id)||row.scorecard||scorecards[0]);
-    const ratings:Record<string,number>={};(first?.criteria??[]).forEach((c:any)=>{ratings[c.name]=0});
+    const ratings:Record<string,number>={};(card?.criteria??[]).forEach((c:any)=>{ratings[c.name]=0});
     setFeedbackRatings(ratings);setRecommendation("");setStrengths("");setConcerns("");setFeedbackNotes("");
+    const {data:existing,error}=await supabase.from("interview_feedback").select("id,ratings,overall_recommendation,strengths,concerns,notes").eq("interview_id",row.id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+    if(error){setNotice("Could not load saved feedback: "+error.message);return;}
+    if(existing){
+      setFeedbackRecordId(existing.id);
+      setFeedbackRatings({...ratings,...(existing.ratings??{})});
+      setRecommendation(existing.overall_recommendation??"");
+      setStrengths(existing.strengths??"");setConcerns(existing.concerns??"");setFeedbackNotes(existing.notes??"");
+    }
   }
   async function saveFeedback(){
-    if(!feedback)return;setSaving(true);setNotice("");
-    const {data:{user}}=await supabase.auth.getUser();if(!user){setSaving(false);return;}
+    if(!feedback)return;
+    const criteria=selectedCard?.criteria??[];
+    const missing=criteria.filter((c:any)=>!feedbackRatings[c.name]||feedbackRatings[c.name]<1);
+    if(missing.length){setNotice("Please rate each criterion before submitting feedback.");return;}
+    if(!recommendation){setNotice("Please select a recommendation before submitting feedback.");return;}
+    setSaving(true);setNotice("");
+    const {data:{user}}=await supabase.auth.getUser();
+    if(!user){setNotice("Your session has expired. Please sign in again.");setSaving(false);return;}
     const company=await getOrCreateCompanyId(supabase,user);
     const interviewerId=members.find(m=>m.user_id===user.id)?.id??members.find(m=>m.id===user.id)?.id??null;
-    const {error}=await supabase.from("interview_feedback").insert({interview_id:feedback.id,company_id:company,interviewer_id:interviewerId,ratings:feedbackRatings,overall_recommendation:recommendation||null,strengths:strengths||null,concerns:concerns||null,notes:feedbackNotes||null});
-    if(!error){
-      if(feedback.application_id){
-        await supabase.from("applications").update({
-          next_step:"Interview feedback submitted — complete the hiring review",
-          updated_at:new Date().toISOString()
-        }).eq("id",feedback.application_id);
-      }
-      setFeedback(null);
-      await load();
-    }else setNotice(error.message);
+    const payload={interview_id:feedback.id,company_id:company,interviewer_id:interviewerId,ratings:feedbackRatings,overall_recommendation:recommendation||null,strengths:strengths||null,concerns:concerns||null,notes:feedbackNotes||null};
+    const result=feedbackRecordId
+      ? await supabase.from("interview_feedback").update(payload).eq("id",feedbackRecordId)
+      : await supabase.from("interview_feedback").insert(payload);
+    if(result.error){
+      setNotice("Feedback could not be saved: "+result.error.message);setSaving(false);return;
+    }
+    if(feedback.application_id){
+      const {error:applicationError}=await supabase.from("applications").update({
+        next_step:"Interview feedback submitted — complete the hiring review",
+        updated_at:new Date().toISOString()
+      }).eq("id",feedback.application_id);
+      if(applicationError) setNotice("Feedback saved, but the applicant stage note could not be updated: "+applicationError.message);
+    }
+    setFeedback(null);setFeedbackRecordId(null);
+    await load();
+    setNotice("Interview feedback saved successfully. Use Evaluate to reopen or update this evaluation.");
     setSaving(false);
   }
 
