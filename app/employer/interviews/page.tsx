@@ -301,7 +301,7 @@ export default function InterviewsPage(){
       : (scorecards.find(x=>x.id===row.scorecard_id)||row.scorecard||scorecards[0]);
     const ratings:Record<string,number>={};(card?.criteria??[]).forEach((c:any)=>{ratings[c.name]=0});
     setFeedbackRatings(ratings);setRecommendation("");setStrengths("");setConcerns("");setFeedbackNotes("");
-    const {data:existing,error}=await supabase.from("interview_feedback").select("id,ratings,overall_recommendation,strengths,concerns,notes").eq("interview_id",row.id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+    const {data:existing,error}=await supabase.from("interview_feedback").select("id,ratings,overall_recommendation,strengths,concerns,notes").eq("interview_id",row.id).order("submitted_at",{ascending:false}).limit(1).maybeSingle();
     if(error){setNotice("Could not load saved feedback: "+error.message);return;}
     if(existing){
       setFeedbackRecordId(existing.id);
@@ -328,16 +328,22 @@ export default function InterviewsPage(){
     if(result.error){
       setNotice("Feedback could not be saved: "+result.error.message);setSaving(false);return;
     }
+    // A submitted evaluation means the interview has taken place. Mark it completed,
+    // while keeping Evaluate available so authorised users can reopen and edit feedback.
+    const {error:statusError}=await supabase.from("interview_requests")
+      .update({status:"Completed"}).eq("id",feedback.id);
+    let followUpWarning="";
+    if(statusError) followUpWarning=" Feedback was saved, but interview status could not be updated: "+statusError.message;
     if(feedback.application_id){
       const {error:applicationError}=await supabase.from("applications").update({
-        next_step:"Interview feedback submitted — complete the hiring review",
+        next_step:"Review interview feedback and decide next stage",
         updated_at:new Date().toISOString()
       }).eq("id",feedback.application_id);
-      if(applicationError) setNotice("Feedback saved, but the applicant stage note could not be updated: "+applicationError.message);
+      if(applicationError) followUpWarning+=" Applicant next-step note was not updated: "+applicationError.message;
     }
     setFeedback(null);setFeedbackRecordId(null);
     await load();
-    setNotice("Interview feedback saved successfully. Use Evaluate to reopen or update this evaluation.");
+    setNotice("Interview feedback saved successfully. You can select Evaluate any time to reopen or update this evaluation."+followUpWarning);
     setSaving(false);
   }
 
