@@ -3,6 +3,10 @@
     {
       "path": "/api/digest/send",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/interviews/reminders",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
