@@ -131,13 +131,17 @@ export default function CalendarPage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [jobsCount, setJobsCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [interviewerId, setInterviewerId] = useState("all");
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
 
   async function load() {
     setLoading(true);
-    const { data: auth } = await supabase.auth.getUser();
+    setLoadError(null);
+    try {
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
     const user = auth.user;
     if (!user) {
       setInterviews([]);
@@ -147,11 +151,13 @@ export default function CalendarPage() {
 
     const companyId = await getOrCreateCompanyId(supabase, user);
 
-    const [{ data: jobRows }, { data: memberRows }] = await Promise.all([
+    const [{ data: jobRows, error: jobsError }, { data: memberRows, error: membersError }] = await Promise.all([
       supabase.from("jobs").select("id").eq("company_id", companyId),
       supabase.from("company_team_members").select("id,full_name,email,role").eq("company_id", companyId).eq("status", "Active").order("full_name"),
     ]);
 
+    if (jobsError) throw jobsError;
+    if (membersError) throw membersError;
     setJobsCount((jobRows ?? []).length);
     setMembers((memberRows ?? []) as TeamMember[]);
 
@@ -162,7 +168,8 @@ export default function CalendarPage() {
       return;
     }
 
-    const { data: applications } = await supabase.from("applications").select("id,user_id,job_id,custom_fields").in("job_id", jobIds);
+    const { data: applications, error: applicationsError } = await supabase.from("applications").select("id,user_id,job_id,custom_fields").in("job_id", jobIds);
+    if (applicationsError) throw applicationsError;
     const appRows = (applications ?? []) as Application[];
     const appIds = appRows.map((row) => row.id);
 
@@ -172,11 +179,15 @@ export default function CalendarPage() {
       return;
     }
 
-    const [{ data: interviewRows }, { data: profiles }, { data: jobs }] = await Promise.all([
+    const [{ data: interviewRows, error: interviewsError }, { data: profiles, error: profilesError }, { data: jobs, error: jobsLookupError }] = await Promise.all([
       supabase.from("interview_requests").select("id,application_id,status,confirmed_time,proposed_times,duration_minutes,interview_type,interview_mode,meeting_link,meeting_provider,timezone,interviewer_ids").in("application_id", appIds).order("confirmed_time"),
       supabase.from("profiles").select("id,full_name,email").in("id", appRows.map((row) => row.user_id)),
       supabase.from("jobs").select("id,title,location").in("id", jobIds),
     ]);
+
+    if (interviewsError) throw interviewsError;
+    if (profilesError) throw profilesError;
+    if (jobsLookupError) throw jobsLookupError;
 
     const applicationMap = new Map(appRows.map((row) => [row.id, row]));
     const candidateMap = new Map(((profiles ?? []) as Candidate[]).map((row) => [row.id, row]));
@@ -202,7 +213,13 @@ export default function CalendarPage() {
       });
 
     setInterviews(result);
-    setLoading(false);
+    } catch (error) {
+      console.error("Failed to load hiring calendar", error);
+      setInterviews([]);
+      setLoadError("We couldn’t load the hiring calendar. Please try refreshing.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -256,7 +273,7 @@ export default function CalendarPage() {
   }
 
   const now = new Date();
-  const upcoming = filtered.filter((event) => event.date.getTime() >= now.getTime()).slice(0, 6);
+  const upcoming = filtered.filter((event) => event.date.getTime() >= now.getTime()).sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 6);
   const todayCount = filtered.filter((event) => sameDay(event.date, now)).length;
 
   return (
@@ -312,6 +329,8 @@ export default function CalendarPage() {
 
               {loading ? (
                 <div className="flex min-h-[520px] items-center justify-center text-sm text-[#71859A]">Loading your hiring calendar…</div>
+              ) : loadError ? (
+                <div className="flex min-h-[520px] flex-col items-center justify-center gap-3 px-6 text-center"><p className="text-sm text-[#71859A]">{loadError}</p><button onClick={load} className="rounded-xl bg-[#167D73] px-4 py-2 text-xs font-medium text-white">Try again</button></div>
               ) : view === "month" ? (
                 <div className="grid grid-cols-7">
                   {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label) => <div key={label} className="border-b border-r border-[#EEF2F4] px-3 py-2 text-[10px] font-semibold uppercase tracking-[.12em] text-[#9AA8B3]">{label}</div>)}
