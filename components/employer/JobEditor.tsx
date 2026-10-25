@@ -12,6 +12,8 @@ import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
 import EmployerInputStyles from "@/components/employer/EmployerInputStyles";
 
 type JobFormValues = {
+  companyName: string;
+  clientName: string;
   title: string;
   department: string;
   openings: string;
@@ -58,6 +60,8 @@ type JobFormValues = {
 };
 
 const emptyForm: JobFormValues = {
+  companyName: "",
+  clientName: "",
   title: "",
   department: "",
   openings: "1",
@@ -244,6 +248,8 @@ export default function JobEditor({
       }
 
       const descriptionPayload = JSON.stringify({
+        companyName: form.companyName.trim() || company?.name || "Your Company",
+        clientName: form.employmentType === "Contract" ? form.clientName.trim() : "",
         intro: form.roleIntro,
         description: form.description,
         responsibilities: form.responsibilities,
@@ -291,7 +297,7 @@ export default function JobEditor({
 
       const payload = {
         title: form.title.trim(),
-        company: company?.name ?? "Your Company",
+        company: form.companyName.trim() || company?.name || "Your Company",
         company_id: companyId,
         posted_by: user.id,
         location: [form.city.trim(), form.state.trim(), form.country].filter(Boolean).join(", "),
@@ -418,7 +424,7 @@ export default function JobEditor({
                   <Field label="State / Province"><input className="input" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="Maharashtra" /></Field>
                   <Field label="Country" required><select className="input" value={form.country} onChange={(e) => update("country", e.target.value)}><option value="">Select country</option>{COUNTRIES.map((country) => <option key={country}>{country}</option>)}</select></Field>
                   <Field label="Work arrangement" required><select className="input" value={form.workMode} onChange={(e) => update("workMode", e.target.value as JobFormValues["workMode"])}><option>On-site</option><option>Hybrid</option><option>Remote</option></select></Field>
-                  <Field label="Employment type" required><select className="input" value={form.employmentType} onChange={(e) => update("employmentType", e.target.value as JobFormValues["employmentType"])}><option>Full-time</option><option>Contract</option><option>Freelance</option></select></Field>
+                  <Field label="Employment type" required><select className="input" value={form.employmentType} onChange={(e) => { const value = e.target.value as JobFormValues["employmentType"]; update("employmentType", value); if (value !== "Contract") update("clientName", ""); }}><option>Full-time</option><option>Contract</option><option>Freelance</option></select></Field>\n                  {form.employmentType === "Contract" && <Field label="Client" required><input className="input" list="hraniti-client-options" value={form.clientName} onChange={(e) => update("clientName", e.target.value)} placeholder="Select or enter client name" /><datalist id="hraniti-client-options"><option value={form.companyName} /></datalist><p className="mt-1 text-[11px] text-[#8A99A5]">Enter the end client or choose a suggested company.</p></Field>}
                 </div>
               </div>
             )}
