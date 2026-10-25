@@ -12,42 +12,45 @@ import {
 const navGroups = [
   {
     label: "WORKSPACE",
-    items: [{ href: "/employer/dashboard", label: "Dashboard", icon: LayoutDashboard }],
-  },
-  {
-    label: "TALENT",
     items: [
-      { href: "/employer/talent-pool", label: "Talent Pool", icon: UsersRound },
+      { href: "/employer/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/employer/jobs", label: "Jobs", icon: BriefcaseBusiness },
       { href: "/employer/applicants", label: "Applicants", icon: UserRoundSearch },
+      { href: "/employer/talent-pool", label: "Talent Pool", icon: UsersRound },
     ],
   },
   {
     label: "RECRUITMENT",
     items: [
-      { href: "/employer/jobs", label: "Jobs", icon: BriefcaseBusiness },
       { href: "/employer/submissions", label: "Submissions", icon: FileText },
       { href: "/employer/interviews", label: "Interviews", icon: Video },
-      { href: "/employer/calendar", label: "Calendar", icon: CalendarDays },
       { href: "/employer/offers", label: "Offers", icon: FileCheck2 },
-      { href: "/employer/bgv", label: "BGV", icon: ShieldCheck },
       { href: "/employer/hires", label: "Hires", icon: UserCheck },
+      { href: "/employer/calendar", label: "Calendar", icon: CalendarDays },
     ],
   },
   {
     label: "BUSINESS",
     items: [
-      { href: "/employer/companies", label: "Companies", icon: Building2 },
+      { href: "/employer/companies", label: "Companies & Clients", icon: Building2 },
       { href: "/employer/recruiters", label: "Recruiters", icon: UserCog },
       { href: "/employer/invoices", label: "Invoices", icon: Receipt },
       { href: "/employer/reports", label: "Reports", icon: BarChart3 },
     ],
   },
   {
-    label: "ACCOUNT",
+    label: "OPERATIONS",
     items: [
-      { href: "/employer/billing", label: "Billing & Plan", icon: CreditCard },
-      { href: "/employer/profile", label: "Profile", icon: UserRoundSearch },
-      { href: "/employer/settings", label: "Settings", icon: Settings },
+      { href: "/employer/bgv", label: "Background Verification", icon: ShieldCheck },
+    ],
+  },
+  {
+    label: "SETTINGS",
+    items: [
+      { href: "/employer/team", label: "Team & Permissions", icon: UsersRound },
+      { href: "/employer/profile", label: "Company Profile", icon: Building2 },
+      { href: "/employer/templates", label: "Templates & Documents", icon: FileCheck2 },
+      { href: "/employer/settings", label: "Billing & Preferences", icon: Settings },
     ],
   },
 ];
