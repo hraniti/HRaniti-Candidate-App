@@ -206,7 +206,10 @@ export default function BGVPage() {
       consent_status:"Not requested",jurisdiction:null,legal_basis:null,retention_until:null,overall_note:note||null
     }).select("*").single();
     if(error||!data){setMessage(error?.message??"Could not create the BGV case.");setSaving(false);return}
-    if(customChecks.trim()){const names=customChecks.split(String.fromCharCode(10)).map(x=>x.trim()).filter(Boolean);if(names.length)await supabase.from("background_check_items").insert(names.map(check_type=>({background_check_id:data.id,company_id:companyId,check_type,status:"Pending",provider:verificationMethod==="Provider"?(providerName.trim()||null):"Internal"})));} await supabase.from("background_check_events").insert({background_check_id:data.id,company_id:companyId,event_type:"bgv_case_created",metadata:{source:"employer",verification_method:verificationMethod,note:note||null}});
+    const customNames=customChecks.split(String.fromCharCode(10)).map(x=>x.trim()).filter(Boolean);
+    const names=[...new Set([...CHECK_TYPES,...customNames])];
+    if(names.length){const {error:itemError}=await supabase.from("background_check_items").insert(names.map(check_type=>({background_check_id:data.id,company_id:companyId,check_type,status:"Pending",provider:verificationMethod==="Provider"?(providerName.trim()||null):"Internal",requested_at:now})));if(itemError){setMessage("BGV case created, but its checklist could not be created: "+itemError.message);setSaving(false);await load();return;}}
+    await supabase.from("background_check_events").insert({background_check_id:data.id,company_id:companyId,event_type:"bgv_case_created",metadata:{source:"employer",verification_method:verificationMethod,note:note||null,checklist:names}});
     if(applicationId) await supabase.from("applications").update({next_step:"Background verification",updated_at:now}).eq("id",applicationId);
     await load(); setSelected(data as Check); await loadItems(data.id); setOpen(true); setMessage("BGV case created. Add the provider's current status and report details as they become available."); setSaving(false);
   }
