@@ -16,8 +16,8 @@ type Template = { id: string; name: string; description: string | null; template
 const DEMO_CANDIDATE_ID = "demo-candidate-1";
 const DEMO_CANDIDATE = {
   id: DEMO_CANDIDATE_ID,
-  full_name: "Aarav Mehta",
-  email: "aarav.mehta@example.com",
+  full_name: "Ruby Sathiyan (Test Candidate)",
+  email: "rubysathiyan091@gmail.com",
   current_location: "Bengaluru, India",
   notice_period: "30 days",
   expected_salary: 2400000,
@@ -294,7 +294,7 @@ export default function OffersPage() {
       letter_body: stripHtml(finalHtml).trim(), letter_html: finalHtml, template_id: template?.id ?? null, template_version_id: version?.id ?? null,
       template_source: template?.template_type ?? "hraniti",
       template_snapshot: { template_name: template?.name ?? "HRaniti standard", version: version?.version_number ?? 1, fields: { candidate_name: row.profile.full_name, job_title: row.job.title, base_salary: baseSalary, currency, start_date: startDate } },
-      version: selectedOffer?.version ?? 1, status: nextStatus, approver_ids: approverIds, updated_at: new Date().toISOString()
+      version: selectedOffer ? ((selectedOffer.version ?? 1) + (selectedOffer.status === "Changes requested" || selectedOffer.status === "Declined" || selectedOffer.status === "Expired" ? 1 : 0)) : 1, status: nextStatus, approver_ids: approverIds, updated_at: new Date().toISOString()
     };
     const result = selectedOffer
       ? await supabase.from("offers").update(payload).eq("id", selectedOffer.id).select("*").single()
