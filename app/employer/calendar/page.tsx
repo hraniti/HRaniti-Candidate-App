@@ -83,7 +83,7 @@ function downloadCalendarFile(event: CalendarEvent) {
     "DTSTART:" + icsStamp(event.date),
     "DTEND:" + icsStamp(end),
     "SUMMARY:" + icsEscape(event.title + " · " + event.subtitle),
-    "DESCRIPTION:" + icsEscape("HRANITI interview" + (event.interview.meeting_link ? "\\nMeeting: " + event.interview.meeting_link : "")),
+    "DESCRIPTION:" + icsEscape("HRANITI interview" + (event.interview.meeting_link ? "\nMeeting: " + event.interview.meeting_link : "")),
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
@@ -92,7 +92,7 @@ function downloadCalendarFile(event: CalendarEvent) {
   a.href = url;
   a.download = "hraniti-interview-" + event.id + ".ics";
   a.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function googleCalendarUrl(event: CalendarEvent) {
   const end = new Date(event.date.getTime() + (event.interview.duration_minutes ?? 60) * 60000);
@@ -100,7 +100,7 @@ function googleCalendarUrl(event: CalendarEvent) {
     action: "TEMPLATE",
     text: event.title + " · " + event.subtitle,
     dates: icsStamp(event.date) + "/" + icsStamp(end),
-    details: "HRANITI interview" + (event.interview.meeting_link ? "\\nMeeting: " + event.interview.meeting_link : ""),
+    details: "HRANITI interview" + (event.interview.meeting_link ? "\nMeeting: " + event.interview.meeting_link : ""),
     location: event.interview.job?.location ?? "",
   });
   return "https://calendar.google.com/calendar/render?" + params.toString();
@@ -112,7 +112,7 @@ function outlookCalendarUrl(event: CalendarEvent) {
     subject: event.title + " · " + event.subtitle,
     startdt: event.date.toISOString(),
     enddt: end.toISOString(),
-    body: "HRANITI interview" + (event.interview.meeting_link ? "\\nMeeting: " + event.interview.meeting_link : ""),
+    body: "HRANITI interview" + (event.interview.meeting_link ? "\nMeeting: " + event.interview.meeting_link : ""),
     location: event.interview.job?.location ?? "",
   });
   return "https://outlook.live.com/calendar/0/deeplink/compose?" + params.toString();
@@ -240,7 +240,7 @@ export default function CalendarPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return events.filter((event) => {
-      const searchable = [event.title, event.subtitle, event.interview.job?.location, event.interview.interview_type].filter(Boolean).join(" ").toLowerCase();
+      const searchable = [event.title, event.subtitle, event.interview.job?.title, event.interview.job?.location, event.interview.interview_type, event.interview.status, ...(event.interview.interviewers ?? []).flatMap((person) => [person.full_name, person.email])].filter(Boolean).join(" ").toLowerCase();
       const textMatch = !q || searchable.includes(q);
       const interviewerMatch = interviewerId === "all" || (event.interview.interviewer_ids ?? []).includes(interviewerId);
       return textMatch && interviewerMatch;
@@ -270,8 +270,8 @@ export default function CalendarPage() {
 
   function today() {
     const now = new Date();
-    setCursor(now);
-    setSelectedDate(now);
+    setCursor(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+    setSelectedDate(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
   }
 
   const now = new Date();
