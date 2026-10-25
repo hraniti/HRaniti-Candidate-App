@@ -66,7 +66,7 @@ function icsEscape(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 }
 function icsStamp(d: Date) {
-  return d.toISOString().replace(/[-:]/g, "").replace(/\\.\d{3}/, "");
+  return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 }
 function downloadCalendarFile(event: CalendarEvent) {
   const end = new Date(event.date.getTime() + (event.interview.duration_minutes ?? 60) * 60000);
