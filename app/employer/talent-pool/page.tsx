@@ -32,7 +32,7 @@ export default function TalentPoolPage() {
     if(profileError) throw profileError;
     setCandidates((profiles??[]) as Candidate[]);
    }
-   const jobMap=Object.fromEntries(rows.map((j:any)=>{let meta:any={};try{meta=JSON.parse(j.description??"")}catch{};return [j.id,{job_title:j.title,company:meta.companyName||j.company||"",client:meta.clientName||""]]}));
+   const jobMap=Object.fromEntries(rows.map((j:any)=>{let meta:any={};try{meta=JSON.parse(j.description??"")}catch{};return [j.id,{job_title:j.title,company:meta.companyName||j.company||"",client:meta.clientName||""}]]}));
    setLinks((apps??[]).map((a:any)=>({user_id:a.user_id,job_id:a.job_id,applied_at:a.applied_at,...(jobMap[a.job_id]??{job_title:"",company:"",client:""})})));
   } catch(e:any){setMessage(e?.message??"We couldn't load the talent pool. Please try again.");}
   finally{setLoading(false)}
