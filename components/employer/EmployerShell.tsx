@@ -41,7 +41,7 @@ const navGroups = [
   {
     label: "OPERATIONS",
     items: [
-      { href: "/employer/bgv", label: "Background Verification", icon: ShieldCheck },
+
     ],
   },
   {
