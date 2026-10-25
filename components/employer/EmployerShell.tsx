@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   LayoutDashboard, UsersRound, BriefcaseBusiness, UserRoundSearch, CalendarDays,
-  Video, FileCheck2, ShieldCheck, UserCheck, BarChart3, CreditCard, Settings,
+  Video, FileCheck2, ShieldCheck, UserCheck, BarChart3, CreditCard, Settings, Building2, UserCog, FileText, Receipt,
   Search, Inbox, Bell, Sparkles, ChevronDown, X, ArrowRight
 } from "lucide-react";
 
@@ -16,18 +16,29 @@ const navGroups = [
   },
   {
     label: "TALENT",
-    items: [{ href: "/employer/talent-pool", label: "Talent Pool", icon: UsersRound }],
+    items: [
+      { href: "/employer/talent-pool", label: "Talent Pool", icon: UsersRound },
+      { href: "/employer/applicants", label: "Applicants", icon: UserRoundSearch },
+    ],
   },
   {
-    label: "HIRING",
+    label: "RECRUITMENT",
     items: [
       { href: "/employer/jobs", label: "Jobs", icon: BriefcaseBusiness },
-      { href: "/employer/applicants", label: "Applicants", icon: UserRoundSearch },
+      { href: "/employer/submissions", label: "Submissions", icon: FileText },
       { href: "/employer/interviews", label: "Interviews", icon: Video },
       { href: "/employer/calendar", label: "Calendar", icon: CalendarDays },
       { href: "/employer/offers", label: "Offers", icon: FileCheck2 },
       { href: "/employer/bgv", label: "BGV", icon: ShieldCheck },
       { href: "/employer/hires", label: "Hires", icon: UserCheck },
+    ],
+  },
+  {
+    label: "BUSINESS",
+    items: [
+      { href: "/employer/companies", label: "Companies", icon: Building2 },
+      { href: "/employer/recruiters", label: "Recruiters", icon: UserCog },
+      { href: "/employer/invoices", label: "Invoices", icon: Receipt },
       { href: "/employer/reports", label: "Reports", icon: BarChart3 },
     ],
   },
