@@ -416,6 +416,7 @@ export default function JobEditor({
               <div className="space-y-5">
                 <div><h2 className="text-lg font-semibold text-[#173454]">Role</h2><p className="mt-1 text-sm text-[#71859A]">The essentials candidates need first.</p></div>
                 <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Company" required><input className="input" list="hraniti-company-options" value={form.companyName} onChange={(e) => update("companyName", e.target.value)} placeholder="Enter or choose company name" /><datalist id="hraniti-company-options"><option value="HRANITI" /></datalist><p className="mt-1 text-[11px] text-[#8A99A5]">Enter the hiring company. HRANITI remains the workspace managing the role.</p></Field>
                   <Field label="Job Title" required><input className="input" value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="Senior SAP ABAP Consultant" /></Field>
                   <Field label="Department" required><input className="input" value={form.department} onChange={(e) => update("department", e.target.value)} placeholder="Technology" /></Field>
                   <Field label="Career Area" required><select className="input" value={form.careerTrack} onChange={(e) => update("careerTrack", e.target.value)}><option value="">Select</option>{CAREER_TRACKS.map((item) => <option key={item}>{item}</option>)}</select></Field>
