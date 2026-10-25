@@ -116,6 +116,31 @@ export async function POST(request: Request) {
     });
     if(inviteError) return NextResponse.json({error:inviteError.message},{status:500});
 
+    // Persist the provider-to-case assignment. Without this row, the provider
+    // can accept the invitation but the provider portal has no assigned case to show.
+    const {data:existingAssignment}=await admin.from("bgv_provider_cases")
+      .select("id,status")
+      .eq("background_check_id",check.id)
+      .eq("provider_org_id",orgId)
+      .maybeSingle();
+    if(existingAssignment){
+      if(existingAssignment.status!=="Active"){
+        const {error:assignmentError}=await admin.from("bgv_provider_cases")
+          .update({status:"Active",assigned_at:new Date().toISOString(),assigned_by:userData.user.id})
+          .eq("id",existingAssignment.id);
+        if(assignmentError) return NextResponse.json({error:assignmentError.message},{status:500});
+      }
+    } else {
+      const {error:assignmentError}=await admin.from("bgv_provider_cases").insert({
+        background_check_id:check.id,
+        company_id:membership.company_id,
+        provider_org_id:orgId,
+        assigned_by:userData.user.id,
+        status:"Active"
+      });
+      if(assignmentError) return NextResponse.json({error:assignmentError.message},{status:500});
+    }
+
     const appUrl=(process.env.NEXT_PUBLIC_APP_URL||"").replace(/\/$/,"");
     const inviteUrl=appUrl+"/provider/accept?token="+token;
     let emailSent=false;
