@@ -37,6 +37,7 @@ type CalendarEvent = {
   title: string;
   subtitle: string;
   interview: Interview;
+  isTentative: boolean;
 };
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -233,6 +234,7 @@ export default function CalendarPage() {
     title: interview.candidate?.full_name ?? "Candidate",
     subtitle: interview.job?.title ?? interview.interview_type ?? "Interview",
     interview,
+    isTentative: !interview.confirmed_time,
   })).filter((event) => !Number.isNaN(event.date.getTime())), [interviews]);
 
   const filtered = useMemo(() => {
@@ -341,7 +343,7 @@ export default function CalendarPage() {
                       <button key={dayKey(date)} onClick={() => { setSelectedDate(date); setView("day"); }} className={`min-h-[112px] border-b border-r border-[#EEF2F4] p-2 text-left align-top hover:bg-[#FCFDFD] ${outside ? "bg-[#FAFBFB]" : ""}`}>
                         <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs ${sameDay(date, now) ? "bg-[#173454] font-semibold text-white" : "text-[#526A7D]"}`}>{date.getDate()}</span>
                         <div className="mt-1 space-y-1">
-                          {dayEvents.slice(0, 3).map((event) => <span key={event.id} onClick={(e) => { e.stopPropagation(); setSelected(event); }} className="block truncate rounded-md bg-[#E7F3F1] px-1.5 py-1 text-[10px] font-medium text-[#167D73]">{formatTime(event.date)} · {event.title}</span>)}
+                          {dayEvents.slice(0, 3).map((event) => <span key={event.id} onClick={(e) => { e.stopPropagation(); setSelected(event); }} className={`block truncate rounded-md px-1.5 py-1 text-[10px] font-medium ${event.isTentative ? "bg-[#FFF4DE] text-[#8A5B12]" : "bg-[#E7F3F1] text-[#167D73]"}`}>{formatTime(event.date)} · {event.isTentative ? "Proposed · " : ""}{event.title}</span>)}
                           {dayEvents.length > 3 && <span className="block text-[10px] text-[#9AA8B3]">+{dayEvents.length - 3} more</span>}
                         </div>
                       </button>
@@ -361,7 +363,7 @@ export default function CalendarPage() {
                         <div className="space-y-2">
                           {dayEvents.length ? dayEvents.map((event) => (
                             <button key={event.id} onClick={() => setSelected(event)} className="w-full rounded-xl border border-[#DDE5EA] bg-white p-3 text-left hover:border-[#B9DDD7]">
-                              <p className="text-[10px] font-semibold text-[#167D73]">{formatTime(event.date)}</p>
+                              <p className={`text-[10px] font-semibold ${event.isTentative ? "text-[#8A5B12]" : "text-[#167D73]"}`}>{formatTime(event.date)}{event.isTentative ? " · Proposed" : ""}</p>
                               <p className="mt-1 text-xs font-medium text-[#173454]">{event.title}</p>
                               <p className="mt-1 text-[11px] text-[#71859A]">{event.subtitle}</p>
                             </button>
@@ -419,7 +421,7 @@ export default function CalendarPage() {
               <button onClick={() => setSelected(null)} aria-label="Close"><X size={18} className="text-[#8A99A5]" /></button>
             </div>
             <div className="mt-5 space-y-3 text-xs text-[#526A7D]">
-              <p>{formatDate(selected.date)} · {formatTime(selected.date)} · {selected.interview.duration_minutes ?? 60} min</p>
+              <p>{formatDate(selected.date)} · {formatTime(selected.date)} · {selected.interview.duration_minutes ?? 60} min{selected.isTentative ? " · Proposed time (not confirmed)" : ""}</p>
               <p>{selected.interview.interview_mode ?? "Online"}{selected.interview.meeting_provider ? " · " + selected.interview.meeting_provider : ""}</p>
               {selected.interview.timezone && <p>Scheduled timezone: {selected.interview.timezone}</p>}
               {selected.interview.interviewers?.length ? <p>Interviewers: {selected.interview.interviewers.map((person) => person.full_name ?? person.email ?? "Team member").join(", ")}</p> : <p>No internal interviewers assigned.</p>}
