@@ -273,7 +273,7 @@ export default function OffersPage() {
     const row = applicationRows.find((x) => x.app.id === candidateId);
     if (!row?.profile || !row.job) { setMessage("Choose an applicant before saving the offer."); return; }
     if (!startDate) { setMessage("Add the proposed start date before saving the offer."); return; }
-    if (nextStatus === "Pending approval" && approverIds.length === 0) { setMessage("Select at least one approver before submitting."); return; }
+    if (nextStatus === "Pending approval" && approverIds.length === 0) { setMessage("Select at least one approver with an email address before submitting."); return; }
     const template = templates.find((t) => t.id === templateId);
     const version = template?.versions?.find((v) => v.id === templateVersionId) ?? latest(template ?? emptyTemplate);
     const finalHtml = safeHtml(editorRef.current?.innerHTML ?? renderCurrentLetter(row, template, version));
@@ -403,10 +403,10 @@ export default function OffersPage() {
               <label className="mt-4 flex items-center gap-2 text-xs text-[#526A7D]"><input type="checkbox" checked={approvalRequired} onChange={(e) => setApprovalRequired(e.target.checked)} className="accent-[#167D73]"/> Require internal approval</label>
               {approvalRequired && <div className="mt-3 rounded-xl border border-[#DDE5EA] bg-[#FCFCFA] p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div><p className="text-xs font-medium text-[#526A7D]">Approver</p><p className="mt-0.5 text-[10px] text-[#9AA8B3]">Choose an active team member. Their email is used automatically.</p></div>
+                  <div><p className="text-xs font-medium text-[#526A7D]">Approver</p><p className="mt-0.5 text-[10px] text-[#9AA8B3]">Choose an active team member. Only active approvers with an email address can be selected.</p></div>
                   <select value="" onChange={(e) => { const id=e.target.value; if (id && !approverIds.includes(id)) setApproverIds((v) => [...v, id]); }} className="h-9 rounded-lg border border-[#B9DDD7] bg-white px-2 text-[11px] font-medium text-[#167D73] outline-none">
                     <option value="">＋ Add approver</option>
-                    {teamMembers.filter((m): m is TeamMember & { user_id: string } => !!m.user_id && ["Owner","Admin","Recruiter"].includes(m.role) && !approverIds.includes(m.user_id)).map((m) => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email || "Team member"} · {m.role}</option>)}
+                    {teamMembers.filter((m): m is TeamMember & { user_id: string } => !!m.user_id && !!m.email?.trim() && ["Owner","Admin","Recruiter"].includes(m.role) && !approverIds.includes(m.user_id)).map((m) => <option key={m.user_id} value={m.user_id}>{m.full_name || m.email} · {m.role}</option>)}
                   </select>
                 </div>
                 {approverIds.length === 0 ? <p className="mt-3 text-[10px] text-[#B34E3E]">Select at least one approver before submitting.</p> :
