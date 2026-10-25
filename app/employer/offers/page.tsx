@@ -306,14 +306,63 @@ export default function OffersPage() {
   }
 
   async function approve(offer: Offer) {
-    if (!["Owner","Admin","Recruiter"].includes(userRole)) { setMessage("Only an Owner, Admin or Recruiter can approve an offer."); return; }
-    const auth = await supabase.auth.getUser(); if (!auth.data.user) return;
-    const assignedApprovers = offer.approver_ids ?? [];
-    if (assignedApprovers.length > 0 && !assignedApprovers.includes(auth.data.user.id)) { setMessage("This offer is assigned to another approver."); return; }
-    const result = await supabase.from("offers").update({ status: "Approved", approved_by: auth.data.user.id, approved_at: new Date().toISOString(), updated_by: auth.data.user.id }).eq("id", offer.id).select("*").single();
-    if (result.error) { setMessage(result.error.message); return; }
-    await supabase.from("offer_events").insert({ offer_id: offer.id, company_id: companyId, event_type: "approved", actor_id: auth.data.user.id, metadata: {} });
-    await load(); setOpen(false);
+    setSaving(true);
+    setMessage("");
+    try {
+      if (offer.status !== "Pending approval") {
+        setMessage("This offer is no longer pending approval. Refresh the list and try again.");
+        return;
+      }
+      const auth = await supabase.auth.getUser();
+      if (auth.error || !auth.data.user) {
+        setMessage("Your session has expired. Sign in again before approving this offer.");
+        return;
+      }
+      const approver = teamMembers.find((m) => m.user_id === auth.data.user!.id);
+      if (!approver || !["Owner", "Admin", "Recruiter"].includes(approver.role)) {
+        setMessage("Your account is not listed as an authorised offer approver for this company. Ask the company Owner or Admin to check your team role.");
+        return;
+      }
+      const assignedApprovers = offer.approver_ids ?? [];
+      if (assignedApprovers.length > 0 && !assignedApprovers.includes(auth.data.user.id)) {
+        setMessage("This offer is assigned to another approver. Ask the offer creator to assign your account.");
+        return;
+      }
+      const now = new Date().toISOString();
+      const result = await supabase.from("offers").update({
+        status: "Approved",
+        approved_by: auth.data.user.id,
+        approved_at: now,
+        updated_by: auth.data.user.id,
+        updated_at: now
+      }).eq("id", offer.id).eq("status", "Pending approval").select("*").maybeSingle();
+      if (result.error) {
+        setMessage("Approval could not be saved: " + result.error.message);
+        return;
+      }
+      if (!result.data) {
+        setMessage("No offer was updated. Your access may not allow this action, or the offer status has changed. Refresh and try again.");
+        return;
+      }
+      const event = await supabase.from("offer_events").insert({
+        offer_id: offer.id,
+        company_id: companyId,
+        event_type: "approved",
+        actor_id: auth.data.user.id,
+        metadata: { approved_at: now }
+      });
+      if (event.error) {
+        setMessage("Offer was approved, but its history entry could not be saved: " + event.error.message);
+      } else {
+        setMessage("Offer approved successfully. It is now ready to send.");
+      }
+      setSelectedOffer(result.data as Offer);
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? "Approval failed: " + error.message : "Approval failed. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function sendOffer(offer: Offer, test = false) {
@@ -428,7 +477,7 @@ export default function OffersPage() {
                 {selectedOffer && <button onClick={() => withdraw(selectedOffer)} className="rounded-xl border border-[#F0D5CF] px-3 py-2.5 text-xs text-[#B34E3E]">Withdraw</button>}
                 <button onClick={() => saveOffer("Draft")} disabled={saving} className="rounded-xl border border-[#DDE5EA] px-3 py-2.5 text-xs font-medium text-[#526A7D]">{saving ? "Saving…" : "Save draft"}</button>
                 {(!selectedOffer || selectedOffer.status === "Draft" || selectedOffer.status === "Changes requested" || selectedOffer.status === "Expired") && <button onClick={() => saveOffer(approvalRequired ? "Pending approval" : "Approved")} disabled={saving} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white">{approvalRequired ? "Submit for approval" : "Approve offer"}</button>}
-                {selectedOffer?.status === "Pending approval" && <button onClick={() => approve(selectedOffer)} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white"><Check size={14} className="mr-1 inline"/> Approve</button>}
+                {selectedOffer?.status === "Pending approval" && <button onClick={() => approve(selectedOffer)} disabled={saving} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"><Check size={14} className="mr-1 inline"/>{saving ? "Approving…" : "Approve"}</button>}
                 {selectedOffer?.status === "Approved" && <div className="flex flex-wrap gap-2"><button disabled={sending} onClick={() => sendOffer(selectedOffer, true)} className="rounded-xl border border-[#B9DDD7] bg-white px-4 py-2.5 text-xs font-medium text-[#167D73]">{sending ? "Sending…" : "Send test to me"}</button><button disabled={sending} onClick={() => sendOffer(selectedOffer)} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white"><Send size={14} className="mr-1 inline"/>{sending ? "Sending…" : "Send offer"}</button></div>}
                 {selectedOffer?.status === "Accepted" && selectedOffer.application_id && <Link href={"/employer/bgv?application=" + selectedOffer.application_id} className="rounded-xl border border-[#B9DDD7] bg-[#E7F3F1] px-4 py-2.5 text-xs font-medium text-[#167D73]"><ShieldCheck size={14} className="mr-1 inline"/> Continue checks</Link>}
               </div></div>
