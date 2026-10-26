@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/signup", "/verify", "/api", "/r/", "/employer/signup"];
+const PUBLIC_PATHS = ["/signup", "/login", "/verify", "/api", "/r/", "/employer/signup", "/auth"];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
-    url.pathname = path.startsWith("/employer") ? "/employer/signup" : "/signup";
+    url.pathname = path.startsWith("/employer") ? "/login" : "/login";
     return NextResponse.redirect(url);
   }
 
