@@ -140,6 +140,7 @@ export default function InterviewsPage(){
   const [filter,setFilter]=useState<Filter>("Upcoming");
   const [query,setQuery]=useState("");
   const [showNew,setShowNew]=useState(false);
+  const [editingInterviewId,setEditingInterviewId]=useState<string|null>(null);
   const [detail,setDetail]=useState<Row|null>(null);
   const [feedback,setFeedback]=useState<Row|null>(null);
   const [feedbackRecordId,setFeedbackRecordId]=useState<string|null>(null);
@@ -241,7 +242,7 @@ export default function InterviewsPage(){
   const applicationOptions=applicationChoices.filter(x=>!["rejected","withdrawn","hired"].includes((x.status??"").toLowerCase()));
 
   function resetForm(){
-    setApplicationId("");setDateValue("");setTimeValue("");setDuration("60");setInterviewType("Structured interview");setMode("Online");setTimezone("Asia/Kolkata");setMeetingLink("");setMeetingProvider("Google Meet");setSelectedInterviewers([]);setShowInterviewerPicker(false);setExternalInterviewer({name:"",email:"",role:""});setScorecardId(scorecards[0]?.id??"");setReminders([1440,60]);setNotes("");setNotice("");
+    setEditingInterviewId(null);setApplicationId("");setDateValue("");setTimeValue("");setDuration("60");setInterviewType("Structured interview");setMode("Online");setTimezone("Asia/Kolkata");setMeetingLink("");setMeetingProvider("Google Meet");setSelectedInterviewers([]);setShowInterviewerPicker(false);setExternalInterviewer({name:"",email:"",role:""});setScorecardId(scorecards[0]?.id??"");setReminders([1440,60]);setNotes("");setNotice("");
   }
   function openScorecardEditor(id:string){
     const card=scorecards.find(x=>x.id===id);
@@ -267,6 +268,20 @@ export default function InterviewsPage(){
     if(error){setNotice(error.message);setScorecardSaving(false);return;}
     setScorecards(v=>v.map(x=>x.id===card.id?{...x,name:scorecardEditorName.trim()||x.name,description:scorecardEditorDescription.trim()||null,criteria}:x));
     setScorecardEditorId("");setScorecardSaving(false);setNotice("Scorecard criteria saved. New interviews will use the updated criteria; existing interview snapshots stay unchanged.");
+  }
+
+  function editInterview(row:Row){
+    const raw=row.confirmed_time??row.proposed_times?.[0];
+    if(!raw){setNotice("This interview has no scheduled time to edit.");return;}
+    const d=new Date(raw);
+    setEditingInterviewId(row.id);setApplicationId(row.application_id??"");
+    setDateValue(new Intl.DateTimeFormat("en-CA",{timeZone:row.timezone||"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(d));
+    setTimeValue(new Intl.DateTimeFormat("en-GB",{timeZone:row.timezone||"Asia/Kolkata",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(d));
+    setDuration(String(row.duration_minutes??60));setInterviewType(row.interview_type||"Structured interview");
+    setMode(row.interview_mode||"Online");setTimezone(row.timezone||"Asia/Kolkata");setMeetingLink(row.meeting_link||"");
+    setMeetingProvider(row.meeting_provider||"Google Meet");setSelectedInterviewers(row.interviewer_ids??[]);
+    setScorecardId(row.scorecard_id||"");setReminders(row.reminder_minutes??[1440,60]);setNotes(row.notes||"");
+    setNotice("");setShowNew(true);window.scrollTo({top:0,behavior:"smooth"});
   }
 
   async function createInterview(){
@@ -300,6 +315,7 @@ export default function InterviewsPage(){
           if(conflictQueryError){setNotice("Could not verify interviewer availability. Please refresh and try again.");setSaving(false);return;}
           const start=proposed.getTime(),end=start+Number(duration)*60000;
           const conflict=(existing??[]).some((item:any)=>{
+            if(item.id===editingInterviewId)return false;
             if(!(item.interviewer_ids??[]).some((id:string)=>selectedInterviewers.includes(id)))return false;
             const candidateTime=item.confirmed_time??item.proposed_times?.[0];
             if(!candidateTime)return false;
@@ -311,15 +327,18 @@ export default function InterviewsPage(){
         }
       }
     }
-    const {data:createdInterview,error}=await supabase.from("interview_requests").insert({
-      application_id:applicationId,status:"Requested",proposed_times:[proposed.toISOString()],requested_by:user.id,
+    const payload={
+      application_id:applicationId,status:editingInterviewId?(rows.find(x=>x.id===editingInterviewId)?.status??"Requested"):"Requested",proposed_times:[proposed.toISOString()],requested_by:user.id,
       interview_type:interviewType,interview_mode:mode,duration_minutes:Number(duration),timezone,
       meeting_link:meetingLink||null,meeting_provider:mode==="Online"?meetingProvider:null,
       interviewer_ids:selectedInterviewers,external_interviewers:externalInterviewer.email.trim()?[{name:externalInterviewer.name.trim(),email:externalInterviewer.email.trim(),role:externalInterviewer.role.trim()}]:[],scorecard_id:scorecardId||null,
       scorecard_criteria:scorecardId ? (scorecards.find(x=>x.id===scorecardId)?.criteria ?? null) : null,
       reminder_minutes:reminders,notes:notes||null
-    }).select("id").single();
-    if(error)setNotice(error.message);else{setShowNew(false);resetForm();await load();setNotice("Interview saved. Open its details to send the invitation.");}
+    };
+    const result=editingInterviewId
+      ? await supabase.from("interview_requests").update(payload).eq("id",editingInterviewId)
+      : await supabase.from("interview_requests").insert(payload).select("id").single();
+    if(result.error)setNotice(result.error.message);else{setShowNew(false);resetForm();await load();setNotice(editingInterviewId?"Interview updated successfully.":"Interview saved. Open its details to send the invitation.");}
     setSaving(false);
   }
   async function sendInvitation(row:Row){
@@ -456,13 +475,13 @@ export default function InterviewsPage(){
             {row.status==="Confirmed"&&<button onClick={()=>addToCalendar(row)} className="rounded-xl border border-[#DDE5EA] bg-white px-3 py-2 text-[11px] text-[#526A7D]">Google Calendar</button>}
             {row.status==="Confirmed"&&<button onClick={()=>downloadIcs(row)} className="rounded-xl border border-[#DDE5EA] bg-white px-3 py-2 text-[11px] text-[#526A7D]">.ics</button>}
             {!["Completed","Cancelled"].includes(row.status??"")&&<button onClick={()=>setStatus(row,"Cancelled")} className="inline-flex items-center gap-1.5 rounded-xl border border-[#F0D5CF] bg-white px-3 py-2 text-[11px] text-[#B34E3E]"><XCircle size={13}/> Cancel</button>}
-            <button onClick={()=>setDetail(row)} className="inline-flex items-center gap-1 text-[11px] text-[#167D73]">Details <ChevronRight size={13}/></button>
+            <button onClick={()=>editInterview(row)} className="inline-flex items-center gap-1.5 rounded-xl border border-[#DDE5EA] bg-white px-3 py-2 text-[11px] text-[#526A7D]">Edit</button><button onClick={()=>setDetail(row)} className="inline-flex items-center gap-1 text-[11px] text-[#167D73]">Details <ChevronRight size={13}/></button>
           </div>
         </div></div>)}</div>}
       </div>
     </div>
 
-    {showNew&&<div className="fixed inset-0 z-50 overflow-y-auto bg-[#173454]/20 px-5 py-8"><div className="mx-auto w-full max-w-[720px] rounded-2xl border border-[#DDE5EA] bg-white p-6 shadow-[0_24px_70px_rgba(23,52,84,0.18)] sm:p-8"><div className="flex items-start justify-between"><div><p className="text-[10px] font-semibold tracking-[0.15em] text-[#167D73] uppercase">INTERVIEW</p><h2 className="mt-1 text-lg font-semibold text-[#173454]">Schedule interview</h2><p className="mt-1 text-xs text-[#71859A]">Set the interview logistics before inviting the candidate.</p></div><button onClick={()=>setShowNew(false)}><X size={18} className="text-[#71859A]"/></button></div>
+    {showNew&&<div className="fixed inset-0 z-50 overflow-y-auto bg-[#173454]/20 px-5 py-8"><div className="mx-auto w-full max-w-[720px] rounded-2xl border border-[#DDE5EA] bg-white p-6 shadow-[0_24px_70px_rgba(23,52,84,0.18)] sm:p-8"><div className="flex items-start justify-between"><div><p className="text-[10px] font-semibold tracking-[0.15em] text-[#167D73] uppercase">INTERVIEW</p><h2 className="mt-1 text-lg font-semibold text-[#173454]">{editingInterviewId?"Edit scheduled interview":"Schedule interview"}</h2><p className="mt-1 text-xs text-[#71859A]">Set the interview logistics before inviting the candidate.</p></div><button onClick={()=>setShowNew(false)}><X size={18} className="text-[#71859A]"/></button></div>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <label className="sm:col-span-2"><span className="label">Candidate application</span><select value={applicationId} onChange={e=>setApplicationId(e.target.value)} className="input"><option value="">Select candidate…</option>{applicationOptions.map(a=><option key={a.id} value={a.id}>{a.candidate?.full_name??"Candidate"} · {a.job?.title??"Job"}</option>)}</select></label>
         <label><span className="label">Interview type</span><select value={interviewType} onChange={e=>setInterviewType(e.target.value)} className="input"><option>Structured interview</option><option>Recruiter screen</option><option>Technical interview</option><option>Hiring manager interview</option><option>Panel interview</option><option>Executive interview</option><option>Case study</option><option>Other</option></select></label>
@@ -479,7 +498,7 @@ export default function InterviewsPage(){
         <label className="sm:col-span-2"><span className="label">Internal notes</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} className="input min-h-[90px]" placeholder="Anything the interview team should know…"/></label>
       </div>
       {notice&&<p role="status" aria-live="polite" className={"mt-4 rounded-xl px-3 py-2.5 text-xs "+(/could not|error|failed|unable|please |expired|not be updated|not updated/i.test(notice)?"bg-[#FFF4F1] text-[#A44436]":"bg-[#FFF8E8] text-[#9A6A19]")}>{notice}</p>}
-      <div className="mt-6 flex justify-end gap-2"><button onClick={()=>setShowNew(false)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Cancel</button><button disabled={saving} onClick={createInterview} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white disabled:opacity-50">{saving?"Saving…":"Save interview"}</button></div>
+      <div className="mt-6 flex justify-end gap-2"><button onClick={()=>setShowNew(false)} className="rounded-xl border border-[#DDE5EA] px-4 py-2.5 text-xs text-[#526A7D]">Cancel</button><button disabled={saving} onClick={createInterview} className="rounded-xl bg-[#167D73] px-4 py-2.5 text-xs font-medium text-white disabled:opacity-50">{saving?"Saving…":editingInterviewId?"Update interview":"Save interview"}</button></div>
     </div></div>}
 
 
