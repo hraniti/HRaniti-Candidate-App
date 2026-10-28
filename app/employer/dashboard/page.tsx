@@ -2,170 +2,128 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import EmployerShell from "@/components/employer/EmployerShell";
+import { createClient } from "@/lib/supabase/client";
 import { getOrCreateCompanyId } from "@/lib/employer/getOrCreateCompany";
-import { BriefcaseBusiness, UsersRound, CalendarDays, Mail, UserCheck, ArrowUpRight, CheckCircle2, FileCheck2, ShieldCheck, Clock3 } from "lucide-react";
+import { BriefcaseBusiness, UsersRound, CalendarDays, FileText, UserCheck, ArrowUpRight, RefreshCw, ReceiptText, CircleAlert } from "lucide-react";
 
-type Company = { name: string | null; primary_hr_contact_name: string | null; hq_location: string | null; onboarding_completed: boolean; plan: string | null };
+type Company = { name: string | null; primary_hr_contact_name: string | null; onboarding_completed: boolean };
+type Submission = { id: string; candidate_name: string | null; candidate_email: string | null; job_id: string | null; status: string | null; created_at: string | null; joining_date?: string | null };
+type Invoice = { id: string; invoice_type: string | null; status: string | null; total_amount: number | null; currency: string | null; due_date: string | null };
 
 export default function EmployerDashboard() {
   const router = useRouter();
   const supabase = createClient();
   const [company, setCompany] = useState<Company | null>(null);
-  const [jobCount, setJobCount] = useState(0);
-  const [applicantCount, setApplicantCount] = useState(0);
-  const [unlockCount, setUnlockCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [metrics, setMetrics] = useState({ openJobs: 0, applicants: 0, submissions: 0, interviewsToday: 0, offersPending: 0, hiresThisMonth: 0, receivables: 0, payables: 0 });
+  const [recent, setRecent] = useState<Submission[]>([]);
+  const [jobTitles, setJobTitles] = useState<Record<string, string>>([]);
+  const [invoiceRows, setInvoiceRows] = useState<Invoice[]>([]);
 
-  useEffect(() => {
-    (async () => {
+  async function load() {
+    setRefreshing(true);
+    setError("");
+    try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.replace("/"); return; }
+      if (!user) { router.replace("/login"); return; }
       const companyId = await getOrCreateCompanyId(supabase, user);
-      const { data } = await supabase.from("companies").select("name,primary_hr_contact_name,hq_location,onboarding_completed,plan").eq("id", companyId).single();
-      if (data && !data.onboarding_completed) { router.replace("/employer/onboarding/company"); return; }
-      setCompany(data as Company);
+      const { data: companyRow, error: companyError } = await supabase.from("companies").select("name,primary_hr_contact_name,onboarding_completed").eq("id", companyId).single();
+      if (companyError) throw companyError;
+      if (companyRow && !companyRow.onboarding_completed) { router.replace("/employer/onboarding/company"); return; }
+      setCompany(companyRow as Company);
 
-      const { count: jobs } = await supabase.from("jobs").select("*", { count: "exact", head: true }).eq("company_id", companyId);
-      const { count: unlocks } = await supabase.from("candidate_unlocks").select("*", { count: "exact", head: true }).eq("company_id", companyId);
-      setJobCount(jobs ?? 0);
-      setUnlockCount(unlocks ?? 0);
-      setApplicantCount(0);
+      const [jobsResult, submissionsResult, invoicesResult, applicationsResult, offersResult] = await Promise.all([
+        supabase.from("jobs").select("id,title,status,created_at").eq("company_id", companyId).order("created_at", { ascending: false }),
+        supabase.from("agency_submissions").select("id,candidate_name,candidate_email,job_id,status,created_at,joining_date").eq("workspace_company_id", companyId).order("created_at", { ascending: false }).limit(8),
+        supabase.from("agency_invoices").select("id,invoice_type,status,total_amount,currency,due_date").eq("workspace_company_id", companyId),
+        supabase.from("applications").select("id,job_id,applied_at"),
+        supabase.from("offers").select("id,status,start_date,created_at").eq("company_id", companyId),
+      ]);
+      if (jobsResult.error) throw jobsResult.error;
+      if (submissionsResult.error) throw submissionsResult.error;
+      if (invoicesResult.error) throw invoicesResult.error;
+      const jobs = jobsResult.data ?? [];
+      const submissions = submissionsResult.data ?? [];
+      const invoices = (invoicesResult.data ?? []) as Invoice[];
+      const applications = applicationsResult.error ? [] : (applicationsResult.data ?? []);
+      const offers = offersResult.error ? [] : (offersResult.data ?? []);
+      const titles: Record<string, string> = {};
+      jobs.forEach((j: any) => { titles[j.id] = j.title; });
+      setJobTitles(titles);
+      setRecent(submissions);
+      setInvoiceRows(invoices);
+      const today = new Date();
+      const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+      const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+      const pendingInvoiceStatuses = ["Draft", "Paid", "Void", "Rejected"];
+      const receivable = invoices.filter(i => i.invoice_type === "Company Receivable" && !pendingInvoiceStatuses.includes(i.status ?? "")).reduce((sum, i) => sum + Number(i.total_amount || 0), 0);
+      const payable = invoices.filter(i => i.invoice_type === "Recruiter Payable" && !pendingInvoiceStatuses.includes(i.status ?? "")).reduce((sum, i) => sum + Number(i.total_amount || 0), 0);
+      const joined = submissions.filter(s => s.status === "Joined" && s.created_at && s.created_at >= monthStart);
+      const jobIds = new Set(jobs.map((j: any) => j.id));
+      const openJobs = jobs.filter((j: any) => ["active", "open", "Open", "Active"].includes(j.status ?? "")).length;
+      const todayInterviewResult = await supabase.from("interview_requests").select("id,confirmed_time,status").gte("confirmed_time", dayStart).lt("confirmed_time", dayEnd);
+      setMetrics({
+        openJobs,
+        applicants: applications.filter((a: any) => jobIds.has(a.job_id)).length,
+        submissions: (submissionsResult.data ?? []).length,
+        interviewsToday: todayInterviewResult.error ? 0 : (todayInterviewResult.data ?? []).filter((i: any) => !["cancelled", "canceled", "declined"].includes((i.status ?? "").toLowerCase())).length,
+        offersPending: offers.filter((o: any) => ["draft", "pending approval", "awaiting approval", "approved", "sent", "awaiting acceptance", "awaiting_acceptance"].includes((o.status ?? "").toLowerCase())).length,
+        hiresThisMonth: joined.length,
+        receivables: receivable,
+        payables: payable,
+      });
+    } catch (e: any) {
+      setError(e?.message || "We couldn't load dashboard data. Please refresh.");
+    } finally {
       setLoading(false);
-    })();
-  }, []);
+      setRefreshing(false);
+    }
+  }
 
-  if (loading || !company) return null;
+  useEffect(() => { load(); }, []);
 
-  const firstName = company.primary_hr_contact_name?.split(" ")[0] || "there";
+  const firstName = company?.primary_hr_contact_name?.split(" ")[0] || "there";
+  const money = (amount: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(amount);
+  const cards = [
+    { label: "Open jobs", value: metrics.openJobs, icon: BriefcaseBusiness, href: "/employer/jobs", tone: "blue" },
+    { label: "Applicants", value: metrics.applicants, icon: UsersRound, href: "/employer/applicants", tone: "teal" },
+    { label: "Submissions", value: metrics.submissions, icon: FileText, href: "/employer/submissions", tone: "lavender" },
+    { label: "Interviews today", value: metrics.interviewsToday, icon: CalendarDays, href: "/employer/interviews", tone: "peach" },
+    { label: "Offers in progress", value: metrics.offersPending, icon: FileText, href: "/employer/offers", tone: "teal" },
+    { label: "Joined this month", value: metrics.hiresThisMonth, icon: UserCheck, href: "/employer/hires", tone: "blue" },
+  ] as const;
+  const tones: Record<string, string> = { blue: "bg-[#EEF6FD] border-[#D7E8F6]", teal: "bg-[#EEF8F6] border-[#D9ECE8]", lavender: "bg-[#F4F1FB] border-[#E4DFF4]", peach: "bg-[#FFF6EF] border-[#F3E3D5]" };
 
-  const openJobs = [
-    ["Senior SAP Consultant", "Bangalore · Full-time", "28", "Active"],
-    ["Frontend Developer", "Bangalore · Full-time", "21", "Active"],
-    ["Product Manager", "Bangalore · Full-time", "16", "Active"],
-    ["Java Developer", "Bangalore · Full-time", "12", "Paused"],
-    ["UI/UX Designer", "Bangalore · Full-time", "9", "Active"],
-  ];
+  if (loading && !company) return <EmployerShell><div className="mx-auto max-w-6xl p-8 text-sm text-[#71859A]">Loading your dashboard…</div></EmployerShell>;
 
-  const interviews = [
-    ["09:00 AM", "Rohit Sharma", "Frontend Developer", "Video Call"],
-    ["10:30 AM", "Neha Kapoor", "Product Manager", "In Person"],
-    ["02:00 PM", "Arjun Mehta", "Java Developer", "Video Call"],
-    ["03:30 PM", "Sneha Iyer", "UI/UX Designer", "Video Call"],
-  ];
-
-  const activities = [
-    ["New applicant applied for Senior SAP Consultant", "2 hours ago"],
-    ["Interview feedback received for Neha Kapoor", "3 hours ago"],
-    ["Offer sent to Rohit Sharma", "5 hours ago"],
-    ["BGV completed for Anjali Verma", "6 hours ago"],
-  ];
-
-  const approvals = [
-    ["Job approval required", "Senior SAP Consultant", "Review"],
-    ["Offer approval required", "Product Manager", "Review"],
-    ["BGV exception", "Rahul Nair", "Review"],
-    ["Interview feedback pending", "3 applicants", "View"],
-  ];
-
-  return (
-    <EmployerShell jobCount={jobCount}>
-      <div className="px-5 sm:px-7 lg:px-9 py-8 max-w-[1500px] mx-auto">
-        <div className="flex items-end justify-between gap-6 mb-7">
-          <div>
-            <h1 className="text-[30px] sm:text-[34px] font-semibold tracking-[-0.03em] text-[#173454]">Good morning, {firstName} 👋</h1>
-            <p className="text-[15px] text-[#71859A] mt-1">Here’s what’s happening with your hiring today.</p>
+  return <EmployerShell jobCount={metrics.openJobs}>
+    <main className="min-h-screen bg-[#FCFCFA] px-5 py-8 text-[#173454] sm:px-8">
+      <div className="mx-auto max-w-[1400px]">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div><p className="text-[10px] font-semibold tracking-[.16em] text-[#167D73]">HRANITI WORKSPACE</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Good morning, {firstName}</h1><p className="mt-2 text-sm text-[#71859A]">Your recruitment activity, priorities and business at a glance.</p></div>
+          <button onClick={load} disabled={refreshing} className="inline-flex items-center gap-2 rounded-xl border border-[#DDE5EA] bg-white px-4 py-2.5 text-sm disabled:opacity-60"><RefreshCw size={15} className={refreshing ? "animate-spin" : ""}/>Refresh data</button>
+        </header>
+        {error && <div role="alert" className="mt-5 flex items-start gap-2 rounded-xl border border-[#F0D5C9] bg-[#FFF8F4] p-4 text-sm text-[#8C4B32]"><CircleAlert size={17} className="mt-0.5 shrink-0"/><div><p className="font-medium">Dashboard data could not be fully loaded</p><p className="mt-1">{error}</p></div></div>}
+        <section className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {cards.map(card => <button key={card.label} onClick={() => router.push(card.href)} className={`rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${tones[card.tone]}`}><div className="flex items-center justify-between"><span className="text-sm text-[#526A7D]">{card.label}</span><card.icon size={18} className="text-[#167D73]"/></div><p className="mt-4 text-3xl font-semibold">{loading ? "—" : card.value}</p><span className="mt-3 inline-flex items-center gap-1 text-xs text-[#167D73]">View details <ArrowUpRight size={13}/></span></button>)}
+        </section>
+        <section className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+          <div className="rounded-2xl border border-[#DDE5EA] bg-white p-5">
+            <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">Recent submissions</h2><p className="mt-1 text-xs text-[#71859A]">Latest candidate submissions recorded in your workspace.</p></div><button onClick={() => router.push("/employer/submissions")} className="inline-flex items-center gap-1 text-xs text-[#167D73]">All submissions <ArrowUpRight size={13}/></button></div>
+            {loading ? <p className="py-8 text-sm text-[#71859A]">Loading submissions…</p> : recent.length === 0 ? <div className="py-8 text-center"><FileText size={22} className="mx-auto text-[#9AA8B3]"/><p className="mt-2 text-sm font-medium">No submissions yet</p><p className="mt-1 text-xs text-[#71859A]">Create your first submission to see activity here.</p><button onClick={() => router.push("/employer/submissions")} className="mt-3 rounded-lg bg-[#167D73] px-3 py-2 text-xs text-white">Create submission</button></div> : <div className="mt-3 divide-y divide-[#EEF2F4]">{recent.slice(0,6).map(row => <button key={row.id} onClick={() => router.push("/employer/submissions")} className="flex w-full items-center gap-3 py-3 text-left hover:bg-[#FAFCFC]"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EEF8F6] text-xs font-semibold text-[#167D73]">{(row.candidate_name || "C").split(" ").map(x => x[0]).slice(0,2).join("").toUpperCase()}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{row.candidate_name || row.candidate_email || "Candidate"}</span><span className="mt-1 block truncate text-xs text-[#71859A]">{row.job_id ? jobTitles[row.job_id] || "Role" : "Role not linked"} · {row.status || "No status"}</span></span><span className="shrink-0 text-xs text-[#71859A]">{row.created_at ? new Date(row.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}</span></button>)}</div>}
           </div>
-          <div className="hidden sm:flex items-center gap-2 text-[12px] text-[#71859A]">
-            <CalendarDays size={15} /> {new Date().toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+          <div className="rounded-2xl border border-[#DDE5EA] bg-white p-5">
+            <h2 className="font-semibold">Business snapshot</h2><p className="mt-1 text-xs text-[#71859A]">Amounts based on recorded invoice entries, not bank reconciliation.</p>
+            <button onClick={() => router.push("/employer/invoices")} className="mt-4 flex w-full items-center gap-3 rounded-xl border border-[#EEF2F4] p-4 text-left hover:bg-[#FAFCFC]"><ReceiptText size={19} className="text-[#167D73]"/><span className="min-w-0 flex-1"><span className="block text-sm font-medium">Client receivables</span><span className="mt-1 block text-xs text-[#71859A]">Outstanding recorded invoices</span></span><span className="text-sm font-semibold">{money(metrics.receivables)}</span></button>
+            <button onClick={() => router.push("/employer/invoices")} className="mt-3 flex w-full items-center gap-3 rounded-xl border border-[#EEF2F4] p-4 text-left hover:bg-[#FAFCFC]"><ReceiptText size={19} className="text-[#167D73]"/><span className="min-w-0 flex-1"><span className="block text-sm font-medium">Recruiter payables</span><span className="mt-1 block text-xs text-[#71859A]">Recorded recruiter payment entries</span></span><span className="text-sm font-semibold">{money(metrics.payables)}</span></button>
+            <div className="mt-4 rounded-xl bg-[#F7F9F8] p-3 text-xs leading-5 text-[#71859A]">Dashboard figures come from saved workspace records. Interview and offer totals show zero when their source query is unavailable; verify these counts against their tabs during testing.</div>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 mb-5">
-          <Kpi icon={BriefcaseBusiness} label="Active Jobs" value={jobCount} tone="blue" />
-          <Kpi icon={UsersRound} label="Total Applicants" value={applicantCount} tone="teal" />
-          <Kpi icon={CalendarDays} label="Interviews Today" value={8} tone="lavender" />
-          <Kpi icon={Mail} label="Offers Pending" value={5} tone="peach" />
-          <Kpi icon={UserCheck} label="Hires This Month" value={3} tone="teal" />
-        </div>
-
-        <div className="grid xl:grid-cols-[1.35fr_1fr_1fr] gap-4 mb-4">
-          <Panel title="Hiring Funnel" action="View details" onAction={() => router.push("/employer/reports")}>
-            <div className="grid grid-cols-[1.05fr_0.95fr] gap-5 items-center">
-              <div className="space-y-2 pt-1">
-                {[["Applications", applicantCount || 248, "bg-[#5A93CF]", "w-full"], ["Screened", 176, "bg-[#58A4CF]", "w-[88%]"], ["Shortlisted", 98, "bg-[#4DB3A7]", "w-[70%]"], ["Interview", 62, "bg-[#52B9C2]", "w-[57%]"], ["Offer", 18, "bg-[#91C98A]", "w-[38%]"], ["Hired", 12, "bg-[#72A875]", "w-[28%]"]].map(([label, value, color, width]) => (
-                  <div key={String(label)} className="flex items-center gap-3">
-                    <div className={`h-9 rounded-r-full ${String(color)} ${String(width)}`} />
-                    <div className="min-w-[76px]"><p className="text-[11px] text-[#71859A]">{label}</p><p className="text-[13px] font-semibold text-[#173454]">{value}</p></div>
-                  </div>
-                ))}
-              </div>
-              <div className="text-[12px] text-[#71859A] space-y-3">
-                <p>Applications <span className="float-right text-[#173454] font-semibold">248</span></p>
-                <p>Screened <span className="float-right text-[#173454] font-semibold">176</span></p>
-                <p>Shortlisted <span className="float-right text-[#173454] font-semibold">98</span></p>
-                <p>Interview <span className="float-right text-[#173454] font-semibold">62</span></p>
-                <p>Offer <span className="float-right text-[#173454] font-semibold">18</span></p>
-                <p>Hired <span className="float-right text-[#173454] font-semibold">12</span></p>
-              </div>
-            </div>
-          </Panel>
-
-          <Panel title="Top Open Jobs" action="View all" onAction={() => router.push("/employer/jobs")}>
-            <div className="divide-y divide-[#EEF2F4]">
-              {openJobs.map(([title, meta, count, status]) => (
-                <button key={title} onClick={() => router.push("/employer/jobs")} className="w-full py-3 text-left flex items-center gap-3 hover:bg-[#FAFCFC]">
-                  <div className="min-w-0 flex-1"><p className="text-[12px] font-semibold text-[#173454] truncate">{title}</p><p className="text-[10px] text-[#8A99A5] mt-1">{meta}</p></div>
-                  <div className="text-right"><p className="text-[12px] font-semibold text-[#173454]">{count}</p><p className="text-[10px] text-[#8A99A5]">new applicants</p></div>
-                  <span className={`text-[10px] px-2 py-1 rounded-full ${status === "Paused" ? "bg-[#FFF0E4] text-[#B86B24]" : "bg-[#E8F5EE] text-[#23805A]"}`}>{status}</span>
-                </button>
-              ))}
-            </div>
-          </Panel>
-
-          <Panel title="Upcoming Interviews" action="View calendar" onAction={() => router.push("/employer/calendar")}>
-            <div className="divide-y divide-[#EEF2F4]">
-              {interviews.map(([time, name, role, mode]) => (
-                <button key={time} onClick={() => router.push("/employer/interviews")} className="w-full py-3 text-left flex items-center gap-3 hover:bg-[#FAFCFC]">
-                  <span className="text-[11px] text-[#71859A] w-[58px]">{time}</span>
-                  <span className="w-9 h-9 rounded-full bg-[#EEF1F6] flex items-center justify-center text-[10px] font-semibold text-[#526A7D]">{name.split(" ").map(x => x[0]).join("")}</span>
-                  <div className="min-w-0 flex-1"><p className="text-[12px] font-semibold text-[#173454] truncate">{name}</p><p className="text-[10px] text-[#8A99A5] mt-1">{role}</p></div>
-                  <span className="text-[10px] text-[#71859A]">{mode}</span>
-                </button>
-              ))}
-            </div>
-          </Panel>
-        </div>
-
-        <div className="grid xl:grid-cols-[1.35fr_1fr_1fr] gap-4">
-          <Panel title="Recent Activity" action="View all" onAction={() => router.push("/employer/applicants")}>
-            <div className="divide-y divide-[#EEF2F4]">
-              {activities.map(([text, time], i) => <button key={text} onClick={() => router.push("/employer/applicants")} className="w-full py-3 flex items-center gap-3 text-left hover:bg-[#FAFCFC]"><span className={`w-8 h-8 rounded-full flex items-center justify-center ${i === 2 ? "bg-[#FFF1E6] text-[#B86B24]" : "bg-[#E8F5EE] text-[#167D73]"}`}><CheckCircle2 size={15}/></span><span className="flex-1 text-[11px] text-[#526A7D]">{text}</span><span className="text-[10px] text-[#9AA8B3]">{time}</span></button>)}
-            </div>
-          </Panel>
-
-          <Panel title="Approval Center" action="View all" onAction={() => router.push("/employer/settings")}>
-            <div className="divide-y divide-[#EEF2F4]">
-              {approvals.map(([title, subtitle, action]) => <div key={title} className="py-3 flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#F7EFEA] text-[#B86B24] flex items-center justify-center"><FileCheck2 size={15}/></span><div className="flex-1 min-w-0"><p className="text-[11px] font-medium text-[#173454]">{title}</p><p className="text-[10px] text-[#8A99A5] mt-0.5">{subtitle}</p></div><button onClick={() => router.push("/employer/settings")} className="text-[10px] px-3 py-1.5 rounded-lg border border-[#CFE1E0] text-[#167D73] hover:bg-[#F3F9F8]">{action}</button></div>)}
-            </div>
-          </Panel>
-
-          <button onClick={() => router.push("/employer/talent-pool")} className="text-left rounded-2xl overflow-hidden border border-[#DDE5EA] min-h-[255px] relative bg-[#EAF2F4]">
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(232,243,247,0.18),rgba(232,243,247,0.9))]" />
-            <div className="absolute bottom-0 left-0 right-0 p-6"><p className="text-[16px] font-semibold text-[#173454]">Let’s build your next great team</p><p className="text-[12px] text-[#526A7D] mt-2 max-w-[250px]">Find, assess and hire the right talent — faster, smarter, together.</p><span className="inline-flex items-center gap-1 mt-5 text-[12px] font-medium text-[#167D73]">Explore Talent Pool <ArrowUpRight size={14}/></span></div>
-          </button>
-        </div>
+        </section>
       </div>
-    </EmployerShell>
-  );
-}
-
-function Panel({ title, action, onAction, children }: { title: string; action: string; onAction: () => void; children: React.ReactNode }) {
-  return <section className="bg-white border border-[#DDE5EA] rounded-2xl p-5 shadow-[0_2px_10px_rgba(23,52,84,0.025)]"><div className="flex items-center justify-between mb-3"><h2 className="text-[15px] font-semibold text-[#173454]">{title}</h2><button onClick={onAction} className="text-[11px] text-[#167D73] inline-flex items-center gap-1 hover:underline">{action} <ArrowUpRight size={13}/></button></div>{children}</section>;
-}
-
-function Kpi({ icon: Icon, label, value, tone }: { icon: typeof BriefcaseBusiness; label: string; value: string | number; tone: "blue"|"teal"|"lavender"|"peach" }) {
-  const tones = { blue: "bg-[#EEF6FD] border-[#D7E8F6]", teal: "bg-[#EEF8F6] border-[#D9ECE8]", lavender: "bg-[#F4F1FB] border-[#E4DFF4]", peach: "bg-[#FFF6EF] border-[#F3E3D5]" };
-  return <div className={`rounded-2xl border p-4 ${tones[tone]}`}><div className="flex items-center gap-2.5"><span className="w-9 h-9 rounded-full bg-white/70 flex items-center justify-center"><Icon size={17} className="text-[#167D73]"/></span><span className="text-[11px] text-[#526A7D]">{label}</span></div><p className="text-[25px] font-semibold text-[#173454] mt-3">{value}</p><p className="text-[10px] text-[#167D73] mt-1">↑  —  current account</p></div>;
+    </main>
+  </EmployerShell>;
 }
