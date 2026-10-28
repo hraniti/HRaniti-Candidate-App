@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import employerHero from "./employer-hero.webp";
 import talentHero from "./talent-hero.webp";
@@ -41,13 +42,16 @@ export default function WelcomePage() {
           className="h-auto w-[150px] sm:w-[175px] lg:w-[190px]"
         />
 
-        <div className="hidden items-center gap-2 text-[13px] font-medium text-[#74879B] sm:flex lg:text-[14px]">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <Link href="/login" className="rounded-full border border-[#DDE5EA] px-4 py-2 text-sm font-semibold text-[#173454] transition hover:border-[#167D73] hover:text-[#167D73] focus:outline-none focus:ring-4 focus:ring-[#173454]/10">Sign in</Link>
+          <div className="hidden items-center gap-2 text-[13px] font-medium text-[#74879B] sm:flex lg:text-[14px]">
           <span>Better People</span>
           <span className="text-[#8DA0B2]">›</span>
           <span>Better Opportunities</span>
           <span className="text-[#8DA0B2]">›</span>
           <span>A Brighter Future</span>
           <span className="ml-1 text-[#8DA0B2]">›</span>
+          </div>
         </div>
       </header>
 
