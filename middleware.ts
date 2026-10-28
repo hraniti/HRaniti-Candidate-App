@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/signup", "/login", "/verify", "/api", "/r/", "/employer/signup", "/auth"];
+const PUBLIC_PATHS = ["/signup", "/login", "/verify", "/api", "/r/", "/employer/signup", "/freelancer/signup", "/freelancer/pending", "/auth"];
 const FREELANCER_ALLOWED_PATHS = [
   "/freelancer/dashboard", "/freelancer/submissions", "/freelancer/hires",
   "/freelancer/invoices", "/freelancer/profile",
