@@ -27,6 +27,16 @@ const options = [
     alt: "Professional woman exploring career opportunities",
     tone: "talent",
   },
+  {
+    eyebrow: "FOR FREELANCE RECRUITERS",
+    title: "Build better careers together.",
+    description: "Partner with HRANITI, share relevant talent and track your recruitment work in one place.",
+    cta: "Join as a Freelance Recruiter",
+    href: "/freelancer/signup",
+    image: talentHero,
+    alt: "Professional exploring career opportunities",
+    tone: "freelancer",
+  },
 ] as const;
 
 export default function WelcomePage() {
@@ -55,14 +65,14 @@ export default function WelcomePage() {
         </div>
       </header>
 
-      <section className="mx-auto grid min-h-[calc(100vh-82px)] w-full max-w-[1600px] grid-cols-1 lg:grid-cols-2">
+      <section className="mx-auto grid min-h-[calc(100vh-82px)] w-full max-w-[1600px] grid-cols-1 lg:grid-cols-3">
         {options.map((item, index) => (
           <div
             key={item.cta}
             className={
-              index === 0
-                ? "flex min-h-[650px] flex-col items-center border-b border-[#E4E9E8] px-7 pb-8 pt-2 text-center sm:px-12 lg:min-h-0 lg:border-b-0 lg:border-r lg:px-12 xl:px-20"
-                : "flex min-h-[650px] flex-col items-center px-7 pb-8 pt-2 text-center sm:px-12 lg:min-h-0 lg:px-12 xl:px-20"
+              index < 2
+                ? "flex min-h-[620px] flex-col items-center border-b border-[#E4E9E8] px-6 pb-8 pt-2 text-center sm:px-10 lg:min-h-0 lg:border-b-0 lg:border-r lg:px-8 xl:px-10"
+                : "flex min-h-[620px] flex-col items-center px-6 pb-8 pt-2 text-center sm:px-10 lg:min-h-0 lg:px-8 xl:px-10"
             }
           >
             <div className="flex w-full max-w-[620px] flex-1 flex-col items-center justify-center">
