@@ -20,7 +20,7 @@ export default function EmployerDashboard() {
   const [error, setError] = useState("");
   const [metrics, setMetrics] = useState({ openJobs: 0, applicants: 0, submissions: 0, interviewsToday: 0, offersPending: 0, hiresThisMonth: 0, receivables: 0, payables: 0 });
   const [recent, setRecent] = useState<Submission[]>([]);
-  const [jobTitles, setJobTitles] = useState<Record<string, string>>([]);
+  const [jobTitles, setJobTitles] = useState<Record<string, string>>({});
   const [invoiceRows, setInvoiceRows] = useState<Invoice[]>([]);
 
   async function load() {
