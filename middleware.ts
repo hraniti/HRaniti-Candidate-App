@@ -29,7 +29,8 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone(); url.pathname = "/login"; url.searchParams.set("next", path);
     return NextResponse.redirect(url);
   }
-  if (user && (path.startsWith("/employer") || path.startsWith("/freelancer"))) {
+  const isFreelancerPublicRoute = path === "/freelancer/signup" || path.startsWith("/freelancer/signup/") || path === "/freelancer/pending" || path.startsWith("/freelancer/pending/");
+  if (user && !isFreelancerPublicRoute && (path.startsWith("/employer") || path.startsWith("/freelancer"))) {
     const { data: memberships, error } = await supabase.from("company_team_members").select("role,status").eq("user_id", user.id);
     if (error) {
       if (path.startsWith("/freelancer")) { const url = request.nextUrl.clone(); url.pathname = "/login"; url.searchParams.set("access","unavailable"); return NextResponse.redirect(url); }
