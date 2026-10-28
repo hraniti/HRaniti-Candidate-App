@@ -1,12 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 function ResetPasswordForm() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const params = useSearchParams();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
