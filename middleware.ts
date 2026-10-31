@@ -37,6 +37,13 @@ export async function middleware(request: NextRequest) {
       return response;
     }
     const activeFreelancer = (memberships || []).some((m) => m.role === "Freelance Recruiter" && ["Active", "Approved"].includes((m.status || "").trim()));
+    const hasFreelancerIntent = user.user_metadata?.signup_intent === "freelancer";
+    if (hasFreelancerIntent && !activeFreelancer) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/freelancer/pending";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
     if (activeFreelancer) {
       const allowed = FREELANCER_ALLOWED_PATHS.some((prefix) => path === prefix || path.startsWith(prefix + "/"));
       if (!allowed) { const url = request.nextUrl.clone(); url.pathname = "/freelancer/dashboard"; url.search = ""; return NextResponse.redirect(url); }
