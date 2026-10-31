@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
       if (path.startsWith("/freelancer")) { const url = request.nextUrl.clone(); url.pathname = "/login"; url.searchParams.set("access","unavailable"); return NextResponse.redirect(url); }
       return response;
     }
-    const activeFreelancer = (memberships || []).some((m) => m.role === "Freelance Recruiter" && !["Suspended","Disabled","Inactive"].includes(m.status || ""));
+    const activeFreelancer = (memberships || []).some((m) => m.role === "Freelance Recruiter" && ["Active", "Approved"].includes((m.status || "").trim()));
     if (activeFreelancer) {
       const allowed = FREELANCER_ALLOWED_PATHS.some((prefix) => path === prefix || path.startsWith(prefix + "/"));
       if (!allowed) { const url = request.nextUrl.clone(); url.pathname = "/freelancer/dashboard"; url.search = ""; return NextResponse.redirect(url); }
